@@ -1,0 +1,24 @@
+{
+  "name": "ro-app-gpt-integration-ts",
+  "version": "1.0.0",
+  "description": "OpenAI GPT integration for Ro-app (TypeScript)",
+  "main": "dist/gpt-integration.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/gpt-integration.js",
+    "dev": "ts-node gpt-integration.ts"
+  },
+  "dependencies": {
+    "openai": "^4.0.0",
+    "dotenv": "^16.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "ts-node": "^10.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
