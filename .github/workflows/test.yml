@@ -14,3 +14,29 @@ jobs:
           python-version: "3.12"
       - run: pip install -r requirements.txt
       - run: pytest -q
+      - name: RO App API read-only smoke test
+        if: github.event_name == 'push'
+        env:
+          ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+        run: |
+          python - <<'PY'
+          import os
+          import sys
+          import httpx
+
+          api_key = os.environ.get("ROAPP_API_KEY")
+          if not api_key:
+              print("ROAPP_API_KEY GitHub Secret is not configured.")
+              sys.exit(1)
+
+          response = httpx.get(
+              "https://api.roapp.io/v2/orders",
+              headers={"Authorization": f"Bearer {api_key}"},
+              timeout=20.0,
+          )
+          print(f"RO App API HTTP status: {response.status_code}")
+          if not 200 <= response.status_code < 300:
+              print("RO App API read-only request failed; response body is intentionally not printed.")
+              sys.exit(1)
+          print("RO App API read-only request succeeded.")
+          PY
