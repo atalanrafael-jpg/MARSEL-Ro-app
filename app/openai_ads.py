@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import httpx
@@ -52,6 +52,15 @@ class OpenAIAdsClient:
             raise RuntimeError("OPENAI_ADS_PIXEL_ID не задан")
         if not self.api_key:
             raise RuntimeError("OPENAI_ADS_CONVERSIONS_API_KEY не задан")
+
+    @staticmethod
+    def _validate_timestamp(timestamp: datetime) -> None:
+        now = datetime.now(timezone.utc)
+        event_time = timestamp.astimezone(timezone.utc)
+        if event_time < now - timedelta(days=7):
+            raise ValueError("timestamp события не может быть старше 7 дней")
+        if event_time > now + timedelta(minutes=10):
+            raise ValueError("timestamp события не может быть более чем на 10 минут в будущем")
 
     async def send_events(
         self,
@@ -108,6 +117,7 @@ class OpenAIAdsClient:
             raise ValueError("amount_minor не может быть отрицательным")
 
         event_time = timestamp or datetime.now(timezone.utc)
+        self._validate_timestamp(event_time)
         timestamp_ms = int(event_time.timestamp() * 1000)
         event_source_url = source_url or settings.openai_ads_source_url
 
