@@ -3,6 +3,7 @@ name: test
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 jobs:
   test:
@@ -14,8 +15,11 @@ jobs:
           python-version: "3.12"
       - run: pip install -r requirements.txt
       - run: pytest -q
+
+      # Secrets are intentionally not used on pull_request runs.
+      # The API smoke test therefore runs on push and manual workflow_dispatch runs.
       - name: RO App API read-only smoke test
-        if: github.event_name == 'push'
+        if: github.event_name != 'pull_request'
         env:
           ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
         run: |
@@ -50,7 +54,7 @@ jobs:
           PY
 
       - name: MARSEL read-only orders audit
-        if: github.event_name == 'push'
+        if: github.event_name != 'pull_request'
         env:
           ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
         run: |
