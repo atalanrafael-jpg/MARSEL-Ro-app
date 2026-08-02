@@ -31,12 +31,99 @@ jobs:
 
           response = httpx.get(
               "https://api.roapp.io/v2/orders",
+              params={"page": 1},
               headers={"Authorization": f"Bearer {api_key}"},
               timeout=20.0,
           )
           print(f"RO App API HTTP status: {response.status_code}")
+          print(f"RO App API content-type: {response.headers.get('content-type', '')}")
           if not 200 <= response.status_code < 300:
               print("RO App API read-only request failed; response body is intentionally not printed.")
               sys.exit(1)
+          try:
+              payload = response.json()
+          except ValueError:
+              print("RO App API returned a non-JSON response.")
+              sys.exit(1)
+          print(f"RO App API JSON top-level type: {type(payload).__name__}")
           print("RO App API read-only request succeeded.")
+          PY
+
+      - name: MARSEL read-only orders audit
+        if: github.event_name == 'push'
+        env:
+          ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+        run: |
+          python - <<'PY'
+          import os
+          import sys
+          import time
+          from collections import Counter
+          import httpx
+
+          BASE = "https://api.roapp.io/v2"
+          KEY = os.environ.get("ROAPP_API_KEY")
+          if not KEY:
+              print("AUDIT: ROAPP_API_KEY GitHub Secret is not configured.")
+              sys.exit(1)
+
+          headers = {"Authorization": f"Bearer {KEY}"}
+          page = 1
+          page_size = 50
+          orders = []
+
+          with httpx.Client(timeout=30.0) as client:
+              while True:
+                  response = client.get(
+                      f"{BASE}/orders",
+                      params={"page": page, "pageSize": page_size},
+                      headers=headers,
+                  )
+                  print(f"AUDIT page={page} HTTP={response.status_code}")
+                  if not 200 <= response.status_code < 300:
+                      print("AUDIT stopped: non-success response; response body is intentionally not printed.")
+                      sys.exit(1)
+                  try:
+                      payload = response.json()
+                  except ValueError:
+                      print("AUDIT stopped: non-JSON response.")
+                      sys.exit(1)
+
+                  if isinstance(payload, dict):
+                      rows = payload.get("orders")
+                      if rows is None:
+                          rows = payload.get("data")
+                  elif isinstance(payload, list):
+                      rows = payload
+                  else:
+                      rows = None
+
+                  if not isinstance(rows, list):
+                      print("AUDIT stopped: could not identify an order list in the JSON response.")
+                      print(f"AUDIT top-level keys: {sorted(payload.keys()) if isinstance(payload, dict) else 'n/a'}")
+                      sys.exit(1)
+
+                  orders.extend(x for x in rows if isinstance(x, dict))
+                  if len(rows) < page_size:
+                      break
+                  page += 1
+                  time.sleep(0.4)
+
+          ids = [x.get("id") for x in orders if x.get("id") is not None]
+          id_counts = Counter(ids)
+          duplicate_ids = sum(1 for value in id_counts.values() if value > 1)
+          missing_id = sum(1 for x in orders if x.get("id") is None)
+          missing_client = sum(1 for x in orders if x.get("client_id") is None)
+          statuses = Counter(str(x.get("status_id")) for x in orders if x.get("status_id") is not None)
+
+          print("=== MARSEL_DATA_AUDIT / READ ONLY ===")
+          print(f"pages_read={page}")
+          print(f"orders_total={len(orders)}")
+          print(f"unique_order_ids={len(id_counts)}")
+          print(f"duplicate_order_id_groups={duplicate_ids}")
+          print(f"orders_missing_id={missing_id}")
+          print(f"orders_missing_client_id={missing_client}")
+          print(f"status_groups={len(statuses)}")
+          print("status_counts=" + ",".join(f"{k}:{v}" for k, v in sorted(statuses.items())))
+          print("AUDIT RESULT: READ-ONLY; NO RO APP DATA WAS CREATED, UPDATED OR DELETED.")
           PY
