@@ -2,6 +2,8 @@ name: MARSEL audit v3
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
 
 jobs:
   audit:
@@ -148,8 +150,8 @@ jobs:
           print(f"overdue_true_count={overdue_flag}")
           print(f"status_overdue_true_count={status_overdue_flag}")
           print(f"records_with_due_date_in_past={past_due_dates}")
-          print("status_counts=" + ",".join(f"{sid}:{name}:{count}" for (sid, name), count in sorted(Counter(statuses).items(), key=lambda item: str(item[0]))) )
-          print("order_type_counts=" + ",".join(f"{oid}:{name}:{count}" for (oid, name), count in sorted(Counter(order_types).items(), key=lambda item: str(item[0]))) )
+          print("status_counts=" + ",".join(f"{sid}:{name}:{count}" for (sid, name), count in sorted(Counter(statuses).items(), key=lambda item: str(item[0]))))
+          print("order_type_counts=" + ",".join(f"{oid}:{name}:{count}" for (oid, name), count in sorted(Counter(order_types).items(), key=lambda item: str(item[0]))))
           print("branch_counts=" + ",".join(f"{k}:{v}" for k, v in sorted(Counter(branches).items(), key=lambda item: str(item[0]))))
           print("malformed_date_counts=" + ",".join(f"{k}:{v}" for k, v in sorted(malformed_dates.items())))
           print("AUDIT_V3 RESULT: READ-ONLY; NO RO APP DATA WAS CREATED, UPDATED OR DELETED.")
