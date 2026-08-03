@@ -131,3 +131,109 @@ jobs:
           print("status_counts=" + ",".join(f"{k}:{v}" for k, v in sorted(statuses.items())))
           print("AUDIT RESULT: READ-ONLY; NO RO APP DATA WAS CREATED, UPDATED OR DELETED.")
           PY
+
+      - name: MARSEL read-only order schema audit v2
+        if: github.event_name != 'pull_request'
+        env:
+          ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+        run: |
+          python - <<'PY'
+          import os
+          import sys
+          from collections import Counter
+          import httpx
+
+          BASE = "https://api.roapp.io/v2"
+          KEY = os.environ.get("ROAPP_API_KEY")
+          if not KEY:
+              print("SCHEMA AUDIT: ROAPP_API_KEY GitHub Secret is not configured.")
+              sys.exit(1)
+
+          headers = {"Authorization": f"Bearer {KEY}"}
+          response = httpx.get(
+              f"{BASE}/orders",
+              params={"page": 1, "pageSize": 1},
+              headers=headers,
+              timeout=30.0,
+          )
+          print(f"SCHEMA page=1 HTTP={response.status_code}")
+          if not 200 <= response.status_code < 300:
+              print("SCHEMA audit stopped: non-success response; response body is intentionally not printed.")
+              sys.exit(1)
+
+          try:
+              payload = response.json()
+          except ValueError:
+              print("SCHEMA audit stopped: non-JSON response.")
+              sys.exit(1)
+
+          if isinstance(payload, dict):
+              rows = payload.get("orders")
+              if rows is None:
+                  rows = payload.get("data")
+          elif isinstance(payload, list):
+              rows = payload
+          else:
+              rows = None
+
+          if not isinstance(rows, list) or not rows or not isinstance(rows[0], dict):
+              print("SCHEMA audit stopped: could not identify a sample order object.")
+              print(f"SCHEMA top-level keys: {sorted(payload.keys()) if isinstance(payload, dict) else 'n/a'}")
+              sys.exit(1)
+
+          sample = rows[0]
+
+          def type_name(value):
+              if value is None:
+                  return "null"
+              if isinstance(value, bool):
+                  return "bool"
+              if isinstance(value, int) and not isinstance(value, bool):
+                  return "int"
+              if isinstance(value, float):
+                  return "float"
+              if isinstance(value, str):
+                  return "string"
+              if isinstance(value, list):
+                  return "list"
+              if isinstance(value, dict):
+                  return "object"
+              return type(value).__name__
+
+          def print_schema(obj, prefix="", depth=0, max_depth=3):
+              if not isinstance(obj, dict):
+                  return
+              for key in sorted(obj):
+                  value = obj[key]
+                  path = f"{prefix}.{key}" if prefix else key
+                  print(f"SCHEMA field={path} type={type_name(value)}")
+                  if depth < max_depth and isinstance(value, dict):
+                      print_schema(value, path, depth + 1, max_depth)
+                  elif depth < max_depth and isinstance(value, list) and value and isinstance(value[0], dict):
+                      print_schema(value[0], path + "[]", depth + 1, max_depth)
+
+          print("=== MARSEL_ORDER_SCHEMA_AUDIT_V2 / READ ONLY ===")
+          if isinstance(payload, dict):
+              print("SCHEMA top_level_keys=" + ",".join(sorted(payload.keys())))
+          print("SCHEMA order_keys=" + ",".join(sorted(sample.keys())))
+          print_schema(sample)
+
+          key_names = set()
+          def collect_keys(obj, depth=0):
+              if depth > 5:
+                  return
+              if isinstance(obj, dict):
+                  for key, value in obj.items():
+                      key_names.add(str(key).lower())
+                      collect_keys(value, depth + 1)
+              elif isinstance(obj, list):
+                  for value in obj[:3]:
+                      collect_keys(value, depth + 1)
+
+          collect_keys(sample)
+          client_candidates = sorted(k for k in key_names if "client" in k or "customer" in k or "contact" in k)
+          status_candidates = sorted(k for k in key_names if "status" in k or "state" in k)
+          print("SCHEMA client_related_keys=" + ",".join(client_candidates))
+          print("SCHEMA status_related_keys=" + ",".join(status_candidates))
+          print("SCHEMA RESULT: READ-ONLY; VALUES ARE NOT PRINTED; NO RO APP DATA WAS CREATED, UPDATED OR DELETED.")
+          PY
