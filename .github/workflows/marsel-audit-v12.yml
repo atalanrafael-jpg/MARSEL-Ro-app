@@ -6,6 +6,7 @@ on:
     paths:
       - 'scripts/marsel_audit_v12.py'
       - '.github/workflows/marsel-audit-v12.yml'
+      - 'requirements-audit-v12.txt'
 
 jobs:
   audit:
@@ -24,7 +25,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install dependency
-        run: python -m pip install --disable-pip-version-check httpx
+        run: python -m pip install --disable-pip-version-check -r requirements-audit-v12.txt
       - name: Run V12 read-only audit
         run: |
           set -euo pipefail
