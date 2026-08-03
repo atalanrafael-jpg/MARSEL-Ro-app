@@ -1,0 +1,97 @@
+name: "MARSEL audit v4"
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_db_checks:
+        description: 'Run DB checks if DATABASE_URL_READONLY is set (true/false)'
+        required: false
+        default: 'true'
+
+jobs:
+  audit:
+    name: "MARSEL AUDIT V4 — read-only diagnostics"
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL_READONLY: ${{ secrets.DATABASE_URL_READONLY }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install utilities
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq postgresql-client
+
+      - name: Run MARSEL audit (read-only)
+        id: run_audit
+        run: |
+          set -euo pipefail
+          LOG=marsel-audit-v4.log
+          echo "MARSEL AUDIT V4 - read-only run" > "$LOG"
+
+          # 1) Prefer a repo-provided npm script: "marsel-audit-v4"
+          if [ -f package.json ]; then
+            if node -e "const p=require('./package.json'); console.log(Boolean(p.scripts && p.scripts['marsel-audit-v4']));" | grep -q true; then
+              echo "Found package.json script 'marsel-audit-v4' - running npm script" >> "$LOG"
+              npm ci >> "$LOG" 2>&1 || true
+              npm run marsel-audit-v4 --silent >> "$LOG" 2>&1 || true
+              echo "RESULT=npm_script" >> "$LOG"
+              cat "$LOG"
+              exit 0
+            fi
+          fi
+
+          # 2) Then check for a Python script at scripts/marsel_audit_v4.py
+          if [ -f scripts/marsel_audit_v4.py ]; then
+            echo "Found scripts/marsel_audit_v4.py - running Python script" >> "$LOG"
+            pip install -r requirements.txt --no-warn-script-location >> "$LOG" 2>&1 || true
+            python3 scripts/marsel_audit_v4.py --readonly >> "$LOG" 2>&1 || true
+            echo "RESULT=python_script" >> "$LOG"
+            cat "$LOG"
+            exit 0
+          fi
+
+          # 3) If DATABASE_URL_READONLY is provided, run safe read-only SQL checks (SELECT-only)
+          if [ -n "${DATABASE_URL_READONLY:-}" ] && [ "${{ github.event.inputs.run_db_checks }}" != "false" ]; then
+            echo "No repo audit script found — performing default read-only SQL checks using DATABASE_URL_READONLY" >> "$LOG"
+            export PGSSLMODE=require || true
+
+            echo "-- Server version" >> "$LOG"
+            echo "SELECT version();" | psql "$DATABASE_URL_READONLY" -At >> "$LOG" 2>&1 || true
+
+            echo "-- Orders without executor (example)" >> "$LOG"
+            echo "SELECT id::text || ' | ' || COALESCE(status::text,'') || ' | ' || COALESCE(due_date::text,'') FROM orders WHERE executor_id IS NULL LIMIT 100;" | psql "$DATABASE_URL_READONLY" -At >> "$LOG" 2>&1 || true
+
+            echo "-- Count overdue=true" >> "$LOG"
+            echo "SELECT COUNT(*) FROM orders WHERE overdue = true;" | psql "$DATABASE_URL_READONLY" -At >> "$LOG" 2>&1 || true
+
+            echo "-- Count due_date in the past" >> "$LOG"
+            echo "SELECT COUNT(*) FROM orders WHERE due_date < now()::date;" | psql "$DATABASE_URL_READONLY" -At >> "$LOG" 2>&1 || true
+
+            echo "RESULT=db_checks" >> "$LOG"
+            cat "$LOG"
+            exit 0
+          fi
+
+          echo "No audit script found and DATABASE_URL_READONLY not provided or DB checks disabled." >> "$LOG"
+          echo "Place a 'marsel-audit-v4' npm script in package.json, or scripts/marsel_audit_v4.py, or set secret DATABASE_URL_READONLY." >> "$LOG"
+          cat "$LOG"
+          exit 0
+
+      - name: Upload audit log artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: marsel-audit-v4-log
+          path: marsel-audit-v4.log
