@@ -3,26 +3,25 @@ import json
 import os
 import sys
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 
 import httpx
 
 BASE = os.environ.get("ROAPP_API_BASE", "https://api.roapp.io/v2").rstrip("/")
 KEY = os.environ.get("ROAPP_API_KEY")
-OUT = os.environ.get("MARSEL_AUDIT_REPORT", "marsel-audit-v5-report.json")
-PAGE_SIZE = 100
-MAX_PAGES = 10000
+OUT = os.environ.get("MARSEL_AUDIT_V5_REPORT", "marsel-audit-v5-report.json")
+PAGE_SIZE = int(os.environ.get("MARSEL_AUDIT_PAGE_SIZE", "100"))
+MAX_PAGES = int(os.environ.get("MARSEL_AUDIT_MAX_PAGES", "10000"))
 
 if not KEY:
     print("ERROR: ROAPP_API_KEY GitHub Secret is not configured.")
     sys.exit(2)
 
 headers = {"Authorization": f"Bearer {KEY}", "Accept": "application/json"}
-client = httpx.Client(headers=headers, timeout=30.0)
 
 
 def get(path, params=None):
-    r = client.get(f"{BASE}{path}", params=params or {})
+    r = httpx.get(f"{BASE}{path}", params=params or {}, headers=headers, timeout=30.0)
     if not 200 <= r.status_code < 300:
         print(f"ERROR: GET {path} HTTP={r.status_code}")
         sys.exit(3)
@@ -44,128 +43,144 @@ def rows_from(payload):
     return None
 
 
-def paging_from(payload):
-    return payload.get("paging") if isinstance(payload, dict) else None
+def total_pages_from(payload):
+    paging = payload.get("paging") if isinstance(payload, dict) else None
+    if isinstance(paging, dict):
+        for key in ("total_pages", "totalPages", "pages"):
+            value = paging.get(key)
+            if isinstance(value, int) and value >= 1:
+                return value
+    return None
 
 
-def count_missing(rows, predicate):
-    return sum(1 for row in rows if predicate(row))
+def parse_date(value):
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00")).date()
+    except ValueError:
+        try:
+            return date.fromisoformat(value[:10])
+        except ValueError:
+            return None
 
+
+def safe_order(x):
+    client = x.get("client") if isinstance(x.get("client"), dict) else {}
+    status = x.get("status") if isinstance(x.get("status"), dict) else {}
+    order_type = x.get("order_type") if isinstance(x.get("order_type"), dict) else {}
+    return {
+        "id": x.get("id"),
+        "number": x.get("number"),
+        "status_id": status.get("id"),
+        "status_name": status.get("name"),
+        "order_type_id": order_type.get("id"),
+        "order_type_name": order_type.get("name"),
+        "client_id": client.get("id"),
+        "branch_id": x.get("branch_id"),
+        "assignee_id": x.get("assignee_id"),
+        "manager_id": x.get("manager_id"),
+        "created_at": x.get("created_at"),
+        "modified_at": x.get("modified_at"),
+        "due_date": x.get("due_date"),
+        "closed_at": x.get("closed_at"),
+        "done_at": x.get("done_at"),
+        "overdue": x.get("overdue"),
+        "status_overdue": x.get("status_overdue"),
+        "urgent": x.get("urgent"),
+    }
 
 print("=== MARSEL AUDIT V5 / RO APP API / READ ONLY ===")
 print(f"BASE={BASE}")
 
-all_rows = []
-seen_pages = set()
-page = 1
-first_paging = None
+first = get("/orders", {"page": 1, "pageSize": PAGE_SIZE})
+rows = rows_from(first)
+if rows is None:
+    print("ERROR: Could not identify order list in API response")
+    sys.exit(5)
 
+total_pages = total_pages_from(first)
+all_rows = [x for x in rows if isinstance(x, dict)]
+page = 2
 while page <= MAX_PAGES:
-    if page in seen_pages:
-        print("ERROR: pagination cycle detected")
-        sys.exit(5)
-    seen_pages.add(page)
-
+    if total_pages is not None and page > total_pages:
+        break
     payload = get("/orders", {"page": page, "pageSize": PAGE_SIZE})
     batch = rows_from(payload)
-    if batch is None:
-        print("ERROR: Could not identify order list in API response")
-        sys.exit(6)
-    if page == 1:
-        first_paging = paging_from(payload)
-
-    dict_rows = [x for x in batch if isinstance(x, dict)]
-    all_rows.extend(dict_rows)
-
-    paging = paging_from(payload)
-    total_pages = None
-    if isinstance(paging, dict):
-        for key in ("pages", "totalPages"):
-            value = paging.get(key)
-            if isinstance(value, int):
-                total_pages = value
-                break
-
-    if total_pages is not None:
-        if page >= total_pages:
-            break
-    elif len(batch) < PAGE_SIZE:
+    if not batch:
         break
-
+    all_rows.extend(x for x in batch if isinstance(x, dict))
+    new_total = total_pages_from(payload)
+    if new_total is not None:
+        total_pages = new_total
+    else:
+        break
     page += 1
-else:
-    print(f"ERROR: pagination exceeded MAX_PAGES={MAX_PAGES}")
-    sys.exit(7)
 
-ids = [x.get("id") for x in all_rows if x.get("id") is not None]
-numbers = [x.get("number") for x in all_rows if x.get("number")]
-client_ids = [x.get("client", {}).get("id") for x in all_rows if isinstance(x.get("client"), dict) and x["client"].get("id") is not None]
+pages_scanned = min(page - 1, MAX_PAGES)
+complete = total_pages is not None and pages_scanned >= total_pages
 
-id_counts = Counter(ids)
-number_counts = Counter(numbers)
-client_counts = Counter(client_ids)
+def duplicate_values(values):
+    return sorted(k for k, c in Counter(values).items() if c > 1)
 
-checks = {
-    "duplicate_order_ids": sorted(k for k, c in id_counts.items() if c > 1),
-    "duplicate_order_numbers": sorted(k for k, c in number_counts.items() if c > 1),
-    "missing_id": count_missing(all_rows, lambda x: x.get("id") is None),
-    "missing_number": count_missing(all_rows, lambda x: not x.get("number")),
-    "missing_client": count_missing(all_rows, lambda x: not isinstance(x.get("client"), dict) or x["client"].get("id") is None),
-    "missing_status": count_missing(all_rows, lambda x: not isinstance(x.get("status"), dict) or x["status"].get("id") is None),
-    "missing_branch_id": count_missing(all_rows, lambda x: x.get("branch_id") is None),
-    "missing_assignee_id": count_missing(all_rows, lambda x: x.get("assignee_id") is None),
-    "overdue_flag_true": count_missing(all_rows, lambda x: x.get("overdue") is True),
-    "status_overdue_true": count_missing(all_rows, lambda x: x.get("status_overdue") is True),
-    "urgent_true": count_missing(all_rows, lambda x: x.get("urgent") is True),
-}
+missing_assignee = [safe_order(x) for x in all_rows if x.get("assignee_id") is None]
+overdue_flagged = [safe_order(x) for x in all_rows if x.get("overdue") is True]
+status_overdue_flagged = [safe_order(x) for x in all_rows if x.get("status_overdue") is True]
 
-# Consistency checks that require no additional API assumptions.
-checks["distinct_client_ids_in_orders"] = len(set(client_ids))
-checks["clients_reused_by_multiple_orders"] = sum(1 for c in client_counts.values() if c > 1)
-checks["orders_with_null_asset"] = count_missing(all_rows, lambda x: x.get("asset") is None)
-checks["orders_with_null_payer"] = count_missing(all_rows, lambda x: x.get("payer") is None)
-checks["orders_with_null_resource"] = count_missing(all_rows, lambda x: x.get("resource") is None)
+today = datetime.now(timezone.utc).date()
+for item in overdue_flagged:
+    due = parse_date(item.get("due_date"))
+    closed = item.get("closed_at") is not None or item.get("done_at") is not None
+    item["diagnostic_due_date_before_today"] = bool(due and due < today)
+    item["diagnostic_closed_or_done"] = closed
+    item["diagnostic_reason"] = (
+        "closed_or_done_but_overdue_flag_true" if closed else
+        "due_date_before_today" if due and due < today else
+        "no_due_date" if due is None else
+        "overdue_flag_without_past_due_date"
+    )
 
-sample = all_rows[0] if all_rows else {}
 report = {
     "audit": "MARSEL_AUDIT_V5",
     "timestamp_utc": datetime.now(timezone.utc).isoformat(),
     "readonly": True,
     "api_base": BASE,
-    "scope": {
-        "endpoint": "/orders",
+    "orders": {
+        "http_status": 200,
         "page_size": PAGE_SIZE,
-        "pages_scanned": page,
+        "total_pages_reported": total_pages,
+        "pages_scanned": pages_scanned,
         "rows_scanned": len(all_rows),
-        "paging_keys_page_1": sorted(first_paging.keys()) if isinstance(first_paging, dict) else [],
+        "pagination_complete": complete,
     },
-    "order_schema": {
-        "fields": sorted(sample.keys()),
-        "field_types": {k: type(v).__name__ for k, v in sample.items()},
+    "checks": {
+        "duplicate_order_ids": duplicate_values([x.get("id") for x in all_rows if x.get("id") is not None]),
+        "duplicate_order_numbers": duplicate_values([x.get("number") for x in all_rows if x.get("number")]),
+        "missing_assignee_id_count": len(missing_assignee),
+        "overdue_flag_true_count": len(overdue_flagged),
+        "status_overdue_true_count": len(status_overdue_flagged),
     },
-    "checks": checks,
-    "limitations": [
-        "This audit uses only the verified /orders endpoint.",
-        "It does not infer or invent undocumented RO App endpoints.",
-        "A clean result here does not prove that unrelated RO App entities are error-free.",
-        "No RO App data is created, updated, or deleted.",
-    ],
+    "missing_assignee_orders": missing_assignee,
+    "overdue_orders": overdue_flagged,
+    "status_overdue_orders": status_overdue_flagged,
+    "safety": {
+        "personal_client_name_phone_email_excluded": True,
+        "writes_performed": False,
+        "deletes_performed": False,
+        "updates_performed": False,
+    },
 }
 
 with open(OUT, "w", encoding="utf-8") as f:
     json.dump(report, f, ensure_ascii=False, indent=2)
 
 print("HTTP /orders=200")
-print(f"PAGES_SCANNED={page}")
+print(f"TOTAL_PAGES_REPORTED={total_pages}")
+print(f"PAGES_SCANNED={pages_scanned}")
 print(f"ROWS_SCANNED={len(all_rows)}")
-print(f"DUPLICATE_ORDER_IDS={len(checks['duplicate_order_ids'])}")
-print(f"DUPLICATE_ORDER_NUMBERS={len(checks['duplicate_order_numbers'])}")
-print(f"MISSING_CLIENT={checks['missing_client']}")
-print(f"MISSING_STATUS={checks['missing_status']}")
-print(f"MISSING_BRANCH_ID={checks['missing_branch_id']}")
-print(f"MISSING_ASSIGNEE_ID={checks['missing_assignee_id']}")
-print(f"OVERDUE_FLAG_TRUE={checks['overdue_flag_true']}")
-print(f"STATUS_OVERDUE_TRUE={checks['status_overdue_true']}")
-print(f"URGENT_TRUE={checks['urgent_true']}")
+print(f"PAGINATION_COMPLETE={complete}")
+print(f"MISSING_ASSIGNEE_ID={len(missing_assignee)}")
+print(f"OVERDUE_FLAG_TRUE={len(overdue_flagged)}")
+print(f"STATUS_OVERDUE_TRUE={len(status_overdue_flagged)}")
 print(f"REPORT={OUT}")
 print("RESULT=READ_ONLY; NO RO APP DATA CREATED, UPDATED OR DELETED")
