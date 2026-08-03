@@ -17,7 +17,7 @@ jobs:
       - run: pytest -q
 
       # Secrets are intentionally not used on pull_request runs.
-      # The API smoke test therefore runs on push and manual workflow_dispatch runs.
+      # The API audits therefore run on push and manual workflow_dispatch runs.
       - name: RO App API read-only smoke test
         if: github.event_name != 'pull_request'
         env:
@@ -117,8 +117,27 @@ jobs:
           id_counts = Counter(ids)
           duplicate_ids = sum(1 for value in id_counts.values() if value > 1)
           missing_id = sum(1 for x in orders if x.get("id") is None)
-          missing_client = sum(1 for x in orders if x.get("client_id") is None)
-          statuses = Counter(str(x.get("status_id")) for x in orders if x.get("status_id") is not None)
+
+          # RO App returns client and status as nested objects, not client_id/status_id.
+          clients = [x.get("client") for x in orders]
+          missing_client = sum(
+              1 for client in clients
+              if not isinstance(client, dict) or client.get("id") is None
+          )
+          statuses = Counter(
+              str(status.get("id"))
+              for status in (x.get("status") for x in orders)
+              if isinstance(status, dict) and status.get("id") is not None
+          )
+          missing_status = sum(
+              1 for x in orders
+              if not isinstance(x.get("status"), dict) or x["status"].get("id") is None
+          )
+
+          numbers = [x.get("number") for x in orders if x.get("number") not in (None, "")]
+          number_counts = Counter(numbers)
+          duplicate_number_groups = sum(1 for value in number_counts.values() if value > 1)
+          missing_number = sum(1 for x in orders if x.get("number") in (None, ""))
 
           print("=== MARSEL_DATA_AUDIT / READ ONLY ===")
           print(f"pages_read={page}")
@@ -126,9 +145,12 @@ jobs:
           print(f"unique_order_ids={len(id_counts)}")
           print(f"duplicate_order_id_groups={duplicate_ids}")
           print(f"orders_missing_id={missing_id}")
-          print(f"orders_missing_client_id={missing_client}")
+          print(f"orders_missing_client={missing_client}")
           print(f"status_groups={len(statuses)}")
           print("status_counts=" + ",".join(f"{k}:{v}" for k, v in sorted(statuses.items())))
+          print(f"orders_missing_status={missing_status}")
+          print(f"duplicate_order_number_groups={duplicate_number_groups}")
+          print(f"orders_missing_number={missing_number}")
           print("AUDIT RESULT: READ-ONLY; NO RO APP DATA WAS CREATED, UPDATED OR DELETED.")
           PY
 
@@ -140,7 +162,6 @@ jobs:
           python - <<'PY'
           import os
           import sys
-          from collections import Counter
           import httpx
 
           BASE = "https://api.roapp.io/v2"
@@ -217,23 +238,5 @@ jobs:
               print("SCHEMA top_level_keys=" + ",".join(sorted(payload.keys())))
           print("SCHEMA order_keys=" + ",".join(sorted(sample.keys())))
           print_schema(sample)
-
-          key_names = set()
-          def collect_keys(obj, depth=0):
-              if depth > 5:
-                  return
-              if isinstance(obj, dict):
-                  for key, value in obj.items():
-                      key_names.add(str(key).lower())
-                      collect_keys(value, depth + 1)
-              elif isinstance(obj, list):
-                  for value in obj[:3]:
-                      collect_keys(value, depth + 1)
-
-          collect_keys(sample)
-          client_candidates = sorted(k for k in key_names if "client" in k or "customer" in k or "contact" in k)
-          status_candidates = sorted(k for k in key_names if "status" in k or "state" in k)
-          print("SCHEMA client_related_keys=" + ",".join(client_candidates))
-          print("SCHEMA status_related_keys=" + ",".join(status_candidates))
           print("SCHEMA RESULT: READ-ONLY; VALUES ARE NOT PRINTED; NO RO APP DATA WAS CREATED, UPDATED OR DELETED.")
           PY
