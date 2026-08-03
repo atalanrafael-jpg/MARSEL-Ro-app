@@ -1,0 +1,41 @@
+name: "MARSEL audit v6"
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/marsel_audit_v6.py"
+      - ".github/workflows/marsel-audit-v6.yml"
+
+jobs:
+  audit:
+    name: "MARSEL AUDIT V6 — RO App API read-only diagnostics"
+    runs-on: ubuntu-latest
+    env:
+      ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+      ROAPP_API_BASE: https://api.roapp.io/v2
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install HTTP client
+        run: python -m pip install --disable-pip-version-check httpx
+
+      - name: Run MARSEL V6 read-only diagnostic
+        run: |
+          set -euo pipefail
+          python scripts/marsel_audit_v6.py --readonly
+
+      - name: Upload V6 report
+        uses: actions/upload-artifact@v4
+        with:
+          name: marsel-audit-v6-report
+          path: marsel-audit-v6-report.json
+          if-no-files-found: error
