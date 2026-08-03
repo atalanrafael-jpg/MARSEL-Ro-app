@@ -10,6 +10,8 @@ import httpx
 BASE = os.environ.get("ROAPP_API_BASE", "https://api.roapp.io/v2").rstrip("/")
 KEY = os.environ.get("ROAPP_API_KEY")
 OUT = os.environ.get("MARSEL_AUDIT_REPORT", "marsel-audit-v4-report.json")
+PAGE_SIZE = int(os.environ.get("MARSEL_AUDIT_PAGE_SIZE", "100"))
+MAX_PAGES = int(os.environ.get("MARSEL_AUDIT_MAX_PAGES", "10000"))
 
 if not KEY:
     print("ERROR: ROAPP_API_KEY GitHub Secret is not configured.")
@@ -63,7 +65,7 @@ def safe_type(v):
 print("=== MARSEL AUDIT V4 / RO APP API / READ ONLY ===")
 print(f"BASE={BASE}")
 
-first = get("/orders", {"page": 1, "pageSize": 100})
+first = get("/orders", {"page": 1, "pageSize": PAGE_SIZE})
 rows = extract_rows(first, ["orders"])
 if rows is None:
     print("ERROR: Could not identify order list in API response")
@@ -72,6 +74,15 @@ if rows is None:
 paging = first.get("paging") if isinstance(first, dict) else None
 sample = rows[0] if rows and isinstance(rows[0], dict) else {}
 
+# RO App currently exposes paging.total_pages (snake_case), not totalPages.
+total_pages = None
+if isinstance(paging, dict):
+    for key in ("total_pages", "totalPages", "pages"):
+        value = paging.get(key)
+        if isinstance(value, int) and value >= 1:
+            total_pages = value
+            break
+
 report = {
     "audit": "MARSEL_AUDIT_V4",
     "timestamp_utc": datetime.now(timezone.utc).isoformat(),
@@ -79,8 +90,10 @@ report = {
     "api_base": BASE,
     "orders": {
         "http_status": 200,
-        "sample_count": len(rows),
+        "page_size": PAGE_SIZE,
+        "first_page_count": len(rows),
         "paging_keys": sorted(paging.keys()) if isinstance(paging, dict) else [],
+        "total_pages_reported": total_pages,
         "order_fields": sorted(sample.keys()),
         "field_types": {k: safe_type(v) for k, v in sample.items()},
         "null_fields_in_sample": sorted(k for k, v in sample.items() if v is None),
@@ -88,28 +101,36 @@ report = {
     "checks": {},
 }
 
-# Paginate only if the API exposes a usable total/pages indicator.
-all_rows = list(rows)
+# Read-only full pagination. Stop only at the reported total_pages, an empty page,
+# a missing paging object, or the explicit safety ceiling.
+all_rows = [x for x in rows if isinstance(x, dict)]
 page = 2
-max_pages = 1000
-while isinstance(paging, dict) and page <= max_pages:
-    total_pages = paging.get("pages") or paging.get("totalPages")
-    if isinstance(total_pages, int) and page > total_pages:
+while page <= MAX_PAGES:
+    if total_pages is not None and page > total_pages:
         break
-    if not total_pages and len(rows) < 100:
-        break
-    payload = get("/orders", {"page": page, "pageSize": 100})
+    payload = get("/orders", {"page": page, "pageSize": PAGE_SIZE})
     batch = extract_rows(payload, ["orders"])
     if not batch:
         break
     all_rows.extend(x for x in batch if isinstance(x, dict))
     new_paging = payload.get("paging") if isinstance(payload, dict) else None
-    if not isinstance(new_paging, dict):
+    if isinstance(new_paging, dict):
+        for key in ("total_pages", "totalPages", "pages"):
+            value = new_paging.get(key)
+            if isinstance(value, int) and value >= 1:
+                total_pages = value
+                break
+    else:
         break
-    paging = new_paging
     page += 1
 
+pages_scanned = min(page - 1, MAX_PAGES)
+report["orders"]["pages_scanned"] = pages_scanned
 report["orders"]["rows_scanned"] = len(all_rows)
+report["orders"]["pagination_complete"] = (
+    total_pages is not None and pages_scanned >= total_pages
+)
+report["orders"]["max_pages_reached"] = pages_scanned >= MAX_PAGES
 
 ids = [x.get("id") for x in all_rows if x.get("id") is not None]
 numbers = [x.get("number") for x in all_rows if x.get("number")]
@@ -128,8 +149,12 @@ report["checks"]["urgent_true"] = sum(1 for x in all_rows if x.get("urgent") is 
 with open(OUT, "w", encoding="utf-8") as f:
     json.dump(report, f, ensure_ascii=False, indent=2)
 
-print(f"HTTP /orders=200")
+print("HTTP /orders=200")
+print(f"PAGE_SIZE={PAGE_SIZE}")
+print(f"TOTAL_PAGES_REPORTED={total_pages if total_pages is not None else 'unknown'}")
+print(f"PAGES_SCANNED={pages_scanned}")
 print(f"ROWS_SCANNED={len(all_rows)}")
+print(f"PAGINATION_COMPLETE={report['orders']['pagination_complete']}")
 print(f"DUPLICATE_ORDER_IDS={len(report['checks']['duplicate_order_ids'])}")
 print(f"DUPLICATE_ORDER_NUMBERS={len(report['checks']['duplicate_order_numbers'])}")
 print(f"MISSING_CLIENT={report['checks']['missing_client']}")
