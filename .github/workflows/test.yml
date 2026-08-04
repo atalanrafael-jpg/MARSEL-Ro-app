@@ -117,23 +117,10 @@ jobs:
           id_counts = Counter(ids)
           duplicate_ids = sum(1 for value in id_counts.values() if value > 1)
           missing_id = sum(1 for x in orders if x.get("id") is None)
-
-          # RO App returns client and status as nested objects, not client_id/status_id.
           clients = [x.get("client") for x in orders]
-          missing_client = sum(
-              1 for client in clients
-              if not isinstance(client, dict) or client.get("id") is None
-          )
-          statuses = Counter(
-              str(status.get("id"))
-              for status in (x.get("status") for x in orders)
-              if isinstance(status, dict) and status.get("id") is not None
-          )
-          missing_status = sum(
-              1 for x in orders
-              if not isinstance(x.get("status"), dict) or x["status"].get("id") is None
-          )
-
+          missing_client = sum(1 for client in clients if not isinstance(client, dict) or client.get("id") is None)
+          statuses = Counter(str(status.get("id")) for status in (x.get("status") for x in orders) if isinstance(status, dict) and status.get("id") is not None)
+          missing_status = sum(1 for x in orders if not isinstance(x.get("status"), dict) or x["status"].get("id") is None)
           numbers = [x.get("number") for x in orders if x.get("number") not in (None, "")]
           number_counts = Counter(numbers)
           duplicate_number_groups = sum(1 for value in number_counts.values() if value > 1)
@@ -169,74 +156,57 @@ jobs:
           if not KEY:
               print("SCHEMA AUDIT: ROAPP_API_KEY GitHub Secret is not configured.")
               sys.exit(1)
-
           headers = {"Authorization": f"Bearer {KEY}"}
-          response = httpx.get(
-              f"{BASE}/orders",
-              params={"page": 1, "pageSize": 1},
-              headers=headers,
-              timeout=30.0,
-          )
+          response = httpx.get(f"{BASE}/orders", params={"page": 1, "pageSize": 1}, headers=headers, timeout=30.0)
           print(f"SCHEMA page=1 HTTP={response.status_code}")
           if not 200 <= response.status_code < 300:
               print("SCHEMA audit stopped: non-success response; response body is intentionally not printed.")
               sys.exit(1)
-
           try:
               payload = response.json()
           except ValueError:
               print("SCHEMA audit stopped: non-JSON response.")
               sys.exit(1)
-
           if isinstance(payload, dict):
-              rows = payload.get("orders")
-              if rows is None:
-                  rows = payload.get("data")
+              rows = payload.get("orders") or payload.get("data")
           elif isinstance(payload, list):
               rows = payload
           else:
               rows = None
-
           if not isinstance(rows, list) or not rows or not isinstance(rows[0], dict):
               print("SCHEMA audit stopped: could not identify a sample order object.")
-              print(f"SCHEMA top-level keys: {sorted(payload.keys()) if isinstance(payload, dict) else 'n/a'}")
               sys.exit(1)
-
           sample = rows[0]
-
           def type_name(value):
-              if value is None:
-                  return "null"
-              if isinstance(value, bool):
-                  return "bool"
-              if isinstance(value, int) and not isinstance(value, bool):
-                  return "int"
-              if isinstance(value, float):
-                  return "float"
-              if isinstance(value, str):
-                  return "string"
-              if isinstance(value, list):
-                  return "list"
-              if isinstance(value, dict):
-                  return "object"
+              if value is None: return "null"
+              if isinstance(value, bool): return "bool"
+              if isinstance(value, int) and not isinstance(value, bool): return "int"
+              if isinstance(value, float): return "float"
+              if isinstance(value, str): return "string"
+              if isinstance(value, list): return "list"
+              if isinstance(value, dict): return "object"
               return type(value).__name__
-
           def print_schema(obj, prefix="", depth=0, max_depth=3):
-              if not isinstance(obj, dict):
-                  return
+              if not isinstance(obj, dict): return
               for key in sorted(obj):
                   value = obj[key]
                   path = f"{prefix}.{key}" if prefix else key
                   print(f"SCHEMA field={path} type={type_name(value)}")
-                  if depth < max_depth and isinstance(value, dict):
-                      print_schema(value, path, depth + 1, max_depth)
-                  elif depth < max_depth and isinstance(value, list) and value and isinstance(value[0], dict):
-                      print_schema(value[0], path + "[]", depth + 1, max_depth)
-
+                  if depth < max_depth and isinstance(value, dict): print_schema(value, path, depth + 1, max_depth)
+                  elif depth < max_depth and isinstance(value, list) and value and isinstance(value[0], dict): print_schema(value[0], path + "[]", depth + 1, max_depth)
           print("=== MARSEL_ORDER_SCHEMA_AUDIT_V2 / READ ONLY ===")
-          if isinstance(payload, dict):
-              print("SCHEMA top_level_keys=" + ",".join(sorted(payload.keys())))
+          if isinstance(payload, dict): print("SCHEMA top_level_keys=" + ",".join(sorted(payload.keys())))
           print("SCHEMA order_keys=" + ",".join(sorted(sample.keys())))
           print_schema(sample)
           print("SCHEMA RESULT: READ-ONLY; VALUES ARE NOT PRINTED; NO RO APP DATA WAS CREATED, UPDATED OR DELETED.")
           PY
+
+      - name: MARSEL V20.3 access reference matrix
+        if: github.event_name != 'pull_request'
+        env:
+          ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+          ROAPP_API_BASE: https://api.roapp.io/v2
+          ROAPP_DOCS_INDEX: https://roapp.readme.io/llms.txt
+        run: |
+          test -n "$ROAPP_API_KEY"
+          python scripts/marsel_audit_v20_3.py --readonly
