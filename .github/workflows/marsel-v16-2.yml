@@ -1,0 +1,36 @@
+name: MARSEL V16.2 — Official API Title Catalog
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/marsel_audit_v16_2.py'
+      - '.github/workflows/marsel-v16-2.yml'
+      - 'requirements.txt'
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      ROAPP_API_BASE: https://api.roapp.io/v2
+      ROAPP_DOCS_INDEX: https://roapp.readme.io/llms.txt
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Python compile check
+        run: python -m py_compile scripts/marsel_audit_v16_2.py
+      - name: Run read-only catalog
+        env:
+          ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$ROAPP_API_KEY"
+          python scripts/marsel_audit_v16_2.py --readonly
+      - name: Upload inventory
+        uses: actions/upload-artifact@v4
+        with:
+          name: marsel-api-master-inventory-v16-2
+          path: marsel-api-master-inventory-v16-2.json
