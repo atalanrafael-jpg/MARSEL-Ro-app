@@ -31,9 +31,11 @@ def get(url, params=None, headers=None):
 def links(text):
     out, seen = [], set()
     for raw in re.findall(r"https?://[^\s<>\)\]\"'`]+", text or ""):
+        # Keep the quote/backtick characters inside a properly terminated Python string.
         u = raw.rstrip(".,;\"'`")
         if u not in seen:
-            seen.add(u); out.append(u)
+            seen.add(u)
+            out.append(u)
     return out
 
 
@@ -95,10 +97,12 @@ def api_url(path):
 
 
 def response_shape(payload):
-    if isinstance(payload, list): return len(payload)
+    if isinstance(payload, list):
+        return len(payload)
     if isinstance(payload, dict):
         for k in ("data","items","results","orders","people","organizations","services","products","employees","locations"):
-            if isinstance(payload.get(k), list): return len(payload[k])
+            if isinstance(payload.get(k), list):
+                return len(payload[k])
     return 0
 
 
@@ -107,7 +111,8 @@ print(f"BASE={BASE}")
 print(f"DOCS_INDEX={DOCS_INDEX}")
 idx = get(DOCS_INDEX, headers=DOC_HEADERS)
 if isinstance(idx, Exception):
-    print(f"DOCS_INDEX_ERROR={idx}"); sys.exit(3)
+    print(f"DOCS_INDEX_ERROR={idx}")
+    sys.exit(3)
 print(f"DOCS_INDEX_HTTP={idx.status_code}")
 if idx.status_code != 200:
     sys.exit(4)
