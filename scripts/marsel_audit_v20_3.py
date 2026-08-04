@@ -5,6 +5,8 @@ Runs the existing V20.2 read-only verifier, then turns its raw observations
 into an explicit machine-readable matrix for access restrictions, skipped
 endpoints and unresolved references. No POST/PATCH/PUT/DELETE requests are
 made by this script; V20.2 is itself GET-only.
+
+V20.3 launch marker: this commit intentionally triggers the read-only CI run.
 """
 import json
 import os
