@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
-"""MARSEL V18 — read-only structural audit of live RO App GET responses.
-No POST/PUT/PATCH/DELETE requests are made and response bodies are never written to disk.
-Only derived metadata, counts, identifiers, duplicate fingerprints and relationship hints are stored.
-"""
+"""MARSEL V18 — read-only structural audit of live RO App GET responses."""
 import hashlib, json, os, re, sys
-from collections import Counter, defaultdict
+from collections import Counter
 from datetime import datetime, timezone
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
@@ -36,7 +33,7 @@ def text_of(value):
 
 
 def refs(text):
-    return list(dict.fromkeys(re.findall(r"https://roapp\\.readme\\.io/reference/[^)\\s]+", text_of(text))))
+    return list(dict.fromkeys(re.findall(r"https://roapp\.readme\.io/reference/[^)\s]+", text_of(text))))
 
 
 def specs(text):
