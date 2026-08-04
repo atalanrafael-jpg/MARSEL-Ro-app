@@ -1,16 +1,5 @@
 #!/usr/bin/env python3
-"""MARSEL V16 — OpenAPI-first RO App API discovery, read-only.
-
-V16 does not invent an OpenAPI URL. It starts from the official RO App ReadMe
-catalog, fetches the documented reference pages, discovers only OpenAPI/Swagger
-URLs actually present in that official documentation, validates discovered
-specifications, inventories paths/methods, and probes only explicitly
-confirmed GET operations.
-
-Safety: only GET requests are sent to RO App API. No POST/PUT/PATCH/DELETE
-requests are sent. Reports contain metadata only; response payloads are not
-persisted.
-"""
+"""MARSEL V16 — OpenAPI-first RO App API discovery, read-only."""
 import json, os, re, sys
 from datetime import datetime, timezone
 from urllib.parse import urlparse
@@ -42,7 +31,7 @@ def get(url, params=None, headers=None):
 def links(text):
     out, seen = [], set()
     for raw in re.findall(r"https?://[^\s<>\)\]\"'`]+", text or ""):
-        u = raw.rstrip(".,;\"'`)
+        u = raw.rstrip(".,;\"'`")
         if u not in seen:
             seen.add(u); out.append(u)
     return out
@@ -56,28 +45,20 @@ def title_from_line(line):
 def is_openapi_url(url):
     p = urlparse(url)
     s = (p.path + "?" + p.query).lower()
-    return any(x in s for x in ("openapi", "swagger", "api-docs")) or p.path.lower().endswith((".yaml", ".yml", ".json")) and any(x in p.path.lower() for x in ("api", "spec", "swagger"))
-
-
-def normalize_path(path):
-    if not path.startswith("/"):
-        return None
-    return path if path.startswith("/v2") else "/v2" + path
+    return any(x in s for x in ("openapi", "swagger", "api-docs")) or (p.path.lower().endswith((".yaml", ".yml", ".json")) and any(x in p.path.lower() for x in ("api", "spec", "swagger")))
 
 
 def extract_spec_links(text):
     return [u for u in links(text) if is_openapi_url(u)]
 
 
-def parse_openapi(text, content_type=""):
+def parse_openapi(text):
     try:
         obj = json.loads(text)
         if isinstance(obj, dict) and ("openapi" in obj or "swagger" in obj) and isinstance(obj.get("paths"), dict):
             return obj, "json"
     except Exception:
         pass
-    # YAML is intentionally parsed only when PyYAML is installed. We do not
-    # add a dependency merely for discovery; absence is reported explicitly.
     try:
         import yaml
         obj = yaml.safe_load(text)
@@ -139,13 +120,12 @@ for line in idx.text.splitlines():
 print(f"REFERENCE_LINKS={len(catalog)}")
 
 spec_candidates=[]; candidate_seen=set()
-# Only URLs explicitly present in the official docs index are accepted here.
 for u in extract_spec_links(idx.text):
     if u not in candidate_seen:
         candidate_seen.add(u); spec_candidates.append({"url":u,"source":"llms_index"})
 
 page_results=[]
-for n, ref in enumerate(catalog[:MAX_DOC_PAGES], 1):
+for ref in catalog[:MAX_DOC_PAGES]:
     r=get(ref["url"], headers=DOC_HEADERS)
     rec={"reference":ref["url"],"title":ref["title"],"status":None,"bytes":0,"spec_links":[]}
     if isinstance(r, Exception):
@@ -168,7 +148,7 @@ for c in spec_candidates:
     if isinstance(r, Exception): rec["error"]=str(r); validated.append(rec); continue
     rec["status"]=r.status_code; rec["content_type"]=r.headers.get("content-type",""); rec["bytes"]=len(r.content)
     if r.status_code == 200:
-        spec, fmt=parse_openapi(r.text, rec["content_type"])
+        spec, fmt=parse_openapi(r.text)
         if spec:
             methods, paths=method_inventory(spec)
             rec.update({"valid":True,"format":fmt,"version":spec.get("openapi") or spec.get("swagger"),"path_count":len(paths),"method_counts":methods,"paths":paths})
@@ -177,13 +157,11 @@ for c in spec_candidates:
 valid_specs=[x for x in validated if x.get("valid")]
 print(f"OPENAPI_VALID_SPECS={len(valid_specs)}")
 
-# Merge all valid specifications by method/path without inventing anything.
 all_ops={}
 for spec in valid_specs:
     for p in spec["paths"]:
         for method in p["methods"]:
-            key=(method,p["path"])
-            all_ops[key]={"method":method,"path":p["path"],"source":spec["url"]}
+            all_ops[(method,p["path"])]={"method":method,"path":p["path"],"source":spec["url"]}
 ops=list(all_ops.values())
 get_ops=[x for x in ops if x["method"]=="GET"]
 write_ops=[x for x in ops if x["method"]!="GET"]
@@ -191,8 +169,6 @@ print(f"OPENAPI_ENDPOINTS={len(ops)}")
 print(f"OPENAPI_GET_ENDPOINTS={len(get_ops)}")
 print(f"OPENAPI_WRITE_ENDPOINTS={len(write_ops)}")
 
-# Probe only GET paths that are concrete enough to call safely. Template paths
-# are inventoried but not probed because they require an identifier.
 probe=[]
 for op in get_ops:
     if re.search(r"\{[^}]+\}", op["path"]):
