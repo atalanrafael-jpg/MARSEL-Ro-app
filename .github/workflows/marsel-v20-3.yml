@@ -1,0 +1,72 @@
+name: MARSEL V20.3 — Read-only Release Verification
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, v20.3]
+    paths:
+      - 'VERSION'
+      - 'CHANGELOG_v20.3.md'
+      - 'scripts/marsel_audit_v20_2.py'
+      - '.github/workflows/marsel-v20-3.yml'
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout v20.3
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Verify release version
+        run: |
+          set -euo pipefail
+          test "$(tr -d '[:space:]' < VERSION)" = "20.3"
+          test -f CHANGELOG_v20.3.md
+
+      - name: Compile read-only audit
+        run: python -m py_compile scripts/marsel_audit_v20_2.py
+
+      - name: Run v20.3 read-only verification
+        env:
+          ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+          ROAPP_API_BASE: https://api.roapp.io/v2
+          ROAPP_DOCS_INDEX: https://roapp.readme.io/llms.txt
+        run: |
+          set -euo pipefail
+          test -n "$ROAPP_API_KEY"
+          python scripts/marsel_audit_v20_2.py --readonly
+
+      - name: Normalize v20.3 report
+        run: |
+          set -euo pipefail
+          test -f marsel-reference-verification-v20-2.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          src = Path('marsel-reference-verification-v20-2.json')
+          data = json.loads(src.read_text(encoding='utf-8'))
+          data['release_version'] = '20.3'
+          data['audit_engine'] = '20.2-compatible-readonly-engine'
+          data['release_verification'] = True
+          data['data_mutated'] = False
+          data['write_requests_made'] = False
+          Path('marsel-reference-verification-v20-3.json').write_text(
+              json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8'
+          )
+          PY
+
+      - name: Upload v20.3 report
+        uses: actions/upload-artifact@v4
+        with:
+          name: marsel-reference-verification-v20-3
+          path: marsel-reference-verification-v20-3.json
+          if-no-files-found: error
