@@ -17,6 +17,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -25,6 +28,14 @@ jobs:
 
       - name: Install dependencies
         run: python -m pip install --disable-pip-version-check httpx pyyaml
+
+      - name: Verify checked-out V16 source
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD
+          git status --short
+          python -m py_compile scripts/marsel_audit_v16.py
+          sed -n '35,52p' scripts/marsel_audit_v16.py
 
       - name: Run MARSEL V16 read-only audit
         env:
