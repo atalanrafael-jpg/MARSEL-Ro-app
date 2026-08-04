@@ -19,13 +19,21 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 1
 
-      - name: Verify checkout and script identity
+      - name: Install Python dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Verify checkout, dependencies and script identity
         shell: bash
         run: |
           set -euo pipefail
           echo "GITHUB_SHA=$GITHUB_SHA"
           echo "GITHUB_REF=$GITHUB_REF"
           echo "SCRIPT_SHA=$(sha256sum scripts/marsel_audit_v16.py | awk '{print $1}')"
+          python -c "import httpx; print('HTTPX_VERSION=' + httpx.__version__)"
           python -m py_compile scripts/marsel_audit_v16.py
           echo "PY_COMPILE=OK"
           grep -n 'raw.rstrip' scripts/marsel_audit_v16.py
