@@ -15,10 +15,10 @@ jobs:
     permissions:
       contents: read
     steps:
-      - name: Checkout
+      - name: Checkout exact revision
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ github.sha }}
           fetch-depth: 1
 
       - name: Setup Python
@@ -32,10 +32,13 @@ jobs:
       - name: Verify checked-out V16 source
         run: |
           set -euo pipefail
-          git rev-parse HEAD
+          echo "GITHUB_SHA=$GITHUB_SHA"
+          echo "CHECKED_OUT_SHA=$(git rev-parse HEAD)"
+          echo "SCRIPT_SHA=$(git rev-parse HEAD:scripts/marsel_audit_v16.py)"
           git status --short
           python -m py_compile scripts/marsel_audit_v16.py
-          sed -n '35,52p' scripts/marsel_audit_v16.py
+          echo "PY_COMPILE=OK"
+          sed -n '40,48p' scripts/marsel_audit_v16.py
 
       - name: Run MARSEL V16 read-only audit
         env:
@@ -48,8 +51,9 @@ jobs:
           python scripts/marsel_audit_v16.py --readonly
 
       - name: Upload V16 inventory
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: marsel-api-master-inventory-v16
           path: marsel-api-master-inventory-v16.json
-          if-no-files-found: error
+          if-no-files-found: ignore
