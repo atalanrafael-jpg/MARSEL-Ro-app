@@ -1,4 +1,4 @@
-name: MARSEL V17.2.1 — Live GET Response Metadata Audit
+name: MARSEL V17.2.2 — Live GET Response Metadata Audit
 on:
   workflow_dispatch:
   push:
@@ -28,6 +28,6 @@ jobs:
       - name: Upload metadata report
         uses: actions/upload-artifact@v4
         with:
-          name: marsel-live-api-metadata-v17-2-1
-          path: marsel-live-api-metadata-v17-2-1.json
+          name: marsel-live-api-metadata-v17-2-2
+          path: marsel-live-api-metadata-v17-2-2.json
           if-no-files-found: error
