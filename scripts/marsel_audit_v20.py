@@ -126,15 +126,15 @@ def with_query(url, extra):
 
 
 def fetch_all(endpoint):
-    """Fetch all available pages for a list endpoint, respecting the documented 3 req/s limit."""
+    """Fetch all available pages for a list endpoint, respecting RO App's documented rate limit."""
     first = with_query(endpoint["url"], dict(endpoint["query"]))
     status, body = get(first, True)
     if not (status and 200 <= status < 300):
-        return [], [{"url": first, "status": status}], None
+        return [], [{"url": first, "status": status}], 1
     payload = json_value(body)
     rows, meta = records(payload)
     if rows is None:
-        return [], [], payload
+        return [], [], 1
     all_rows = list(rows)
     count = None
     if isinstance(meta, dict):
@@ -147,20 +147,22 @@ def fetch_all(endpoint):
                 if isinstance(meta["meta"].get(k), int):
                     count = meta["meta"][k]
                     break
-    if "page" not in endpoint["url"] and count is not None and count > len(all_rows):
+    pages = 1
+    if count is not None and count > len(all_rows):
         page = 2
         while len(all_rows) < count and page <= 1000:
             time.sleep(0.36)
             u = with_query(first, {"page": str(page)})
             s, b = get(u, True)
+            pages += 1
             if not (s and 200 <= s < 300):
-                return all_rows, [{"url": u, "status": s}], payload
+                return all_rows, [{"url": u, "status": s}], pages
             rr, _ = records(json_value(b))
             if not rr:
                 break
             all_rows.extend(rr)
             page += 1
-    return all_rows, [], payload
+    return all_rows, [], pages
 
 
 print("=== MARSEL AUDIT V20 / PAGINATED REFERENCE VERIFICATION / READ ONLY ===")
@@ -168,7 +170,7 @@ s, body = get(DOCS)
 print(f"DOCS_INDEX_HTTP={s}")
 if s != 200:
     sys.exit(4)
-links = list(dict.fromkeys(re.findall(r"https://roapp\\.readme\\.io/reference/[^)\\s]+", text(body))))
+links = list(dict.fromkeys(re.findall(r"https://roapp\.readme\.io/reference/[^)\s]+", text(body))))
 print(f"REFERENCE_LINKS={len(links)}")
 endpoints = []
 for ref in links:
@@ -185,14 +187,15 @@ refs = []
 endpoint_stats = []
 
 for ep in endpoints:
-    rows, errs, _ = fetch_all(ep)
+    rows, errs, pages = fetch_all(ep)
     http_errors.extend(errs)
-    endpoint_stats.append({"path": ep["path"], "operation_id": ep["operation_id"], "records": len(rows), "pages_attempted": 1 + sum(1 for e in errs if "page=" in e.get("url", ""))})
+    endpoint_stats.append({"path": ep["path"], "operation_id": ep["operation_id"], "records": len(rows), "pages_attempted": pages})
     records_seen += len(rows)
+    entity = hint("id", ep["path"])
     for r in rows:
         x = rid(r)
         if x:
-            id_index[hint("id", ep["path"])].add(x)
+            id_index[entity].add(x)
         if isinstance(r, dict):
             for k, v in r.items():
                 if not ref_keys(k):
@@ -202,19 +205,25 @@ for ep in endpoints:
                     if isinstance(val, (str, int)) and str(val):
                         refs.append({"source_path": ep["path"], "field": str(k), "value": str(val), "entity_hint": hint(k, ep["path"])})
 
-# Build a global ID index as a second pass because some entity types are not obvious from endpoint names.
 global_ids = set().union(*id_index.values()) if id_index else set()
 unique_refs = {(r["source_path"], r["field"], r["value"]): r for r in refs}
 results = []
 for r in unique_refs.values():
     val = r["value"]
-    if val in global_ids:
-        cls = "RESOLVED_BY_ID"
-        reason = "Reference value exists as an ID in at least one successfully retrieved GET record after pagination."
+    entity = r["entity_hint"]
+    if entity != "unknown" and val in id_index.get(entity, set()):
+        cls = "RESOLVED_ENTITY_MATCH"
+        severity = "INFO"
+        reason = "Reference value matches an ID in the inferred target entity after pagination."
+    elif val in global_ids:
+        cls = "RESOLVED_CROSS_ENTITY_ID"
+        severity = "REVIEW"
+        reason = "Reference value exists elsewhere as an ID but not in the inferred target entity; possible type mismatch or heuristic ambiguity."
     else:
         cls = "UNRESOLVED_AFTER_PAGINATION"
+        severity = "REVIEW"
         reason = "Reference value was not found in any successfully retrieved GET list after pagination; this is evidence for review, not proof of corruption."
-    results.append({**r, "classification": cls, "severity": "INFO" if cls == "RESOLVED_BY_ID" else "REVIEW", "reason": reason})
+    results.append({**r, "classification": cls, "severity": severity, "reason": reason})
 
 summary = defaultdict(int)
 for r in results:
@@ -239,7 +248,8 @@ with open(OUT, "w", encoding="utf-8") as f:
     json.dump(report, f, ensure_ascii=False, indent=2)
 print(f"RECORDS_SEEN_AFTER_PAGINATION={records_seen}")
 print(f"UNIQUE_REFERENCE_VALUES={len(results)}")
-print(f"RESOLVED_BY_ID={summary['RESOLVED_BY_ID']}")
+print(f"RESOLVED_ENTITY_MATCH={summary['RESOLVED_ENTITY_MATCH']}")
+print(f"RESOLVED_CROSS_ENTITY_ID={summary['RESOLVED_CROSS_ENTITY_ID']}")
 print(f"UNRESOLVED_AFTER_PAGINATION={summary['UNRESOLVED_AFTER_PAGINATION']}")
 print(f"HTTP_ERRORS={len(http_errors)}")
 print("WRITE_REQUESTS_MADE=0")
