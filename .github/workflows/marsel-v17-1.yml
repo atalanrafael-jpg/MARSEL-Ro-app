@@ -1,0 +1,35 @@
+name: MARSEL V17.1 — OpenAPI Live GET-Only Audit
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/marsel_audit_v17_1.py'
+      - '.github/workflows/marsel-v17-1.yml'
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile audit
+        run: python -m py_compile scripts/marsel_audit_v17_1.py
+      - name: Run read-only audit
+        env:
+          ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+          ROAPP_API_BASE: https://api.roapp.io/v2
+          ROAPP_DOCS_INDEX: https://roapp.readme.io/llms.txt
+        run: |
+          set -euo pipefail
+          test -n "$ROAPP_API_KEY"
+          python scripts/marsel_audit_v17_1.py --readonly
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        with:
+          name: marsel-live-api-readonly-v17-1
+          path: marsel-live-api-readonly-v17-1.json
+          if-no-files-found: error
