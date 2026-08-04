@@ -1,70 +1,74 @@
-# MARSEL RO App ERP — v0.1
+# MARSEL RO App ERP — v20.3
 
-Рабочий стартовый пакет интеграционного сервиса для Ювелирной студии MARSEL.
+Рабочий интеграционный пакет для Ювелирной студии MARSEL.
 
-## Что подтверждено по официальной документации RO App
+## Статус v20.3
+
+Версия зафиксирована в `VERSION`. Релиз проходит автоматическую проверку GitHub Actions.
+
+Критерий технического подтверждения: успешный CI run для commit релиза, включая существующие тесты и безопасные RO App read-only проверки. До такого результата v20.3 не считается полностью подтверждённой.
+
+## RO App API
+
+По проектной документации:
 - Base URL Public API: `https://api.roapp.io/v2`
 - Авторизация: `Authorization: Bearer <API_KEY>`
 - Лимит: до 3 запросов/сек.
-- Пагинация: до 50 записей на страницу.
-- Пример получения заказов: `GET /orders`.
+- Пагинация: до 50 записей за запрос.
+- Проверочный endpoint: `GET /orders`.
 
 Источник: официальная документация RO App:
 https://roapp.readme.io/reference/getting-started-with-api
 
+## Read-only контроль
+
+GitHub Actions содержит:
+- `RO App API read-only smoke test`;
+- `MARSEL read-only orders audit`;
+- `MARSEL read-only order schema audit v2`.
+
+Эти проверки выполняют только GET-запросы и не должны создавать, изменять или удалять данные RO App.
+
 ## OpenAI Ads conversion tracking
 
-В репозиторий добавлен серверный клиент OpenAI Ads Conversions API: `app/openai_ads.py`.
+В репозитории присутствует серверный клиент OpenAI Ads Conversions API: `app/openai_ads.py`.
 
 Он подготовлен для:
-- `order_created` как основной ecommerce-конверсионный event;
+- `order_created` как ecommerce-конверсионного event;
 - передачи `oppref`, когда он доступен;
-- единого стабильного `order_id` как server-side `id`, чтобы дедуплицировать событие с browser Pixel через тот же Pixel ID;
-- передачи суммы в минимальных денежных единицах (`amount_minor`);
-- `validate_only=true` по умолчанию для безопасной первичной проверки;
-- batch-отправки до 1000 событий;
+- стабильного `order_id` для дедупликации browser Pixel и server-side события;
+- `amount_minor`;
+- `validate_only=true` для безопасной первичной проверки;
+- batch-отправки;
 - хранения Pixel ID и Conversions API key только в серверных переменных окружения.
 
-OpenAI указывает, что для более устойчивого измерения можно использовать Pixel и Conversions API вместе; при отправке одной и той же конверсии обеими системами нужно использовать одинаковый event ID для дедупликации. `oppref` следует сохранять и передавать в server-side событии, когда он доступен. Источник: OpenAI Help Center — Conversion Measurement:
+Источник: OpenAI Help Center — Conversion Measurement:
 https://help.openai.com/en/articles/20001409-conversion-measurement
 
-Текущий server-side endpoint: `POST https://bzr.openai.com/v1/events?pid=<PIXEL_ID>`. API key передаётся как `Authorization: Bearer <CONVERSIONS_API_KEY>`. Для первичной проверки используется `validate_only: true`. Источник с описанием API endpoint и формата запроса: OpenAI Ads Conversions API reference, дополнительно сверено с актуальными интеграционными материалами:
-https://www.paidaisearch.com/encyclopedia/chatgpt-ads/chapter-09-conversions-api
+## Переменные окружения
 
-### Переменные окружения
+Скопировать `.env.example` в `.env` и заполнить необходимые переменные.
 
-Скопировать `.env.example` в `.env` и заполнить:
+Для RO App в GitHub Actions используется секрет:
 
-- `OPENAI_ADS_PIXEL_ID`
-- `OPENAI_ADS_CONVERSIONS_API_KEY`
-- `OPENAI_ADS_VALIDATE_ONLY=true` для первоначальной проверки
-- `OPENAI_ADS_SOURCE_URL` для web-событий
+`ROAPP_API_KEY`
 
-**Важно:** Conversions API key должен быть создан именно в Ads Manager → Conversions. Не используйте для CAPI обычный OpenAI Platform API key и не помещайте секрет в GitHub или клиентский JavaScript.
+**Не помещайте API-ключи в GitHub-код, README, исходники или скриншоты.**
 
-## Важно
-Этот пакет не содержит реальные ключи и не изменяет рабочую базу RO App автоматически.
-Сначала выполняется безопасная валидация OpenAI Ads событий через `validate_only=true`. Реальная отправка включается только после успешной проверки credentials, Pixel ID, event schema и consent/privacy требований.
+## Локальный запуск
 
-## Запуск
+```bash
+pip install -r requirements.txt
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
 
-1. Скопировать `.env.example` в `.env`.
-2. Заполнить `ROAPP_API_KEY` при необходимости работы с RO App.
-3. Заполнить OpenAI Ads `Pixel ID` и `Conversions API key`.
-4. Установить зависимости:
-   `pip install -r requirements.txt`
-5. Запустить:
-   `uvicorn app.main:app --host 0.0.0.0 --port 8000`
-
-Проверка RO App:
+Проверки:
 - `GET /health`
 - `GET /roapp/orders?page=1`
+- `pytest -q`
 
-Тесты:
-`pytest -q`
+## Безопасность
 
-## Безопасность и приватность
+v20.3 не включает массовую запись в RO App. Любые будущие операции изменения данных должны проходить отдельную проверку endpoint, payload, прав доступа, идемпотентности и резервной копии.
 
-Не помещайте API-ключи в GitHub, README, исходный код или скриншоты.
-
-Перед передачей conversion data пользователям необходимо предоставить требуемую информацию о сборе данных и получить необходимые согласия, когда они требуются применимым законодательством. OpenAI также указывает, что данные для расширенного сопоставления должны передаваться только при наличии правового основания и в поддерживаемом формате.
+Подробные критерии релиза: `CHANGELOG_v20.3.md`.
