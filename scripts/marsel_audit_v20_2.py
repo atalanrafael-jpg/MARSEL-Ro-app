@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
-"""MARSEL V20.2 — read-only API/data-reference verification.
+"""MARSEL V20.2-compatible read-only API/data-reference verification.
 
-V20.2 fixes three V20.1 audit problems:
-1) list requests start with pageSize=100 and continue pagination when supported;
-2) ad_campaign_id is treated as a marketing reference, not a local entity-integrity reference;
-3) expected 403/404 detail probes are reported as access/not-found observations, not generic HTTP errors.
+The engine remains backward-compatible with V20.2 by default, while release
+workflows may set MARSEL_AUDIT_VERSION and MARSEL_AUDIT_OUTPUT explicitly.
 Only GET requests are made. No RO App data is created, updated or deleted.
 """
 import json, os, re, sys, time
@@ -17,9 +15,10 @@ from datetime import datetime, timezone
 API_BASE=os.environ.get("ROAPP_API_BASE","https://api.roapp.io/v2").rstrip("/")
 KEY=os.environ.get("ROAPP_API_KEY")
 DOCS=os.environ.get("ROAPP_DOCS_INDEX","https://roapp.readme.io/llms.txt")
-OUT="marsel-reference-verification-v20-2.json"
+AUDIT_VERSION=os.environ.get("MARSEL_AUDIT_VERSION","20.2").strip()
+OUT=os.environ.get("MARSEL_AUDIT_OUTPUT",f"marsel-reference-verification-v{AUDIT_VERSION.replace('.', '-')}.json")
 if not KEY: sys.exit("ROAPP_API_KEY is not configured")
-H={"User-Agent":"MARSEL-REFERENCE-VERIFICATION/20.2","Accept":"application/json,text/plain,*/*"}
+H={"User-Agent":f"MARSEL-REFERENCE-VERIFICATION/{AUDIT_VERSION}","Accept":"application/json,text/plain,*/*"}
 
 def get(url, api=False):
     h=dict(H)
@@ -101,7 +100,6 @@ def fetch_list(ep):
     base=substitute(ep["url"],{})
     if "{" in base:return [],[],0,{"status":"SKIPPED_MISSING_PATH_PARAMETER"}
     baseq=dict(ep["query"]);baseq.setdefault("pageSize","100")
-    # Always request the maximum documented page size first.
     u=qurl(base,baseq);s,b=get(u,True)
     if not (s and 200<=s<300):return [],[{"url":u,"status":s,"kind":"HTTP_ERROR"}],1,{}
     rr,meta=rows(j(b))
@@ -124,7 +122,6 @@ def fetch_list(ep):
             if not rr:break
             allr.extend(rr);page+=1
     elif len(allr)>=100:
-        # If API omits pagination metadata, continue page-by-page until a short page.
         page=2
         while len(allr)%100==0 and page<1000:
             time.sleep(.36);u=qurl(base,{**baseq,"page":str(page)});s,b=get(u,True);pages+=1
@@ -136,7 +133,6 @@ def fetch_list(ep):
             page+=1
     return allr,[],pages,{"total":total,"pagination_style":style or ("pageSize100" if len(allr)>0 else None)}
 
-# These are references whose authoritative target is outside the standard local entity collections.
 EXTERNAL_REFERENCE_FIELDS={"ad_campaign_id","ad_campaign_ids"}
 ENTITY_ALIASES={"people":"people","organizations":"organizations","services":"services","products":"products","orders":"orders","sales":"sales","employees":"employees","locations":"locations","branches":"locations","categories":"categories","uoms":"uoms","invoices":"invoices","accounts":"accounts","refunds":"refunds"}
 
@@ -154,7 +150,7 @@ def ref_field(k):
     return lk.endswith("_id") or lk.endswith("_ids") or lk in {"customer","client","order","product","service","branch","employee","category","warehouse","invoice","payment","author","assignee","manager","technician","uom"}
 
 def main():
-    print("=== MARSEL AUDIT V20.2 / PAGINATION + REFERENCE CLASSIFICATION / READ ONLY ===")
+    print(f"=== MARSEL AUDIT V{AUDIT_VERSION} / PAGINATION + REFERENCE CLASSIFICATION / READ ONLY ===")
     ds,db=get(DOCS);print(f"DOCS_INDEX_HTTP={ds}")
     if ds!=200:sys.exit(4)
     links=list(dict.fromkeys(re.findall(r"https://roapp\.readme\.io/reference/[^)\s]+",txt(db))))
@@ -189,7 +185,6 @@ def main():
             results.append({**r,"classification":"RESOLVED_CROSS_ENTITY_ID","severity":"REVIEW","reason":"Reference exists elsewhere but not in the inferred target entity."})
         else:
             results.append({**r,"classification":"UNRESOLVED_AFTER_COLLECTION_SCAN","severity":"REVIEW","reason":"Reference not found in the complete retrieved collection set."})
-    # Detail probes are observational only. 404 = not found; 403 = access/endpoint restriction, neither is a generic HTTP error.
     for ep in details:
         if len(ep["path_params"])!=1:skipped.append({"path":ep["path"],"reason":"MULTIPLE_PATH_PARAMETERS"});continue
         p=ep["path_params"][0];target=next((v for k,v in ENTITY_ALIASES.items() if k in ep["path"].lower()),"unknown")
@@ -202,7 +197,7 @@ def main():
             elif s==404:access.append({"path":ep["path"],"value":val,"status":404,"classification":"NOT_FOUND"})
             elif not(s and 200<=s<300):errors.append({"url":u,"status":s,"kind":"UNEXPECTED_DETAIL_HTTP_ERROR"})
     unresolved=[r for r in results if r["classification"]=="UNRESOLVED_AFTER_COLLECTION_SCAN"]
-    out={"version":"20.2","timestamp_utc":datetime.now(timezone.utc).isoformat(),"readonly":True,"data_mutated":False,"write_requests_made":False,"docs_index_http":ds,"reference_links":len(links),"get_candidates":len(eps),"records_seen_after_pagination":seen,"unique_reference_values":len(uniq),"resolved_entity_match":sum(r["classification"]=="RESOLVED_ENTITY_MATCH" for r in results),"resolved_cross_entity_id":sum(r["classification"]=="RESOLVED_CROSS_ENTITY_ID" for r in results),"external_references":sum(r["classification"]=="EXTERNAL_REFERENCE_NOT_AUDITED" for r in results),"unresolved_after_readonly_verification":len(unresolved),"http_errors":len(errors),"access_restrictions":len(access),"skipped_endpoints":len(skipped),"reference_results":results,"endpoint_stats":stats,"skipped_endpoints_detail":skipped,"detail_checks":access,"http_error_detail":errors}
+    out={"version":AUDIT_VERSION,"engine_version":"20.2-compatible-readonly-engine","timestamp_utc":datetime.now(timezone.utc).isoformat(),"readonly":True,"data_mutated":False,"write_requests_made":False,"docs_index_http":ds,"reference_links":len(links),"get_candidates":len(eps),"records_seen_after_pagination":seen,"unique_reference_values":len(uniq),"resolved_entity_match":sum(r["classification"]=="RESOLVED_ENTITY_MATCH" for r in results),"resolved_cross_entity_id":sum(r["classification"]=="RESOLVED_CROSS_ENTITY_ID" for r in results),"external_references":sum(r["classification"]=="EXTERNAL_REFERENCE_NOT_AUDITED" for r in results),"unresolved_after_readonly_verification":len(unresolved),"http_errors":len(errors),"access_restrictions":len(access),"skipped_endpoints":len(skipped),"reference_results":results,"endpoint_stats":stats,"skipped_endpoints_detail":skipped,"detail_checks":access,"http_error_detail":errors}
     with open(OUT,"w",encoding="utf-8") as f:json.dump(out,f,ensure_ascii=False,indent=2)
-    print(f"RECORDS_SEEN_AFTER_PAGINATION={seen}");print(f"UNIQUE_REFERENCE_VALUES={len(uniq)}");print(f"RESOLVED_ENTITY_MATCH={out['resolved_entity_match']}");print(f"RESOLVED_CROSS_ENTITY_ID={out['resolved_cross_entity_id']}");print(f"EXTERNAL_REFERENCES={out['external_references']}");print(f"UNRESOLVED_AFTER_READONLY_VERIFICATION={len(unresolved)}");print(f"HTTP_ERRORS={len(errors)}");print(f"ACCESS_RESTRICTIONS={len(access)}");print(f"SKIPPED_ENDPOINTS={len(skipped)}");print("WRITE_REQUESTS_MADE=0");print(f"REPORT={OUT}");print("RESULT=READ_ONLY; V20.2; NO RO APP DATA CREATED, UPDATED OR DELETED")
+    print(f"RECORDS_SEEN_AFTER_PAGINATION={seen}");print(f"UNIQUE_REFERENCE_VALUES={len(uniq)}");print(f"RESOLVED_ENTITY_MATCH={out['resolved_entity_match']}");print(f"RESOLVED_CROSS_ENTITY_ID={out['resolved_cross_entity_id']}");print(f"EXTERNAL_REFERENCES={out['external_references']}");print(f"UNRESOLVED_AFTER_READONLY_VERIFICATION={len(unresolved)}");print(f"HTTP_ERRORS={len(errors)}");print(f"ACCESS_RESTRICTIONS={len(access)}");print(f"SKIPPED_ENDPOINTS={len(skipped)}");print("WRITE_REQUESTS_MADE=0");print(f"REPORT={OUT}");print(f"RESULT=READ_ONLY; V{AUDIT_VERSION}; NO RO APP DATA CREATED, UPDATED OR DELETED")
 if __name__=="__main__":main()
