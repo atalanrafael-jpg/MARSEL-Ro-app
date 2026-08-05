@@ -1,0 +1,44 @@
+name: MARSEL V20.2 — Read-only Audit Fix
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/marsel_audit_v20_2.py'
+      - '.github/workflows/marsel-v20.yml'
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Compile V20.2
+        run: python -m py_compile scripts/marsel_audit_v20_2.py
+
+      - name: Run V20.2 read-only verification
+        env:
+          ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+          ROAPP_API_BASE: https://api.roapp.io/v2
+          ROAPP_DOCS_INDEX: https://roapp.readme.io/llms.txt
+        run: |
+          set -euo pipefail
+          test -n "$ROAPP_API_KEY"
+          python scripts/marsel_audit_v20_2.py --readonly
+
+      - name: Upload V20.2 report
+        uses: actions/upload-artifact@v4
+        with:
+          name: marsel-reference-verification-v20-2
+          path: marsel-reference-verification-v20-2.json
+          if-no-files-found: error

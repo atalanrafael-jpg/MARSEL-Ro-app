@@ -1,0 +1,42 @@
+name: MARSEL V20.5 audit
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/marsel_audit_v20_5.py'
+      - '.github/workflows/marsel-audit-v20-5.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+      ROAPP_API_BASE: https://api.roapp.io/v2
+      ROAPP_TIMEOUT: '30'
+      MARSEL_AUDIT_OUTPUT: marsel-data-discovery-v20-5.json
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run MARSEL V20.5 read-only audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$ROAPP_API_KEY"
+          python scripts/marsel_audit_v20_5.py --readonly
+      - name: Upload V20.5 report
+        uses: actions/upload-artifact@v4
+        with:
+          name: marsel-v20-5-audit
+          if-no-files-found: error
+          path: marsel-data-discovery-v20-5.json
+          compression-level: 6

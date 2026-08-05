@@ -1,0 +1,58 @@
+name: MARSEL V16 — Verified Read-Only Audit
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit-v16:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact pushed revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+
+      - name: Install Python dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Verify checkout, dependencies and script identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "GITHUB_SHA=$GITHUB_SHA"
+          echo "GITHUB_REF=$GITHUB_REF"
+          echo "SCRIPT_SHA=$(sha256sum scripts/marsel_audit_v16.py | awk '{print $1}')"
+          python -c "import httpx; print('HTTPX_VERSION=' + httpx.__version__)"
+          python -m py_compile scripts/marsel_audit_v16.py
+          echo "PY_COMPILE=OK"
+          grep -n 'raw.rstrip' scripts/marsel_audit_v16.py
+
+      - name: Run MARSEL V16 read-only audit
+        shell: bash
+        env:
+          ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+          ROAPP_API_BASE: https://api.roapp.io/v2
+          ROAPP_DOCS_INDEX: https://roapp.readme.io/llms.txt
+        run: |
+          set -euo pipefail
+          test -n "$ROAPP_API_KEY"
+          python scripts/marsel_audit_v16.py --readonly
+
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: marsel-audit-v16-report
+          path: marsel-api-master-inventory-v16.json
+          if-no-files-found: ignore

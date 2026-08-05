@@ -1,0 +1,37 @@
+name: "MARSEL audit v11"
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/marsel_audit_v11.py"
+      - ".github/workflows/marsel-audit-v11.yml"
+
+jobs:
+  audit:
+    name: "MARSEL AUDIT V11 — official API catalog discovery"
+    runs-on: ubuntu-latest
+    env:
+      ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+      ROAPP_API_BASE: https://api.roapp.io/v2
+      ROAPP_DOCS_INDEX: https://roapp.readme.io/llms.txt
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install HTTP client
+        run: python -m pip install --disable-pip-version-check httpx
+      - name: Run MARSEL V11 read-only diagnostic
+        run: |
+          set -euo pipefail
+          python scripts/marsel_audit_v11.py --readonly
+      - name: Upload V11 report
+        uses: actions/upload-artifact@v4
+        with:
+          name: marsel-audit-v11-report
+          path: marsel-audit-v11-report.json
+          if-no-files-found: error
