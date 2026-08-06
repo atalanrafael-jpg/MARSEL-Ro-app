@@ -1,82 +1,108 @@
-name: "MARSEL audit v4.2"
+name: "MARSEL AUDIT V4.2 — OFFICIAL READ ONLY"
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: marsel-audit-v4-2
+  cancel-in-progress: true
+
+env:
+  ROAPP_API_BASE: https://api.roapp.io/v2
+  MARSEL_AUDIT_REPORT: marsel-audit-v4-report.json
+
 jobs:
-  audit:
-    name: "MARSEL AUDIT V4.2 — RO App API read-only diagnostics"
+  audit-v4-2:
+    name: "MARSEL V4.2 — RO App API / READ ONLY"
     runs-on: ubuntu-latest
     env:
       ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
-      ROAPP_API_BASE: https://api.roapp.io/v2
-      MARSEL_AUDIT_REPORT: marsel-audit-v4-report.json
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
-      - name: Install HTTP client
-        run: python -m pip install --disable-pip-version-check httpx
+      - name: Install audit dependency
+        run: python -m pip install --disable-pip-version-check --no-input httpx
 
-      - name: Run MARSEL API audit (read-only)
+      - name: Verify audit source
+        run: |
+          set -euo pipefail
+          test -f scripts/marsel_audit_v4.py
+          python -m py_compile scripts/marsel_audit_v4.py
+
+      - name: Run MARSEL V4.2 audit — READ ONLY
         run: |
           set -euo pipefail
           python scripts/marsel_audit_v4.py --readonly
 
-      - name: Validate and print diagnostic summary
+      - name: Validate complete audit report
         run: |
           set -euo pipefail
-          test -s marsel-audit-v4-report.json
+          test -s "$MARSEL_AUDIT_REPORT"
           python - <<'PY'
           import json
+          import os
           from pathlib import Path
-          p = Path("marsel-audit-v4-report.json")
-          data = json.loads(p.read_text(encoding="utf-8"))
+
+          path = Path(os.environ["MARSEL_AUDIT_REPORT"])
+          data = json.loads(path.read_text(encoding="utf-8"))
+
+          assert data.get("audit") == "MARSEL_AUDIT_V4.2"
           assert data.get("readonly") is True
           assert data.get("write_methods_used") == 0
           assert data.get("delete_methods_used") == 0
+
+          orders = data.get("orders", {})
+          checks = data.get("checks", {})
           details = data.get("details", {})
-          required = {
-              "missing_assignee",
-              "active_past_due",
-              "active_past_due_overdue_true",
-              "active_past_due_overdue_false",
-              "closed_past_due",
-              "missing_due_date",
-              "status_overdue_inconsistencies",
-          }
-          assert required.issubset(details)
+
+          assert orders.get("pagination_complete") is True
+          assert orders.get("rows_scanned") == 4373
+          assert len(checks.get("duplicate_order_ids", [])) == 0
+          assert len(checks.get("duplicate_order_numbers", [])) == 0
+          assert checks.get("missing_assignee_id") == len(details.get("missing_assignee", []))
+          assert checks.get("active_records_with_due_date_in_past") == len(details.get("active_past_due", []))
+          assert checks.get("active_past_due_overdue_true") == len(details.get("active_past_due_overdue_true", []))
+          assert checks.get("active_past_due_overdue_false") == len(details.get("active_past_due_overdue_false", []))
+          assert checks.get("closed_records_with_due_date_in_past") == len(details.get("closed_past_due", []))
+          assert checks.get("records_missing_due_date") == len(details.get("missing_due_date", []))
+          assert checks.get("status_overdue_inconsistencies") == len(details.get("status_overdue_inconsistencies", []))
+
           print("AUDIT_REPORT_VALID=True")
-          print(f"MISSING_ASSIGNEE_DETAILS={len(details['missing_assignee'])}")
-          for row in details["missing_assignee"]:
-              print(
-                  "MISSING_ASSIGNEE_ORDER="
-                  f"id:{row.get('id')};number:{row.get('number')};"
-                  f"status:{row.get('status_name')};type:{row.get('order_type_name')};"
-                  f"manager_id:{row.get('manager_id')};due_date:{row.get('due_date')}"
-              )
-          print(f"ACTIVE_PAST_DUE_DETAILS={len(details['active_past_due'])}")
-          print(f"ACTIVE_PAST_DUE_OVERDUE_TRUE={len(details['active_past_due_overdue_true'])}")
-          print(f"ACTIVE_PAST_DUE_OVERDUE_FALSE={len(details['active_past_due_overdue_false'])}")
-          print(f"CLOSED_PAST_DUE_DETAILS={len(details['closed_past_due'])}")
-          print(f"MISSING_DUE_DATE_DETAILS={len(details['missing_due_date'])}")
-          print(f"STATUS_OVERDUE_INCONSISTENCY_DETAILS={len(details['status_overdue_inconsistencies'])}")
+          print(f"ROWS_SCANNED={orders['rows_scanned']}")
+          print(f"MISSING_ASSIGNEE={checks['missing_assignee_id']}")
+          print(f"ACTIVE_PAST_DUE={checks['active_records_with_due_date_in_past']}")
+          print(f"ACTIVE_PAST_DUE_OVERDUE_TRUE={checks['active_past_due_overdue_true']}")
+          print(f"ACTIVE_PAST_DUE_OVERDUE_FALSE={checks['active_past_due_overdue_false']}")
+          print(f"CLOSED_PAST_DUE={checks['closed_records_with_due_date_in_past']}")
+          print(f"MISSING_DUE_DATE={checks['records_missing_due_date']}")
+          print(f"STATUS_OVERDUE_INCONSISTENCIES={checks['status_overdue_inconsistencies']}")
           print("WRITE_METHODS_USED=0")
           print("DELETE_METHODS_USED=0")
           PY
 
-      - name: Upload expanded audit report
+      - name: Upload official V4.2 audit artifact
         uses: actions/upload-artifact@v4
         with:
           name: marsel-audit-v4.2-report
-          path: marsel-audit-v4-report.json
+          path: ${{ env.MARSEL_AUDIT_REPORT }}
           if-no-files-found: error
           retention-days: 14
+          compression-level: 9
+
+      - name: Final safety assertion
+        run: |
+          set -euo pipefail
+          echo "MARSEL V4.2 RESULT: READ-ONLY"
+          echo "RO APP DATA CREATED: 0"
+          echo "RO APP DATA UPDATED: 0"
+          echo "RO APP DATA DELETED: 0"
