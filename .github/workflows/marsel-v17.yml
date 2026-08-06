@@ -1,6 +1,8 @@
 name: MARSEL V17 — Live GET-Only Read-Only Audit
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
