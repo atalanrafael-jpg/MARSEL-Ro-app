@@ -108,7 +108,7 @@ def order_summary(x):
     }
 
 
-print("=== MARSEL AUDIT V4.1 / RO APP API / READ ONLY ===")
+print("=== MARSEL AUDIT V4.2 / RO APP API / READ ONLY ===")
 print(f"BASE={BASE}")
 
 first = get("/orders", {"page": 1, "pageSize": PAGE_SIZE})
@@ -129,7 +129,7 @@ if isinstance(paging, dict):
             break
 
 report = {
-    "audit": "MARSEL_AUDIT_V4.1",
+    "audit": "MARSEL_AUDIT_V4.2",
     "timestamp_utc": datetime.now(timezone.utc).isoformat(),
     "readonly": True,
     "write_methods_used": 0,
@@ -188,10 +188,10 @@ past_due = []
 active_past_due = []
 closed_past_due = []
 due_missing = []
-overdue_mismatches = []
+active_past_due_overdue_true = []
+active_past_due_overdue_false = []
 status_overdue_mismatches = []
 
-# Closed status IDs are discovered from the API response rather than hard-coded.
 closed_status_ids = {
     nested_id(x, "status")
     for x in all_rows
@@ -220,12 +220,13 @@ for x in all_rows:
             closed_past_due.append(summary)
         else:
             active_past_due.append(summary)
+            if x.get("overdue") is True:
+                active_past_due_overdue_true.append(summary)
+            else:
+                active_past_due_overdue_false.append(summary)
 
-        if x.get("overdue") is not True:
-            overdue_mismatches.append(summary)
-    elif x.get("overdue") is True:
-        overdue_mismatches.append(summary)
-
+    # This is intentionally a consistency check only for the API's two
+    # explicit overdue flags; due_date alone does not define an API error.
     if x.get("status_overdue") is True and x.get("overdue") is not True:
         status_overdue_mismatches.append(summary)
 
@@ -247,15 +248,17 @@ report["checks"]["malformed_date_counts"] = dict(sorted(malformed_dates.items())
 report["checks"]["records_with_due_date_in_past"] = len(past_due)
 report["checks"]["active_records_with_due_date_in_past"] = len(active_past_due)
 report["checks"]["closed_records_with_due_date_in_past"] = len(closed_past_due)
+report["checks"]["active_past_due_overdue_true"] = len(active_past_due_overdue_true)
+report["checks"]["active_past_due_overdue_false"] = len(active_past_due_overdue_false)
 report["checks"]["records_missing_due_date"] = len(due_missing)
-report["checks"]["overdue_flag_inconsistencies"] = len(overdue_mismatches)
 report["checks"]["status_overdue_inconsistencies"] = len(status_overdue_mismatches)
 
 report["details"]["missing_assignee"] = [order_summary(x) for x in missing_assignee]
 report["details"]["active_past_due"] = active_past_due
+report["details"]["active_past_due_overdue_true"] = active_past_due_overdue_true
+report["details"]["active_past_due_overdue_false"] = active_past_due_overdue_false
 report["details"]["closed_past_due"] = closed_past_due
 report["details"]["missing_due_date"] = due_missing
-report["details"]["overdue_inconsistencies"] = overdue_mismatches
 report["details"]["status_overdue_inconsistencies"] = status_overdue_mismatches
 report["details"]["closed_status_ids_detected"] = sorted(x for x in closed_status_ids if x is not None)
 
@@ -280,8 +283,9 @@ print(f"MISSING_TOTAL={report['checks']['missing_total']}")
 print(f"OVERDUE_FLAG_TRUE={report['checks']['overdue_flag_true']}")
 print(f"ACTIVE_PAST_DUE={report['checks']['active_records_with_due_date_in_past']}")
 print(f"CLOSED_PAST_DUE={report['checks']['closed_records_with_due_date_in_past']}")
+print(f"ACTIVE_PAST_DUE_OVERDUE_TRUE={report['checks']['active_past_due_overdue_true']}")
+print(f"ACTIVE_PAST_DUE_OVERDUE_FALSE={report['checks']['active_past_due_overdue_false']}")
 print(f"MISSING_DUE_DATE={report['checks']['records_missing_due_date']}")
-print(f"OVERDUE_INCONSISTENCIES={report['checks']['overdue_flag_inconsistencies']}")
 print(f"STATUS_OVERDUE_INCONSISTENCIES={report['checks']['status_overdue_inconsistencies']}")
 print(f"MALFORMED_DATE_FIELDS={len(malformed_dates)}")
 print(f"REPORT={OUT}")
