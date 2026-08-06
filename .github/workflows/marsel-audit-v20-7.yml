@@ -43,3 +43,5 @@ jobs:
           if-no-files-found: error
           path: marsel-data-discovery-v20-7.json
           compression-level: 6
+
+# Audit trigger verified 2026-08-06; GET-only / read-only.
