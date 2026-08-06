@@ -1,4 +1,4 @@
-name: "MARSEL audit v4"
+name: "MARSEL audit v4.1"
 
 on:
   push:
@@ -7,11 +7,12 @@ on:
 
 jobs:
   audit:
-    name: "MARSEL AUDIT V4 — RO App API read-only diagnostics"
+    name: "MARSEL AUDIT V4.1 — RO App API read-only diagnostics"
     runs-on: ubuntu-latest
     env:
       ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
       ROAPP_API_BASE: https://api.roapp.io/v2
+      MARSEL_AUDIT_REPORT: marsel-audit-v4-report.json
 
     steps:
       - name: Checkout repository
@@ -30,9 +31,33 @@ jobs:
           set -euo pipefail
           python scripts/marsel_audit_v4.py --readonly
 
-      - name: Upload audit report
+      - name: Validate audit report
+        run: |
+          set -euo pipefail
+          test -s marsel-audit-v4-report.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path("marsel-audit-v4-report.json")
+          data = json.loads(p.read_text(encoding="utf-8"))
+          assert data.get("readonly") is True
+          assert data.get("write_methods_used") == 0
+          assert data.get("delete_methods_used") == 0
+          assert "missing_assignee" in data.get("details", {})
+          assert "active_past_due" in data.get("details", {})
+          assert "closed_past_due" in data.get("details", {})
+          assert "overdue_inconsistencies" in data.get("details", {})
+          print("AUDIT_REPORT_VALID=True")
+          print(f"MISSING_ASSIGNEE_DETAILS={len(data['details']['missing_assignee'])}")
+          print(f"ACTIVE_PAST_DUE_DETAILS={len(data['details']['active_past_due'])}")
+          print(f"CLOSED_PAST_DUE_DETAILS={len(data['details']['closed_past_due'])}")
+          print(f"OVERDUE_INCONSISTENCY_DETAILS={len(data['details']['overdue_inconsistencies'])}")
+          PY
+
+      - name: Upload expanded audit report
         uses: actions/upload-artifact@v4
         with:
-          name: marsel-audit-v4-report
+          name: marsel-audit-v4.1-report
           path: marsel-audit-v4-report.json
           if-no-files-found: error
+          retention-days: 14
