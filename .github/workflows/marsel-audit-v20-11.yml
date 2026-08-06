@@ -24,9 +24,9 @@ jobs:
       MARSEL_MAX_PAGES: 100
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - name: Validate API secret
@@ -58,7 +58,7 @@ jobs:
           print('RO_APP_DATA_MUTATED=False')
           PY
       - name: Upload V20.11 report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: marsel-v20-11-endpoint-resolution
           path: marsel-api-resolution-v20-11.json
