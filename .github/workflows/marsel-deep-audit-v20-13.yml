@@ -1,36 +1,76 @@
 name: MARSEL V20.13 Deep Audit — READ ONLY
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+    inputs:
+      inventory_run_id:
+        description: 'Successful MARSEL V20.12 inventory workflow run ID'
+        required: false
+        type: string
+  workflow_run:
+    workflows:
+      - MARSEL V20.12 full inventory
+    types: [completed]
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   deep-audit:
     name: Deep audit — READ ONLY
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
+      - name: Download V20.12 inventory artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: marsel-v20-12-full-inventory
+          path: .
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.inventory_run_id || github.event.workflow_run.id }}
+
+      - name: Verify inventory input
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s marsel-full-inventory-v20-12.json
+          python - <<'PY'
+          import json
+          p='marsel-full-inventory-v20-12.json'
+          with open(p, encoding='utf-8') as f:
+              d=json.load(f)
+          assert d['version'] == '20.12'
+          assert d['readonly'] is True
+          assert d['write_requests_made'] == 0
+          assert d['ro_app_data_mutated'] is False
+          print('INVENTORY_INPUT=VALID')
+          print('INVENTORY_RECORDS=', d['summary']['records'])
+          print('INVENTORY_SHA256=', d['summary']['inventory_sha256'])
+          PY
+
       - name: Run MARSEL V20.13 deep audit
         env:
           MARSEL_INVENTORY_INPUT: marsel-full-inventory-v20-12.json
           MARSEL_DEEP_AUDIT_OUTPUT: marsel-deep-audit-v20-13.json
         run: |
           set -euo pipefail
-          test -s "$MARSEL_INVENTORY_INPUT"
           python scripts/marsel_deep_audit_v20_13.py
+
       - name: Validate V20.13 report
         run: |
           set -euo pipefail
+          test -s marsel-deep-audit-v20-13.json
           python - <<'PY'
           import json
           p='marsel-deep-audit-v20-13.json'
@@ -39,14 +79,17 @@ jobs:
           assert d['readonly'] is True
           assert d['write_requests_made']==0
           assert d['ro_app_data_mutated'] is False
+          assert d['summary']['records'] > 0
           print('VALIDATION=PASS')
           print('RECORDS=',d['summary']['records'])
           print('CHANGE_SET_ITEMS=',d['summary']['change_set_items'])
           print('DEEP_AUDIT_SHA256=',d['summary']['deep_audit_sha256'])
           PY
+
       - name: Upload V20.13 audit
         uses: actions/upload-artifact@v4
         with:
           name: marsel-v20-13-deep-audit
           path: marsel-deep-audit-v20-13.json
           if-no-files-found: error
+          compression-level: 6
