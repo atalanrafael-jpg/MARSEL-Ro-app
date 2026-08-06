@@ -1,4 +1,4 @@
-name: "MARSEL audit v4.1"
+name: "MARSEL audit v4.2"
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   audit:
-    name: "MARSEL AUDIT V4.1 — RO App API read-only diagnostics"
+    name: "MARSEL AUDIT V4.2 — RO App API read-only diagnostics"
     runs-on: ubuntu-latest
     env:
       ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
@@ -31,7 +31,7 @@ jobs:
           set -euo pipefail
           python scripts/marsel_audit_v4.py --readonly
 
-      - name: Validate audit report
+      - name: Validate and print diagnostic summary
         run: |
           set -euo pipefail
           test -s marsel-audit-v4-report.json
@@ -43,21 +43,40 @@ jobs:
           assert data.get("readonly") is True
           assert data.get("write_methods_used") == 0
           assert data.get("delete_methods_used") == 0
-          assert "missing_assignee" in data.get("details", {})
-          assert "active_past_due" in data.get("details", {})
-          assert "closed_past_due" in data.get("details", {})
-          assert "overdue_inconsistencies" in data.get("details", {})
+          details = data.get("details", {})
+          required = {
+              "missing_assignee",
+              "active_past_due",
+              "active_past_due_overdue_true",
+              "active_past_due_overdue_false",
+              "closed_past_due",
+              "missing_due_date",
+              "status_overdue_inconsistencies",
+          }
+          assert required.issubset(details)
           print("AUDIT_REPORT_VALID=True")
-          print(f"MISSING_ASSIGNEE_DETAILS={len(data['details']['missing_assignee'])}")
-          print(f"ACTIVE_PAST_DUE_DETAILS={len(data['details']['active_past_due'])}")
-          print(f"CLOSED_PAST_DUE_DETAILS={len(data['details']['closed_past_due'])}")
-          print(f"OVERDUE_INCONSISTENCY_DETAILS={len(data['details']['overdue_inconsistencies'])}")
+          print(f"MISSING_ASSIGNEE_DETAILS={len(details['missing_assignee'])}")
+          for row in details["missing_assignee"]:
+              print(
+                  "MISSING_ASSIGNEE_ORDER="
+                  f"id:{row.get('id')};number:{row.get('number')};"
+                  f"status:{row.get('status_name')};type:{row.get('order_type_name')};"
+                  f"manager_id:{row.get('manager_id')};due_date:{row.get('due_date')}"
+              )
+          print(f"ACTIVE_PAST_DUE_DETAILS={len(details['active_past_due'])}")
+          print(f"ACTIVE_PAST_DUE_OVERDUE_TRUE={len(details['active_past_due_overdue_true'])}")
+          print(f"ACTIVE_PAST_DUE_OVERDUE_FALSE={len(details['active_past_due_overdue_false'])}")
+          print(f"CLOSED_PAST_DUE_DETAILS={len(details['closed_past_due'])}")
+          print(f"MISSING_DUE_DATE_DETAILS={len(details['missing_due_date'])}")
+          print(f"STATUS_OVERDUE_INCONSISTENCY_DETAILS={len(details['status_overdue_inconsistencies'])}")
+          print("WRITE_METHODS_USED=0")
+          print("DELETE_METHODS_USED=0")
           PY
 
       - name: Upload expanded audit report
         uses: actions/upload-artifact@v4
         with:
-          name: marsel-audit-v4.1-report
+          name: marsel-audit-v4.2-report
           path: marsel-audit-v4-report.json
           if-no-files-found: error
           retention-days: 14
