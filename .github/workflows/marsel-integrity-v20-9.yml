@@ -1,0 +1,73 @@
+name: MARSEL V20.9 Integrity Audit — READ ONLY
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/marsel_integrity_audit_v20_9.py'
+      - '.github/workflows/marsel-integrity-v20-9.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  integrity-audit:
+    name: MARSEL V20.9 Integrity — READ ONLY
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      ROAPP_API_BASE: https://api.roapp.io/v2
+      ROAPP_TIMEOUT: '30'
+      MARSEL_PAGE_SIZE: '100'
+      MARSEL_MAX_PAGES: '100'
+      MARSEL_AUDIT_OUTPUT: marsel-integrity-audit-v20-9.json
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate secret without exposing it
+        env:
+          ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$ROAPP_API_KEY"
+          echo 'ROAPP_API_KEY=AVAILABLE'
+      - name: Run V20.9 integrity audit
+        env:
+          ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+        run: |
+          set -euo pipefail
+          python scripts/marsel_integrity_audit_v20_9.py
+      - name: Validate report and enforce read-only policy
+        run: |
+          set -euo pipefail
+          test -s "$MARSEL_AUDIT_OUTPUT"
+          python - <<'PY'
+          import json
+          p='marsel-integrity-audit-v20-9.json'
+          with open(p, encoding='utf-8') as f: d=json.load(f)
+          assert d['version']=='20.9'
+          assert d['readonly'] is True
+          assert d['write_requests_made']==0
+          assert d['ro_app_data_mutated'] is False
+          assert d['summary']['records'] > 0
+          assert d['summary']['critical'] == 0, d['summary']
+          print('VALIDATION=PASS')
+          print('RECORDS=',d['summary']['records'])
+          print('FINDINGS=',d['summary']['findings'])
+          print('WARNINGS=',d['summary']['warnings'])
+          print('UNVERIFIED=',d['summary']['unverified'])
+          print('WRITE_REQUESTS_MADE=0')
+          print('RO_APP_DATA_MUTATED=False')
+          PY
+      - name: Upload V20.9 audit artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: marsel-v20-9-integrity-audit
+          path: marsel-integrity-audit-v20-9.json
+          if-no-files-found: error
+          retention-days: 30
