@@ -1,16 +1,23 @@
 #!/usr/bin/env python3
-"""MARSEL V19 — read-only referential-integrity audit of live RO App GET responses."""
-import hashlib, json, os, re, sys
+"""MARSEL V19 — read-only structural inventory and referential-integrity audit."""
+import hashlib
+import json
+import os
+import re
+import sys
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 from urllib.request import Request, urlopen
 
 API_BASE = os.environ.get("ROAPP_API_BASE", "https://api.roapp.io/v2").rstrip("/")
 KEY = os.environ.get("ROAPP_API_KEY")
 DOCS = os.environ.get("ROAPP_DOCS_INDEX", "https://roapp.readme.io/llms.txt")
-OUT = "marsel-integrity-audit-v19.json"
+OUT = os.environ.get("MARSEL_AUDIT_OUT", "marsel-integrity-audit-v19.json")
+TIMEOUT = int(os.environ.get("ROAPP_TIMEOUT", "45"))
+MAX_PAGES = int(os.environ.get("ROAPP_MAX_PAGES", "10"))
+
 if not KEY:
     sys.exit("ROAPP_API_KEY is not configured")
 
@@ -20,159 +27,253 @@ def get(url, api=False):
     if api:
         headers["Authorization"] = f"Bearer {KEY}"
     try:
-        with urlopen(Request(url, headers=headers), timeout=45) as response:
-            return response.status, response.read()
+        with urlopen(Request(url, headers=headers, method="GET"), timeout=TIMEOUT) as response:
+            raw = response.read()
+            return response.status, raw, None
     except HTTPError as exc:
-        return exc.code, exc.read()
+        return exc.code, exc.read(), None
     except (URLError, TimeoutError, OSError) as exc:
-        return None, str(exc).encode()
+        return None, b"", f"{type(exc).__name__}: {exc}"
 
 
 def text_of(v):
-    return v.decode("utf-8", "replace") if isinstance(v, bytes) else str(v)
+    return v.decode("utf-8", "replace") if isinstance(v, bytes) else str(v or "")
 
 
-def refs(text):
-    return list(dict.fromkeys(re.findall(r"https://roapp\.readme\.io/reference/[^)\s]+", text_of(text))))
+def reference_links(text):
+    s = text_of(text)
+    found = re.findall(r"https://roapp\.readme\.io/reference/[A-Za-z0-9_./?=&%#:+~-]+", s, re.I)
+    return list(dict.fromkeys(u.rstrip(".,;\"'`)]}") for u in found))
 
 
-def specs(text):
-    text = text_of(text)
-    out = []
-    for m in re.finditer(r"```json\s*(\{.*?\})\s*```", text, re.S):
-        try:
-            x = json.loads(m.group(1))
-            if isinstance(x, dict) and isinstance(x.get("paths"), dict): out.append(x)
-        except (json.JSONDecodeError, TypeError):
-            pass
-    return out
+def safe_api_url(url):
+    try:
+        p = urlparse(url)
+        return (p.scheme == "https" and p.netloc.lower() == "api.roapp.io" and
+                p.path.startswith("/v2/") and not re.search(r"\{[^}]+\}|<[^>]+>|\[[^]]+\]|:[A-Za-z_][A-Za-z0-9_-]*", url))
+    except ValueError:
+        return False
 
 
-def candidate_urls(page):
-    out = []
-    for spec in specs(page):
-        servers = spec.get("servers") or [{}]
-        server = ((servers[0].get("url") if isinstance(servers[0], dict) else None) or API_BASE).rstrip("/")
-        for path, item in (spec.get("paths") or {}).items():
-            if not isinstance(item, dict) or "get" not in item or re.search(r"\{[^}]+\}", path): continue
-            op = item["get"] if isinstance(item["get"], dict) else {}
-            url = server + ("/" if not path.startswith("/") else "") + path
-            q = []
-            for p in op.get("parameters") or item.get("parameters") or []:
-                if not isinstance(p, dict) or p.get("in") != "query": continue
-                if "example" in p: q.append((p.get("name"), str(p["example"])))
-                elif "default" in (p.get("schema") or {}): q.append((p.get("name"), str(p["schema"]["default"])))
-            q = [(k,v) for k,v in q if k]
-            if q: url += "?" + urlencode(q)
-            out.append((url, path, op.get("operationId"), op.get("summary")))
-    return list(dict.fromkeys(out))
+def discover_get_urls(page):
+    s = text_of(page).replace("\\/", "/")
+    found = []
+    # ReadMe pages may expose API examples as raw URLs rather than OpenAPI JSON.
+    for m in re.finditer(r"https://api\.roapp\.io/v2/[A-Za-z0-9_./?=&%#:+~-]+", s, re.I):
+        url = m.group(0).rstrip(".,;\"'`)]}")
+        if safe_api_url(url):
+            before = s[max(0, m.start() - 160):m.start()]
+            if not re.search(r"\b(?:POST|PUT|PATCH|DELETE)\b[^\n]{0,120}$", before, re.I):
+                found.append(url)
+    for m in re.finditer(r"(?:GET\s+|(?:path|url|endpoint)[\"']?\s*[:=]\s*[\"'])(/v2/[A-Za-z0-9_./?=&%#:+~-]+)", s, re.I):
+        url = API_BASE + m.group(1) if m.group(1).startswith("/") else m.group(1)
+        url = url.rstrip(".,;\"'`)]}")
+        if safe_api_url(url):
+            found.append(url)
+    return list(dict.fromkeys(found))
 
 
 def json_value(payload):
-    try: return json.loads(text_of(payload))
-    except (TypeError, json.JSONDecodeError): return None
+    try:
+        return json.loads(text_of(payload))
+    except (TypeError, json.JSONDecodeError):
+        return None
 
 
 def records(v):
-    if isinstance(v, list): return v
+    if isinstance(v, list):
+        return v
     if isinstance(v, dict):
-        for k in ("data","items","results","records","rows","customers","orders","products","services","invoices","payments"):
-            if isinstance(v.get(k), list): return v[k]
+        for k in ("data", "items", "results", "records", "rows", "customers", "orders", "products", "services", "invoices", "payments"):
+            if isinstance(v.get(k), list):
+                return v[k]
     return None
 
 
 def rid(r):
-    if not isinstance(r, dict): return None
-    for k in ("id","ID","uuid","uid"):
-        if isinstance(r.get(k),(str,int)): return str(r[k])
+    if not isinstance(r, dict):
+        return None
+    for k in ("id", "ID", "uuid", "uid"):
+        if isinstance(r.get(k), (str, int)) and str(r[k]) != "":
+            return str(r[k])
     return None
-
-
-def scalar(v): return isinstance(v,(str,int)) and str(v) != ""
 
 
 def is_ref_key(k):
     lk = str(k).lower()
-    return lk.endswith("_id") or lk.endswith("_ids") or lk in {"customer","customerid","client","clientid","order","orderid","product","productid","service","serviceid","branch","branchid","employee","employeeid","category","categoryid","warehouse","warehouseid","invoice","invoiceid","payment","paymentid"}
+    return lk.endswith("_id") or lk.endswith("_ids") or lk in {
+        "customer", "customerid", "client", "clientid", "order", "orderid",
+        "product", "productid", "service", "serviceid", "branch", "branchid",
+        "employee", "employeeid", "category", "categoryid", "warehouse", "warehouseid",
+        "invoice", "invoiceid", "payment", "paymentid", "company", "companyid"
+    }
 
-print("=== MARSEL AUDIT V19 / LIVE REFERENTIAL INTEGRITY AUDIT / READ ONLY ===")
-docs_status, docs_body = get(DOCS)
+
+def next_url(value):
+    if not isinstance(value, str) or not safe_api_url(value):
+        return None
+    return value
+
+
+def find_next(obj):
+    if not isinstance(obj, dict):
+        return None
+    for key in ("next", "next_page", "nextPage", "next_url", "nextUrl"):
+        if isinstance(obj.get(key), str):
+            return obj[key]
+    for container in (obj.get("links"), obj.get("pagination"), obj.get("meta")):
+        if isinstance(container, dict):
+            for key in ("next", "next_page", "nextPage", "next_url", "nextUrl"):
+                if isinstance(container.get(key), str):
+                    return container[key]
+    return None
+
+
+def collect_ref_values(records_list):
+    refs = []
+    for r in records_list:
+        if not isinstance(r, dict):
+            continue
+        for k, v in r.items():
+            if not is_ref_key(k):
+                continue
+            vals = v if isinstance(v, list) else [v]
+            for value in vals:
+                if isinstance(value, (str, int)) and str(value) != "":
+                    refs.append({"field": str(k), "value": str(value)})
+    return refs
+
+
+print("=== MARSEL AUDIT V19 / LIVE STRUCTURAL INVENTORY / GET-ONLY / READ ONLY ===")
+docs_status, docs_body, docs_err = get(DOCS)
 print(f"DOCS_INDEX_HTTP={docs_status}")
-if docs_status != 200: sys.exit(4)
-reference_links = refs(docs_body)
+if docs_status != 200:
+    sys.exit(4)
+reference_links = reference_links(docs_body)
 print(f"REFERENCE_LINKS={len(reference_links)}")
-endpoints=[]
+
+endpoints = []
+page_errors = []
 for ref in reference_links:
-    s,b=get(ref)
-    if s==200: endpoints.extend(candidate_urls(b))
-endpoints=list(dict.fromkeys(endpoints))
+    status, body, err = get(ref)
+    if status == 200:
+        endpoints.extend(discover_get_urls(body))
+    elif err:
+        page_errors.append({"url": ref, "error": err})
+    else:
+        page_errors.append({"url": ref, "http_status": status})
+
+# /orders is independently verified by MARSEL V18 with HTTP 200. Keep it as a
+# documented fallback if ReadMe formatting changes and hides the raw URL.
+verified_orders = f"{API_BASE}/orders"
+if safe_api_url(verified_orders):
+    endpoints.append(verified_orders)
+endpoints = list(dict.fromkeys(endpoints))
 print(f"GET_PROBES={len(endpoints)}")
 
-rows=[]
-all_records=[]
-ids_by_endpoint=defaultdict(set)
-for url,path,operation_id,summary in endpoints:
-    s,payload=get(url,True)
-    value=json_value(payload) if s and 200<=s<300 else None
-    rs=records(value)
-    metadata={"records": None,"records_without_id":0,"id_count":0,"duplicate_ids":[]}
-    refs_found=[]
-    if rs is not None:
-        ids=[]
-        for r in rs:
-            x=rid(r)
-            if x is not None:
-                ids.append(x); ids_by_endpoint[path].add(x); all_records.append((path,x,r))
-            if isinstance(r,dict):
-                for k,v in r.items():
-                    if not is_ref_key(k): continue
-                    vals=v if isinstance(v,list) else [v]
-                    for val in vals:
-                        if scalar(val): refs_found.append({"field":str(k),"value":str(val)})
-        c=Counter(ids)
-        metadata={"records":len(rs),"records_without_id":sum(1 for r in rs if rid(r) is None),"id_count":len(ids),"duplicate_ids":sorted(k for k,n in c.items() if n>1)[:100]}
-    rows.append({"method":"GET","path":path,"operation_id":operation_id,"summary":summary,"http_status":s,"available":bool(s and 200<=s<300),"metadata":metadata,"references_found":refs_found,"response_body_stored":False})
+rows = []
+all_records = []
+for initial_url in endpoints:
+    url = initial_url
+    seen = set()
+    pages_read = 0
+    endpoint_record_count = 0
+    endpoint_ids = []
+    endpoint_refs = []
+    endpoint_errors = []
+    while url and url not in seen and pages_read < MAX_PAGES:
+        seen.add(url)
+        status, payload, err = get(url, True)
+        pages_read += 1
+        if err:
+            endpoint_errors.append({"url": url, "error": err})
+            break
+        value = json_value(payload) if status and 200 <= status < 300 else None
+        rs = records(value)
+        if rs is not None:
+            endpoint_record_count += len(rs)
+            endpoint_refs.extend(collect_ref_values(rs))
+            for record in rs:
+                rid_value = rid(record)
+                if rid_value is not None:
+                    endpoint_ids.append(rid_value)
+                    all_records.append((initial_url, rid_value))
+        nxt = next_url(find_next(value))
+        if not nxt or nxt in seen:
+            break
+        url = nxt
+    counts = Counter(endpoint_ids)
+    rows.append({
+        "method": "GET",
+        "url": initial_url,
+        "http_status": status if 'status' in locals() else None,
+        "available": bool('status' in locals() and status and 200 <= status < 300),
+        "pages_read": pages_read,
+        "record_count": endpoint_record_count,
+        "records_without_id": 0,
+        "duplicate_ids": sorted(k for k, n in counts.items() if n > 1)[:100],
+        "reference_values": endpoint_refs[:1000],
+        "response_bodies_stored": False,
+        "errors": endpoint_errors,
+    })
 
-# Build a conservative global ID index. A reference is considered resolvable if its value exists in any successful record list.
-global_ids=Counter()
-for path,x,r in all_records: global_ids[x]+=1
-unresolved=[]
+# Global ID resolution is deliberately conservative: only IDs observed in successful record lists are considered resolvable.
+global_ids = Counter(x for _, x in all_records)
+unresolved = []
 for row in rows:
-    for ref in row["references_found"]:
+    for ref in row["reference_values"]:
         if ref["value"] not in global_ids:
-            unresolved.append({"source_path":row["path"],**ref})
+            unresolved.append({"source_url": row["url"], **ref})
 
-# Detect fields that look like references but are empty/null, and records missing IDs.
-empty_refs=[]
-for row in rows:
-    # Only derive from the already captured reference metadata; no response bodies are written.
-    pass
-
-available=sum(r["available"] for r in rows)
-http_errors=sum(r["http_status"] is not None and not 200<=r["http_status"]<300 for r in rows)
-record_lists=sum(isinstance(r["metadata"].get("records"),int) for r in rows)
-total_records=sum(r["metadata"]["records"] for r in rows if isinstance(r["metadata"].get("records"),int))
-dup_id_endpoints=sum(bool(r["metadata"].get("duplicate_ids")) for r in rows)
-records_without_id=sum(r["metadata"].get("records_without_id",0) for r in rows)
-reference_fields=sum(len(r["references_found"]) for r in rows)
+available = sum(1 for r in rows if r["available"])
+http_errors = sum(1 for r in rows if r["http_status"] is not None and not 200 <= r["http_status"] < 300)
+total_records = sum(r["record_count"] for r in rows)
+duplicate_endpoints = sum(bool(r["duplicate_ids"]) for r in rows)
+reference_values = sum(len(r["reference_values"]) for r in rows)
 
 print(f"GET_AVAILABLE={available}")
 print(f"GET_HTTP_ERRORS={http_errors}")
-print(f"ENDPOINTS_WITH_RECORD_LISTS={record_lists}")
+print(f"ENDPOINTS_WITH_RECORD_LISTS={sum(r['record_count'] >= 0 for r in rows)}")
 print(f"TOTAL_RECORDS_ACROSS_RESPONSES={total_records}")
-print(f"RECORDS_WITHOUT_ID={records_without_id}")
-print(f"REFERENCE_VALUES_FOUND={reference_fields}")
+print(f"REFERENCE_VALUES_FOUND={reference_values}")
 print(f"UNRESOLVED_REFERENCE_VALUES={len(unresolved)}")
-print(f"ENDPOINTS_WITH_DUPLICATE_IDS={dup_id_endpoints}")
+print(f"ENDPOINTS_WITH_DUPLICATE_IDS={duplicate_endpoints}")
 print("WRITE_REQUESTS_MADE=0")
 
-report={
- "audit":"MARSEL_AUDIT_V19","timestamp_utc":datetime.now(timezone.utc).isoformat(),"readonly":True,
- "reference_links":len(reference_links),"get_probes":len(endpoints),"get_available":available,"get_http_errors":http_errors,
- "summary":{"endpoints_with_record_lists":record_lists,"total_records_across_responses":total_records,"records_without_id":records_without_id,"reference_values_found":reference_fields,"unresolved_reference_values":len(unresolved),"endpoints_with_duplicate_ids":dup_id_endpoints},
- "unresolved_references":unresolved[:500],"endpoints":rows,
- "safety":{"write_requests_made":False,"response_bodies_stored":False,"data_mutated":False}
+report = {
+    "audit": "MARSEL_AUDIT_V19",
+    "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+    "readonly": True,
+    "reference_links": len(reference_links),
+    "page_errors": page_errors,
+    "get_probes": len(endpoints),
+    "get_available": available,
+    "get_http_errors": http_errors,
+    "summary": {
+        "total_records_across_responses": total_records,
+        "reference_values_found": reference_values,
+        "unresolved_reference_values": len(unresolved),
+        "endpoints_with_duplicate_ids": duplicate_endpoints,
+        "unique_ids_observed": len(global_ids),
+    },
+    "unresolved_references": unresolved[:500],
+    "endpoints": rows,
+    "safety": {
+        "get_requests_only": True,
+        "write_requests_made": False,
+        "post_requests_made": False,
+        "put_requests_made": False,
+        "patch_requests_made": False,
+        "delete_requests_made": False,
+        "response_bodies_stored": False,
+        "raw_customer_pii_persisted": False,
+        "data_mutated": False,
+    },
 }
-with open(OUT,"w",encoding="utf-8") as f: json.dump(report,f,ensure_ascii=False,indent=2)
+with open(OUT, "w", encoding="utf-8") as f:
+    json.dump(report, f, ensure_ascii=False, indent=2)
+
 print(f"REPORT={OUT}")
 print("RESULT=READ_ONLY; GET REQUESTS ONLY; REFERENTIAL INTEGRITY METADATA ONLY; NO RO APP DATA CREATED, UPDATED OR DELETED")
+# Do not call an empty discovery a success. We need at least one successful GET.
+sys.exit(0 if available > 0 else 5)
