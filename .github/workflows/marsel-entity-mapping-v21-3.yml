@@ -10,13 +10,13 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   mapping:
     runs-on: ubuntu-latest
     env:
       PYTHONUNBUFFERED: '1'
-      MARSEL_ENTITY_INVENTORY_INPUT: marsel-entity-inventory-v20-19.json
       MARSEL_ENTITY_MAPPING_OUTPUT: marsel-entity-mapping-v21-3.json
     steps:
       - name: Checkout
@@ -27,8 +27,16 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Verify source inventory exists
-        run: test -f "$MARSEL_ENTITY_INVENTORY_INPUT"
+      - name: Download latest successful V20.19 inventory artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          run_id=$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/marsel-entity-inventory-v20-19.yml/runs?status=success&per_page=10" --jq '.workflow_runs[0].id')
+          test -n "$run_id"
+          gh run download "$run_id" -n marsel-v20-19-entity-inventory -D .
+          test -f marsel-entity-inventory-v20-19.json
+          echo "SOURCE_RUN_ID=$run_id"
 
       - name: Run V21.3 read-only mapping
         run: python scripts/marsel_entity_mapping_v21_3.py
@@ -36,7 +44,6 @@ jobs:
       - name: Safety gate
         run: |
           set -euo pipefail
-          grep -q 'WRITE_REQUESTS=0' "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
           python - <<'PY'
           import json
           p='marsel-entity-mapping-v21-3.json'
