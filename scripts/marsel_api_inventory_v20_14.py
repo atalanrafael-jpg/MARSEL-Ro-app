@@ -17,8 +17,8 @@ import os
 import re
 import sys
 import time
-from urllib.parse import urljoin, urlparse
-from urllib.request import Request, urlopen
+from urllib.parse import Request, urljoin, urlparse
+from urllib.request import urlopen
 
 DOCS_INDEX = os.environ.get("ROAPP_DOCS_INDEX", "https://roapp.readme.io/llms.txt")
 BASE = os.environ.get("ROAPP_API_BASE", "https://api.roapp.io/v2").rstrip("/")
@@ -200,14 +200,23 @@ def main():
             probes.append(probe)
         op["get_probe"] = {"status": "PROBED", "results": probes}
 
+    # A GET operation can legitimately remain unprobed (for example, when its
+    # documentation exposes only a parameterized path). Treat None as a normal
+    # state, not as a dictionary. This keeps the inventory audit fail-safe.
+    def probe_status(op):
+        probe = op.get("get_probe")
+        return probe.get("status") if isinstance(probe, dict) else None
+
     documented_get = sum("GET" in op["methods"] for op in operations)
     documented_non_get = sum(any(m != "GET" for m in op["methods"]) for op in operations)
     resolved_path_ops = sum(bool(op["paths"]) for op in operations)
-    probed = sum(1 for op in operations if op["get_probe"] and op["get_probe"].get("status") == "PROBED")
+    probed = sum(1 for op in operations if probe_status(op) == "PROBED")
+    not_probed = sum(1 for op in operations if probe_status(op) == "NOT_PROBED")
+    unresolved_probe_state = sum(1 for op in operations if probe_status(op) is None)
     probe_http = [
         probe["http"]
         for op in operations
-        if op.get("get_probe", {}).get("status") == "PROBED"
+        if probe_status(op) == "PROBED"
         for probe in op["get_probe"].get("results", [])
     ]
 
@@ -232,6 +241,8 @@ def main():
             "documented_non_get_operations": documented_non_get,
             "operations_with_extracted_paths": resolved_path_ops,
             "get_operations_probed": probed,
+            "get_operations_not_probed": not_probed,
+            "operations_with_unresolved_probe_state": unresolved_probe_state,
             "get_probe_http_counts": {str(k): probe_http.count(k) for k in sorted(set(probe_http))},
             "write_requests_made": 0,
             "ro_app_data_mutated": False,
@@ -249,6 +260,8 @@ def main():
     print(f"DOCUMENTED_GET_OPERATIONS={documented_get}")
     print(f"OPERATIONS_WITH_EXTRACTED_PATHS={resolved_path_ops}")
     print(f"GET_OPERATIONS_PROBED={probed}")
+    print(f"GET_OPERATIONS_NOT_PROBED={not_probed}")
+    print(f"OPERATIONS_WITH_UNRESOLVED_PROBE_STATE={unresolved_probe_state}")
     print("WRITE_REQUESTS_MADE=0")
     print(f"INVENTORY_SHA256={report['summary']['inventory_sha256']}")
     print(f"REPORT={OUT}")
