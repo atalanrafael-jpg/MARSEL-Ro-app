@@ -1,0 +1,14 @@
+entity_type,canonical_name,status,source,verified_at,notes
+product_type,Ювелирное изделие,active,system,2026-08-08,Контролируемое значение
+product_type,Часы,active,system,2026-08-08,Контролируемое значение
+product_type,Материал,active,system,2026-08-08,Контролируемое значение
+product_type,Расходный материал,active,system,2026-08-08,Контролируемое значение
+product_type,Деталь,active,system,2026-08-08,Контролируемое значение
+product_type,Запчасть,active,system,2026-08-08,Контролируемое значение
+product_type,Инструмент,active,system,2026-08-08,Контролируемое значение
+product_type,Оборудование,active,system,2026-08-08,Контролируемое значение
+manufacturer,,unknown,,2026-08-08,Не заполнять без подтвержденного источника
+brand,,unknown,,2026-08-08,Не заполнять без подтвержденного источника
+collection,,unknown,,2026-08-08,Не заполнять без подтвержденного источника
+model,,unknown,,2026-08-08,Не заполнять без подтвержденного источника
+reference,,unknown,,2026-08-08,Не заполнять без подтвержденного источника
