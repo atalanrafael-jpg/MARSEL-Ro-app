@@ -26,7 +26,6 @@ jobs:
     name: Strict endpoint diagnostics — READ ONLY
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-    timeout-minutes: 30
     env:
       ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
       ROAPP_API_BASE: https://api.roapp.io/v2
