@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """MARSEL V20.19 strict read-only entity inventory.
 
-Reads documented/read-safe collection endpoints from a supplied endpoint
-inventory and produces a normalized, metadata-only inventory. No write
-methods are issued and response bodies are not persisted.
+Consumes the V20.14 API inventory and probes only concrete GET collection
+paths. No write methods are issued and response bodies are not persisted.
 """
 from __future__ import annotations
 
@@ -14,7 +13,6 @@ import sys
 import time
 from datetime import datetime, timezone
 from hashlib import sha256
-from urllib.parse import urljoin
 
 import httpx
 
@@ -26,6 +24,7 @@ OUTPUT = os.getenv("MARSEL_ENTITY_INVENTORY_OUTPUT", "marsel-entity-inventory-v2
 
 SAFE_METHODS = {"GET"}
 WRITE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
+PLACEHOLDER_RE = re.compile(r"\{[^}]+\}|:[A-Za-z_][\w-]*|<[A-Za-z_][\w-]*>")
 
 
 def die(msg: str) -> None:
@@ -42,26 +41,41 @@ def load_inventory() -> dict:
 
 
 def extract_paths(data: dict) -> list[str]:
-    candidates = []
+    """Extract concrete paths from both legacy and V20.14 nested schemas."""
+    candidates: list[object] = []
     for key in ("paths", "operations", "documented_operations", "endpoints"):
         value = data.get(key)
         if isinstance(value, list):
             candidates.extend(value)
-    out = []
-    for item in candidates:
-        if isinstance(item, str):
-            p = item
-        elif isinstance(item, dict):
-            p = item.get("path") or item.get("url") or item.get("endpoint")
+
+    out: list[str] = []
+
+    def add(value: object) -> None:
+        if isinstance(value, str):
+            p = value.strip()
+        elif isinstance(value, dict):
+            p = value.get("path") or value.get("url") or value.get("endpoint")
         else:
-            continue
+            return
         if not isinstance(p, str) or not p.startswith("/"):
-            continue
-        # V20.19 intentionally probes collection paths only. We never invent IDs.
-        if re.search(r"\{[^}]+\}|:[A-Za-z_][\w-]*|<[A-Za-z_][\w-]*>", p):
-            continue
+            return
+        if PLACEHOLDER_RE.search(p):
+            return
         if p not in out:
             out.append(p)
+
+    for item in candidates:
+        if isinstance(item, dict):
+            # Current inventory stores extracted paths as a list on each operation.
+            nested = item.get("paths")
+            if isinstance(nested, list):
+                for path in nested:
+                    add(path)
+            else:
+                add(item)
+        else:
+            add(item)
+
     return out
 
 
