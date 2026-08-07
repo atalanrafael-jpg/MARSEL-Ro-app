@@ -1,0 +1,21 @@
+name: MARSEL V21.6 Naming Quality Gate
+on:
+  push:
+    paths:
+      - 'docs/MARSEL_V21_6_NAMING_MANUFACTURER_DIRECTORY.md'
+      - 'data/marsel_v21_6_reference_seed.csv'
+      - 'scripts/marsel_v21_6_naming_quality_gate.py'
+      - '.github/workflows/marsel-v21-6-naming-quality-gate.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  naming-quality-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate V21.6
+        run: python scripts/marsel_v21_6_naming_quality_gate.py
