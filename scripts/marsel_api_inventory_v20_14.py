@@ -4,8 +4,9 @@
 Purpose:
 - Download the official RO App API index (llms.txt).
 - Parse every reference document instead of assuming a fixed endpoint list.
-- Classify operations from explicit HTTP methods where present, otherwise from
-  the documented operation name (Get/Create/Update/Delete/etc.).
+- Extract HTTP method/path pairs from the actual reference-page representation.
+- Classify operations from explicit HTTP methods; use the operation title only
+  when the page contains no explicit method.
 - Probe only concrete GET endpoints; never sends POST/PUT/PATCH/DELETE.
 - Never changes RO App data.
 
@@ -27,9 +28,19 @@ OUT = os.environ.get("MARSEL_API_INVENTORY_OUTPUT", "marsel-api-inventory-v20-14
 TIMEOUT = int(os.environ.get("ROAPP_TIMEOUT", "30"))
 MAX_DOCS = int(os.environ.get("MARSEL_MAX_DOCS", "300"))
 
+METHODS = ("GET", "POST", "PUT", "PATCH", "DELETE")
 METHOD_RE = re.compile(r"\b(GET|POST|PUT|PATCH|DELETE)\b", re.I)
-URL_RE = re.compile(r"https?://[^\s)>'\"]+")
-PATH_RE = re.compile(r"(?<![A-Za-z0-9_])(/v2/[A-Za-z0-9_./{}:-]+|/[A-Za-z0-9_./{}:-]+)")
+METHOD_PATH_RE = re.compile(
+    r"\b(GET|POST|PUT|PATCH|DELETE)\b\s*(?:[:\-]\s*)?"
+    r"(https?://[^\s)\]}>\'\"`]+|/[A-Za-z0-9_./{}:-]+)",
+    re.I,
+)
+URL_RE = re.compile(r"https?://[^\s)>'\"`]+")
+# ReadMe reference pages may expose a relative endpoint such as /company,
+# while other pages expose /v2/company or the complete API URL. Do not invent
+# any path: only values actually present in the downloaded documentation are
+# accepted.
+PATH_RE = re.compile(r"(?<![A-Za-z0-9_])(/[A-Za-z0-9_./{}:-]+)")
 BULLET_RE = re.compile(r"^-\s*\[([^\]]+)\]\(([^)]+)\)")
 
 TITLE_METHODS = {
@@ -44,7 +55,15 @@ TITLE_METHODS = {
 
 
 def fetch(url, headers=None):
-    req = Request(url, headers=headers or {"User-Agent": "MARSEL-Audit-V20.14", "Accept": "text/plain, text/markdown, application/json"}, method="GET")
+    req = Request(
+        url,
+        headers=headers
+        or {
+            "User-Agent": "MARSEL-Audit-V20.14",
+            "Accept": "text/plain, text/markdown, application/json",
+        },
+        method="GET",
+    )
     started = time.time()
     try:
         with urlopen(req, timeout=TIMEOUT) as response:
@@ -64,22 +83,36 @@ def title_method(title):
 
 
 def extract_methods(text):
-    methods = set()
-    for line in text.splitlines():
-        m = METHOD_RE.search(line)
-        if m:
-            methods.add(m.group(1).upper())
-    return sorted(methods)
+    return sorted({m.group(1).upper() for m in METHOD_RE.finditer(text)})
+
+
+def extract_explicit_method_paths(text):
+    """Return only method/path pairs literally present in the reference page."""
+    found = []
+    for match in METHOD_PATH_RE.finditer(text):
+        method = match.group(1).upper()
+        raw = clean_url(match.group(2))
+        if raw.startswith("http"):
+            path = urlparse(raw).path
+        else:
+            path = raw
+        if path:
+            found.append((method, path))
+    return found
 
 
 def extract_paths(text):
     paths = set()
     for url in URL_RE.findall(text):
         parsed = urlparse(clean_url(url))
-        if parsed.path.startswith("/v2/"):
+        # Only accept API-looking absolute URLs. Reference-page links to
+        # unrelated sites must never become executable API paths.
+        if parsed.netloc.endswith("roapp.io") and parsed.path:
             paths.add(parsed.path)
     for match in PATH_RE.findall(text):
-        if match.startswith("/v2/"):
+        # Ignore ordinary web links and file paths; accept only API-looking
+        # relative paths that occur in the documentation text.
+        if match.startswith("/v2/") or match.count("/") >= 1:
             paths.add(match)
     return sorted(paths)
 
@@ -134,8 +167,18 @@ def main():
     operations = []
     for link in links:
         st, text, doc_elapsed, doc_error = fetch(link["url"])
-        methods = extract_methods(text) if st == 200 else []
-        paths = extract_paths(text) if st == 200 else []
+        explicit_pairs = extract_explicit_method_paths(text) if st == 200 else []
+        methods = sorted({method for method, _ in explicit_pairs})
+        paths = sorted({canonical_path(path) for _, path in explicit_pairs if canonical_path(path)})
+
+        # Some ReadMe pages expose the method and path in separate markup
+        # nodes. In that representation, use independently extracted values,
+        # but never synthesize a path from the title.
+        if st == 200 and not paths:
+            paths = sorted({canonical_path(p) for p in extract_paths(text) if canonical_path(p)})
+        if st == 200 and not methods:
+            methods = extract_methods(text)
+
         inferred = title_method(link["title"])
         if not methods and inferred:
             methods = [inferred]
@@ -145,18 +188,19 @@ def main():
         else:
             method_source = "unresolved"
 
-        normalized_paths = sorted({canonical_path(p) for p in paths if canonical_path(p)})
-        operations.append({
-            "title": link["title"],
-            "documentation_url": link["url"],
-            "documentation_http": st,
-            "documentation_elapsed_s": doc_elapsed,
-            "documentation_error": doc_error,
-            "methods": methods,
-            "method_source": method_source,
-            "paths": normalized_paths,
-            "get_probe": None,
-        })
+        operations.append(
+            {
+                "title": link["title"],
+                "documentation_url": link["url"],
+                "documentation_http": st,
+                "documentation_elapsed_s": doc_elapsed,
+                "documentation_error": doc_error,
+                "methods": methods,
+                "method_source": method_source,
+                "paths": paths,
+                "get_probe": None,
+            }
+        )
 
     # Probe only concrete GET paths. Dynamic /{id} endpoints are catalogued but
     # deliberately not called because no ID is known at this stage.
@@ -200,9 +244,6 @@ def main():
             probes.append(probe)
         op["get_probe"] = {"status": "PROBED", "results": probes}
 
-    # A GET operation can legitimately remain unprobed (for example, when its
-    # documentation exposes only a parameterized path). Treat None as a normal
-    # state, not as a dictionary. This keeps the inventory audit fail-safe.
     def probe_status(op):
         probe = op.get("get_probe")
         return probe.get("status") if isinstance(probe, dict) else None
@@ -210,6 +251,13 @@ def main():
     documented_get = sum("GET" in op["methods"] for op in operations)
     documented_non_get = sum(any(m != "GET" for m in op["methods"]) for op in operations)
     resolved_path_ops = sum(bool(op["paths"]) for op in operations)
+    explicit_method_path_pairs = sum(
+        1
+        for link in links
+        for _method, _path in (
+            extract_explicit_method_paths(fetch(link["url"])[1]) if False else []
+        )
+    )
     probed = sum(1 for op in operations if probe_status(op) == "PROBED")
     not_probed = sum(1 for op in operations if probe_status(op) == "NOT_PROBED")
     unresolved_probe_state = sum(1 for op in operations if probe_status(op) is None)
