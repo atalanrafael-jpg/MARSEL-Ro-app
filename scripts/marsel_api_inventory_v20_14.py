@@ -23,7 +23,6 @@ METHOD_PATH_RE = re.compile(
     re.I,
 )
 PATH_TOKEN_RE = re.compile(r"(?:https?://[^\s)\]}>\'\"`]+|/[A-Za-z0-9_./{}:-]+)")
-URL_RE = re.compile(r"https?://[^\s)>'\"`]+")
 BULLET_RE = re.compile(r"^-\s*\[([^\]]+)\]\(([^)]+)\)")
 
 TITLE_METHODS = {
@@ -85,10 +84,6 @@ def extract_explicit_method_paths(text):
         if path:
             found.append((match.group(1).upper(), path))
 
-    # Some ReadMe renderings put the method and path in adjacent markup nodes,
-    # e.g. a line containing only GET followed by a line containing /company.
-    # Pair only a method-only line with the immediately following path token;
-    # never construct a path from an operation title.
     lines = text.splitlines()
     for index, line in enumerate(lines):
         methods = METHOD_RE.findall(line)
@@ -113,7 +108,6 @@ def extract_explicit_method_paths(text):
                 found.append((methods[0].upper(), candidate))
                 break
 
-    # Stable deduplication.
     return list(dict.fromkeys(found))
 
 
@@ -175,8 +169,6 @@ def main():
         methods = sorted({method for method, _ in pairs})
         paths = sorted({canonical_path(path) for _, path in pairs if canonical_path(path)})
 
-        # If the page has explicit methods but no extractable method/path pair,
-        # retain the method classification and mark the path unresolved.
         if st == 200 and not methods:
             methods = extract_methods(text)
 
@@ -203,8 +195,6 @@ def main():
             }
         )
 
-    # Probe only concrete GET paths. Dynamic /{id} endpoints are catalogued but
-    # deliberately not called because no ID is known at this stage.
     probe_cache = {}
     headers = {
         "Authorization": f"Bearer {KEY}",
@@ -285,7 +275,7 @@ def main():
             "get_operations_probed": probed,
             "get_operations_not_probed": not_probed,
             "operations_with_unresolved_probe_state": unresolved_probe_state,
-            "get_probe_http_counts": {str(k): probe_http.count(k) for k in sorted(set(probe_http))},
+            "get_probe_http_counts": {str(k): probe_http.count(k) for k in sorted(set(probe_http), key=lambda x: (-1 if x is None else x))},
             "write_requests_made": 0,
             "ro_app_data_mutated": False,
         },
