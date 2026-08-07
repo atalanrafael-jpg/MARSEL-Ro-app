@@ -1,17 +1,5 @@
 #!/usr/bin/env python3
-"""MARSEL V20.14 — official RO App API inventory, READ ONLY.
-
-Purpose:
-- Download the official RO App API index (llms.txt).
-- Parse every reference document instead of assuming a fixed endpoint list.
-- Extract HTTP method/path pairs from the actual reference-page representation.
-- Classify operations from explicit HTTP methods; use the operation title only
-  when the page contains no explicit method.
-- Probe only concrete GET endpoints; never sends POST/PUT/PATCH/DELETE.
-- Never changes RO App data.
-
-This is an API documentation/inventory audit, not a data mutation tool.
-"""
+"""MARSEL V20.14 — official RO App API inventory, READ ONLY."""
 import hashlib
 import json
 import os
@@ -28,19 +16,14 @@ OUT = os.environ.get("MARSEL_API_INVENTORY_OUTPUT", "marsel-api-inventory-v20-14
 TIMEOUT = int(os.environ.get("ROAPP_TIMEOUT", "30"))
 MAX_DOCS = int(os.environ.get("MARSEL_MAX_DOCS", "300"))
 
-METHODS = ("GET", "POST", "PUT", "PATCH", "DELETE")
 METHOD_RE = re.compile(r"\b(GET|POST|PUT|PATCH|DELETE)\b", re.I)
 METHOD_PATH_RE = re.compile(
     r"\b(GET|POST|PUT|PATCH|DELETE)\b\s*(?:[:\-]\s*)?"
     r"(https?://[^\s)\]}>\'\"`]+|/[A-Za-z0-9_./{}:-]+)",
     re.I,
 )
+PATH_TOKEN_RE = re.compile(r"(?:https?://[^\s)\]}>\'\"`]+|/[A-Za-z0-9_./{}:-]+)")
 URL_RE = re.compile(r"https?://[^\s)>'\"`]+")
-# ReadMe reference pages may expose a relative endpoint such as /company,
-# while other pages expose /v2/company or the complete API URL. Do not invent
-# any path: only values actually present in the downloaded documentation are
-# accepted.
-PATH_RE = re.compile(r"(?<![A-Za-z0-9_])(/[A-Za-z0-9_./{}:-]+)")
 BULLET_RE = re.compile(r"^-\s*\[([^\]]+)\]\(([^)]+)\)")
 
 TITLE_METHODS = {
@@ -82,39 +65,60 @@ def title_method(title):
     return TITLE_METHODS.get(first)
 
 
-def extract_methods(text):
-    return sorted({m.group(1).upper() for m in METHOD_RE.finditer(text)})
+def normalize_documented_path(raw):
+    raw = clean_url(raw)
+    if raw.startswith("http://") or raw.startswith("https://"):
+        parsed = urlparse(raw)
+        if not parsed.netloc.endswith("roapp.io") or not parsed.path:
+            return None
+        return parsed.path
+    if raw.startswith("/"):
+        return raw
+    return None
 
 
 def extract_explicit_method_paths(text):
-    """Return only method/path pairs literally present in the reference page."""
+    """Extract only method/path pairs literally represented in the page."""
     found = []
     for match in METHOD_PATH_RE.finditer(text):
-        method = match.group(1).upper()
-        raw = clean_url(match.group(2))
-        if raw.startswith("http"):
-            path = urlparse(raw).path
-        else:
-            path = raw
+        path = normalize_documented_path(match.group(2))
         if path:
-            found.append((method, path))
-    return found
+            found.append((match.group(1).upper(), path))
+
+    # Some ReadMe renderings put the method and path in adjacent markup nodes,
+    # e.g. a line containing only GET followed by a line containing /company.
+    # Pair only a method-only line with the immediately following path token;
+    # never construct a path from an operation title.
+    lines = text.splitlines()
+    for index, line in enumerate(lines):
+        methods = METHOD_RE.findall(line)
+        if not methods:
+            continue
+        same_line_paths = [
+            normalize_documented_path(token)
+            for token in PATH_TOKEN_RE.findall(line)
+        ]
+        same_line_paths = [path for path in same_line_paths if path]
+        if same_line_paths:
+            for method in methods:
+                for path in same_line_paths:
+                    found.append((method.upper(), path))
+            continue
+        if len(methods) != 1:
+            continue
+        for next_line in lines[index + 1 : index + 3]:
+            stripped = re.sub(r"[`<>\"']", "", next_line).strip()
+            candidate = normalize_documented_path(stripped)
+            if candidate:
+                found.append((methods[0].upper(), candidate))
+                break
+
+    # Stable deduplication.
+    return list(dict.fromkeys(found))
 
 
-def extract_paths(text):
-    paths = set()
-    for url in URL_RE.findall(text):
-        parsed = urlparse(clean_url(url))
-        # Only accept API-looking absolute URLs. Reference-page links to
-        # unrelated sites must never become executable API paths.
-        if parsed.netloc.endswith("roapp.io") and parsed.path:
-            paths.add(parsed.path)
-    for match in PATH_RE.findall(text):
-        # Ignore ordinary web links and file paths; accept only API-looking
-        # relative paths that occur in the documentation text.
-        if match.startswith("/v2/") or match.count("/") >= 1:
-            paths.add(match)
-    return sorted(paths)
+def extract_methods(text):
+    return sorted({m.group(1).upper() for m in METHOD_RE.finditer(text)})
 
 
 def canonical_path(path):
@@ -167,15 +171,12 @@ def main():
     operations = []
     for link in links:
         st, text, doc_elapsed, doc_error = fetch(link["url"])
-        explicit_pairs = extract_explicit_method_paths(text) if st == 200 else []
-        methods = sorted({method for method, _ in explicit_pairs})
-        paths = sorted({canonical_path(path) for _, path in explicit_pairs if canonical_path(path)})
+        pairs = extract_explicit_method_paths(text) if st == 200 else []
+        methods = sorted({method for method, _ in pairs})
+        paths = sorted({canonical_path(path) for _, path in pairs if canonical_path(path)})
 
-        # Some ReadMe pages expose the method and path in separate markup
-        # nodes. In that representation, use independently extracted values,
-        # but never synthesize a path from the title.
-        if st == 200 and not paths:
-            paths = sorted({canonical_path(p) for p in extract_paths(text) if canonical_path(p)})
+        # If the page has explicit methods but no extractable method/path pair,
+        # retain the method classification and mark the path unresolved.
         if st == 200 and not methods:
             methods = extract_methods(text)
 
@@ -251,13 +252,6 @@ def main():
     documented_get = sum("GET" in op["methods"] for op in operations)
     documented_non_get = sum(any(m != "GET" for m in op["methods"]) for op in operations)
     resolved_path_ops = sum(bool(op["paths"]) for op in operations)
-    explicit_method_path_pairs = sum(
-        1
-        for link in links
-        for _method, _path in (
-            extract_explicit_method_paths(fetch(link["url"])[1]) if False else []
-        )
-    )
     probed = sum(1 for op in operations if probe_status(op) == "PROBED")
     not_probed = sum(1 for op in operations if probe_status(op) == "NOT_PROBED")
     unresolved_probe_state = sum(1 for op in operations if probe_status(op) is None)
