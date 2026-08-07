@@ -1,0 +1,20 @@
+name: MARSEL Language Quality
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  language-quality:
+    name: Russian spelling and punctuation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Check Russian spelling and basic punctuation
+        run: python scripts/marsel_language_quality_check.py
