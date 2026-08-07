@@ -131,6 +131,11 @@ jobs:
           assert http == 200 or d.get('degraded') is True
           if http == 200:
               assert d['summary']['documented_operations'] > 1
+              # Regression guard: the previous V20.14 run discovered 148
+              # reference pages but extracted a path from only one page.
+              # A successful inventory must discover more than one documented
+              # API path from the official reference pages.
+              assert d['summary']['operations_with_extracted_paths'] > 1
           else:
               assert d['summary']['documented_operations'] == 0
               assert d.get('degraded_reason')
@@ -138,6 +143,7 @@ jobs:
           print('DEGRADED=', d.get('degraded', False))
           print('DOCS_INDEX_HTTP=', http)
           print('DOCUMENTED_OPERATIONS=', d['summary']['documented_operations'])
+          print('OPERATIONS_WITH_EXTRACTED_PATHS=', d['summary']['operations_with_extracted_paths'])
           print('GET_OPERATIONS_PROBED=', d['summary']['get_operations_probed'])
           print('INVENTORY_SHA256=', d['summary']['inventory_sha256'])
           PY
