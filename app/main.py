@@ -1,13 +1,26 @@
 from fastapi import FastAPI, HTTPException, Query
 from .audit import audit_order_pages
+from .config import settings
 from .roapp_client import RoAppClient
 
-app = FastAPI(title="MARSEL RO App Connector", version="0.2.0")
+app = FastAPI(title="MARSEL RO App Connector", version="0.3.0")
 
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "service": "marsel-roapp-connector", "version": "0.2.0"}
+    return {"status": "ok", "service": "marsel-roapp-connector", "version": "0.3.0"}
+
+
+@app.get("/ready")
+def ready():
+    """Configuration readiness check; does not contact or mutate RO App."""
+    return {
+        "status": "ready" if settings.roapp_api_key else "not_configured",
+        "api_base_configured": bool(settings.roapp_base_url),
+        "api_key_configured": bool(settings.roapp_api_key),
+        "timeout_seconds": settings.roapp_timeout_seconds,
+        "max_retries": settings.roapp_max_retries,
+    }
 
 
 @app.get("/roapp/orders")
