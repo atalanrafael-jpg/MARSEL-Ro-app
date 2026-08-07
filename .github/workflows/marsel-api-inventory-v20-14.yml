@@ -72,32 +72,18 @@ jobs:
           import json, os, hashlib
           status = int(os.environ.get('DOCS_HTTP', '0'))
           report = {
-              'version': '20.14',
-              'readonly': True,
-              'degraded': True,
+              'version': '20.14', 'readonly': True, 'degraded': True,
               'degraded_reason': 'Official RO App documentation index was not accessible; no undocumented endpoints were assumed.',
-              'write_requests_made': 0,
-              'ro_app_data_mutated': False,
+              'write_requests_made': 0, 'ro_app_data_mutated': False,
               'method_policy': {'allowed': ['GET'], 'forbidden': ['POST', 'PUT', 'PATCH', 'DELETE']},
-              'documentation': {
-                  'index': os.environ['ROAPP_DOCS_INDEX'],
-                  'index_http': status,
-                  'reference_links': 0,
-                  'parse_errors': 0,
-              },
+              'documentation': {'index': os.environ['ROAPP_DOCS_INDEX'], 'index_http': status, 'reference_links': 0, 'parse_errors': 0},
               'operations': [],
               'summary': {
-                  'reference_links': 0,
-                  'documented_operations': 0,
-                  'documented_get_operations': 0,
-                  'documented_non_get_operations': 0,
-                  'operations_with_extracted_paths': 0,
-                  'get_operations_probed': 0,
-                  'get_operations_not_probed': 0,
-                  'operations_with_unresolved_probe_state': 0,
-                  'get_probe_http_counts': {},
-                  'write_requests_made': 0,
-                  'ro_app_data_mutated': False,
+                  'reference_links': 0, 'documented_operations': 0, 'documented_get_operations': 0,
+                  'documented_non_get_operations': 0, 'operations_with_extracted_paths': 0,
+                  'get_operations_probed': 0, 'get_operations_not_probed': 0,
+                  'get_operations_with_unresolved_probe_state': 0, 'get_probe_http_counts': {},
+                  'write_requests_made': 0, 'ro_app_data_mutated': False,
               },
           }
           raw = json.dumps(report['operations'], ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode()
@@ -134,12 +120,10 @@ jobs:
           print('  OPERATIONS_WITH_EXTRACTED_PATHS=', d['summary']['operations_with_extracted_paths'])
           print('  GET_OPERATIONS_PROBED=', d['summary']['get_operations_probed'])
           print('  GET_OPERATIONS_NOT_PROBED=', d['summary']['get_operations_not_probed'])
-          print('  OPERATIONS_WITH_UNRESOLVED_PROBE_STATE=', d['summary']['operations_with_unresolved_probe_state'])
+          print('  GET_OPERATIONS_WITH_UNRESOLVED_PROBE_STATE=', d['summary']['get_operations_with_unresolved_probe_state'])
           assert http == 200 or d.get('degraded') is True
           if http == 200:
               assert d['summary']['documented_operations'] > 1, 'Expected >1 documented operation from official reference index'
-              # Regression guard: previous V20.14 discovered reference pages
-              # but extracted a path from only one page.
               assert d['summary']['operations_with_extracted_paths'] > 1, 'API path extraction regression: fewer than 2 documented paths found'
           else:
               assert d['summary']['documented_operations'] == 0
