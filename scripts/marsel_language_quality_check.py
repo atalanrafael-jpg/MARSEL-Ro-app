@@ -23,18 +23,23 @@ ALLOWLIST = {
 CYRILLIC_WORD = re.compile(r"^[А-Яа-яЁё]+$")
 
 
-def markdown_text(text: str) -> str:
-    """Mask Markdown syntax without inserting punctuation-adjacent spaces.
+def mask_regions(text: str) -> str:
+    """Mask Markdown/code/URL syntax without changing whitespace outside it.
 
-    The previous implementation replaced inline code/URLs/links with a single
-    space, which could manufacture false "space before punctuation" findings.
-    Tokens contain only letters so the surrounding prose keeps its spacing.
+    Every matched region is replaced with the same number of non-whitespace
+    characters. This prevents punctuation inside technical syntax and spaces
+    inside code/URLs from becoming false positives, while preserving the
+    exact surrounding prose layout for the punctuation checks.
     """
-    text = re.sub(r"```.*?```", " MARSEL_CODE_BLOCK ", text, flags=re.S)
-    text = re.sub(r"`[^`]*`", " MARSEL_CODE ", text)
-    text = re.sub(r"https?://\S+", " MARSEL_URL ", text)
-    text = re.sub(r"!?(?:\[[^\]]*\])\([^)]*\)", " MARSEL_LINK ", text)
-    return text
+    patterns = (
+        r"```[\s\S]*?```",                 # fenced code blocks
+        r"`[^`\n]*`",                      # inline code
+        r"!?(?:\[[^\]]*\])\([^\n)]*\)",  # Markdown links/images
+        r"https?://[^\s<>]+",             # bare URLs
+    )
+
+    combined = re.compile("|".join(f"(?:{pattern})" for pattern in patterns))
+    return combined.sub(lambda match: "x" * len(match.group(0)), text)
 
 
 def check_punctuation(path: Path, text: str) -> list[str]:
@@ -81,9 +86,9 @@ def main() -> int:
             continue
         checked += 1
         raw = path.read_text(encoding="utf-8")
-        text = markdown_text(raw)
-        punctuation_errors.extend(check_punctuation(path, text))
-        spelling_notes.extend(spelling_advisories(path, text, spell))
+        masked = mask_regions(raw)
+        punctuation_errors.extend(check_punctuation(path, masked))
+        spelling_notes.extend(spelling_advisories(path, raw, spell))
 
     print("=== MARSEL LANGUAGE QUALITY CHECK ===")
     print(f"files_checked={checked}")
