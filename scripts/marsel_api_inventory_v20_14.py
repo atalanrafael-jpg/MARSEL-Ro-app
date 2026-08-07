@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """MARSEL V20.14 — official RO App API inventory, READ ONLY."""
 import hashlib
+import html
 import json
 import os
 import re
@@ -20,6 +21,10 @@ METHOD_RE = re.compile(r"\b(GET|POST|PUT|PATCH|DELETE)\b", re.I)
 METHOD_PATH_RE = re.compile(
     r"\b(GET|POST|PUT|PATCH|DELETE)\b\s*(?:[:\-]\s*)?"
     r"(https?://[^\s)\]}>\'\"`]+|/[A-Za-z0-9_./{}:-]+)",
+    re.I,
+)
+FULL_API_URL_RE = re.compile(
+    r"https?://api\.roapp\.io/v2(?:/[A-Za-z0-9_./{}:-]+)?",
     re.I,
 )
 PATH_TOKEN_RE = re.compile(r"(?:https?://[^\s)\]}>\'\"`]+|/[A-Za-z0-9_./{}:-]+)")
@@ -42,7 +47,7 @@ def fetch(url, headers=None):
         headers=headers
         or {
             "User-Agent": "MARSEL-Audit-V20.14",
-            "Accept": "text/plain, text/markdown, application/json",
+            "Accept": "text/plain, text/markdown, text/html, application/json",
         },
         method="GET",
     )
@@ -65,26 +70,55 @@ def title_method(title):
 
 
 def normalize_documented_path(raw):
+    raw = html.unescape(raw).strip()
+    raw = raw.replace("\\/", "/")
     raw = clean_url(raw)
     if raw.startswith("http://") or raw.startswith("https://"):
         parsed = urlparse(raw)
-        if not parsed.netloc.endswith("roapp.io") or not parsed.path:
+        if parsed.netloc.lower() != "api.roapp.io" or not parsed.path.startswith("/v2"):
             return None
         return parsed.path
+    if raw.startswith("/v2/"):
+        return raw
     if raw.startswith("/"):
         return raw
     return None
 
 
 def extract_explicit_method_paths(text):
-    """Extract only method/path pairs literally represented in the page."""
+    """Extract only method/path pairs literally represented in the documentation."""
+    # ReadMe can return HTML/escaped JSON instead of plain Markdown for some pages.
+    # Decode entities and escaped slashes before applying the same literal parser.
+    normalized = html.unescape(text).replace("\\/", "/")
     found = []
-    for match in METHOD_PATH_RE.finditer(text):
+
+    for match in METHOD_PATH_RE.finditer(normalized):
         path = normalize_documented_path(match.group(2))
         if path:
             found.append((match.group(1).upper(), path))
 
-    lines = text.splitlines()
+    # Strong fallback: ReadMe pages expose the canonical API URL literally.
+    # Associate a nearby HTTP method only when it is present in the same page.
+    full_urls = list(FULL_API_URL_RE.finditer(normalized))
+    for url_match in full_urls:
+        path = normalize_documented_path(url_match.group(0))
+        if not path:
+            continue
+        window_start = max(0, url_match.start() - 1500)
+        window_end = min(len(normalized), url_match.end() + 300)
+        window = normalized[window_start:window_end]
+        methods = METHOD_RE.findall(window)
+        if methods:
+            # Prefer the method nearest to this URL; do not infer from title here.
+            nearest = min(
+                ((abs((window_start + m.start()) - url_match.start()), m.group(1).upper())
+                 for m in METHOD_RE.finditer(window)),
+                default=None,
+            )
+            if nearest:
+                found.append((nearest[1], path))
+
+    lines = normalized.splitlines()
     for index, line in enumerate(lines):
         methods = METHOD_RE.findall(line)
         if not methods:
@@ -101,7 +135,8 @@ def extract_explicit_method_paths(text):
             continue
         if len(methods) != 1:
             continue
-        for next_line in lines[index + 1 : index + 3]:
+        # ReadMe markdown may place method and URL on adjacent lines.
+        for next_line in lines[index + 1 : index + 11]:
             stripped = re.sub(r"[`<>\"']", "", next_line).strip()
             candidate = normalize_documented_path(stripped)
             if candidate:
@@ -145,19 +180,14 @@ def main():
 
     links = []
     seen_urls = set()
-    for line in index_text.splitlines():
-        match = BULLET_RE.match(line.strip())
-        if not match:
-            continue
+    for match in re.finditer(r"\[([^\]]+)\]\(([^)]+/reference/[^)]+)\)", index_text):
         title, href = match.groups()
         href = clean_url(href)
-        if "/reference/" not in href:
-            continue
         url = urljoin(DOCS_INDEX, href)
         if url in seen_urls:
             continue
         seen_urls.add(url)
-        links.append({"title": title.strip(), "url": url})
+        links.append({"title": html.unescape(title).strip(), "url": url})
 
     if len(links) > MAX_DOCS:
         links = links[:MAX_DOCS]
