@@ -1,61 +1,91 @@
-# MARSEL RO App ERP — v20.3
+# MARSEL — RO App integration
 
-Рабочий интеграционный пакет для Ювелирной студии MARSEL.
+Интеграционный проект Ювелирной студии MARSEL для безопасной работы с RO App API.
 
-## Статус v20.3
+> **Текущий статус:** API inventory V20.14 подтверждён CI в режиме READ ONLY. Production-данные RO App не изменяются.
 
-Версия зафиксирована в `VERSION`. Релиз проходит автоматическую проверку GitHub Actions.
+## 1. Назначение
 
-Критерий технического подтверждения: успешный CI run для commit релиза, включая существующие тесты и безопасные RO App read-only проверки. До такого результата v20.3 не считается полностью подтверждённой.
+Проект объединяет в одном репозитории:
 
-## RO App API
+- RO App API client;
+- FastAPI-сервис MARSEL;
+- read-only аудит заказов;
+- официальный inventory API-документации RO App;
+- GitHub Actions для автоматических проверок;
+- OpenAI Ads Conversions API integration;
+- документацию и контроль безопасности.
 
-По проектной документации:
-- Base URL Public API: `https://api.roapp.io/v2`
-- Авторизация: `Authorization: Bearer <API_KEY>`
-- Лимит: до 3 запросов/сек.
-- Пагинация: до 50 записей за запрос.
-- Проверочный endpoint: `GET /orders`.
+## 2. Архитектура
 
-Источник: официальная документация RO App:
-https://roapp.readme.io/reference/getting-started-with-api
+```text
+app/
+├── main.py              # FastAPI entrypoint
+├── config.py            # единая конфигурация и secrets из env
+├── roapp_client.py      # RO App API client
+├── audit.py             # read-only аудит данных заказов
+└── openai_ads.py        # OpenAI Ads Conversions API
 
-## Read-only контроль
+scripts/
+├── marsel_api_inventory_v20_14.py
+├── marsel_audit_v20_10.py
+├── marsel_audit_v20_11.py
+├── marsel_deep_audit_v20_13.py
+├── marsel_inventory_v20_12.py
+└── roapp_reference_fallback.txt
 
-GitHub Actions содержит:
-- `RO App API read-only smoke test`;
-- `MARSEL read-only orders audit`;
-- `MARSEL read-only order schema audit v2`.
+.github/workflows/
+├── marsel-api-inventory-v20-14.yml
+├── marsel-audit-v20-10.yml
+├── marsel-audit-v20-11.yml
+├── marsel-deep-audit-v20-13.yml
+├── marsel-inventory-v20-12.yml
+└── test.yml
+```
 
-Эти проверки выполняют только GET-запросы и не должны создавать, изменять или удалять данные RO App.
+Корневые дубликаты `main.py`, `config.py`, `roapp_client.py` и пустой `__init__.py` удалены. Единственная рабочая Python-точка входа — `app.main:app`.
 
-## OpenAI Ads conversion tracking
+## 3. RO App API
 
-В репозитории присутствует серверный клиент OpenAI Ads Conversions API: `app/openai_ads.py`.
+Параметры API берутся из официальной документации RO App:
 
-Он подготовлен для:
-- `order_created` как ecommerce-конверсионного event;
-- передачи `oppref`, когда он доступен;
-- стабильного `order_id` для дедупликации browser Pixel и server-side события;
-- `amount_minor`;
-- `validate_only=true` для безопасной первичной проверки;
-- batch-отправки;
-- хранения Pixel ID и Conversions API key только в серверных переменных окружения.
+- Base URL: `https://api.roapp.io/v2`;
+- Bearer authentication через `ROAPP_API_KEY`;
+- проверочный endpoint: `GET /orders`.
 
-Источник: OpenAI Help Center — Conversion Measurement:
-https://help.openai.com/en/articles/20001409-conversion-measurement
+Источник: официальная документация RO App — `https://roapp.readme.io/reference/getting-started-with-api`.
 
-## Переменные окружения
+### V20.14 — подтверждённый результат
 
-Скопировать `.env.example` в `.env` и заполнить необходимые переменные.
+Последний успешный официальный inventory:
 
-Для RO App в GitHub Actions используется секрет:
+- `DOCS_INDEX_HTTP=200`;
+- `REFERENCE_LINKS=148`;
+- `DOCUMENTED_OPERATIONS=148`;
+- `DOCUMENTED_GET_OPERATIONS=95`;
+- `OPERATIONS_WITH_EXTRACTED_PATHS=146`;
+- `GET_OPERATIONS_PROBED=94`;
+- `GET_OPERATIONS_NOT_PROBED=1`;
+- `OPERATIONS_WITH_UNRESOLVED_PROBE_STATE=53`;
+- `WRITE_REQUESTS_MADE=0`;
+- `RO App data mutated=False`.
 
-`ROAPP_API_KEY`
+Это означает, что проблема V12/V13 с извлечением только одного endpoint устранена. Два из 148 операций пока не имеют извлечённого пути и требуют отдельного разбора; 53 операции не являются GET-пробами и поэтому намеренно не выполняются.
 
-**Не помещайте API-ключи в GitHub-код, README, исходники или скриншоты.**
+## 4. Безопасность
 
-## Локальный запуск
+Read-only inventory разрешает только `GET`.
+
+Запрещены:
+
+- `POST`;
+- `PUT`;
+- `PATCH`;
+- `DELETE`.
+
+API-ключи не должны находиться в исходниках, README, артефактах или скриншотах. Для CI используется GitHub Actions Secret `ROAPP_API_KEY`.
+
+## 5. Запуск
 
 ```bash
 pip install -r requirements.txt
@@ -63,12 +93,52 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
 Проверки:
+
+```bash
+pytest -q
+```
+
+Endpoints локального сервиса:
+
 - `GET /health`
 - `GET /roapp/orders?page=1`
-- `pytest -q`
+- `GET /roapp/audit/orders?max_pages=10`
 
-## Безопасность
+## 6. Docker
 
-v20.3 не включает массовую запись в RO App. Любые будущие операции изменения данных должны проходить отдельную проверку endpoint, payload, прав доступа, идемпотентности и резервной копии.
+```bash
+docker compose up --build
+```
 
-Подробные критерии релиза: `CHANGELOG_v20.3.md`.
+Docker запускает `app.main:app`; отдельный корневой entrypoint не используется.
+
+## 7. OpenAI Ads
+
+`app/openai_ads.py` предназначен для server-side Conversion Measurement. Секреты должны передаваться только через переменные окружения.
+
+Источник: OpenAI Help Center — Conversion Measurement: `https://help.openai.com/en/articles/20001409-conversion-measurement`.
+
+## 8. CI/CD
+
+GitHub Actions разделены по назначению:
+
+- **test** — базовая проверка проекта;
+- **V20.10** — read-only аудит;
+- **V20.11** — read-only schema audit;
+- **V20.12** — inventory;
+- **V20.13** — deep audit;
+- **V20.14** — официальный API inventory и проверка документированных GET endpoints.
+
+V20.14 публикует JSON inventory как Actions artifact и не записывает данные в RO App.
+
+## 9. Что сейчас не закрыто
+
+Открытые Issues #4, #8 и #11 относятся к старой проблеме извлечения API-путей. Технически основной дефект уже устранён и V20.14 успешно проходит CI. Они не должны считаться закрытыми автоматически до отдельной проверки оставшихся 2 операций без пути и 53 unresolved probe states.
+
+## 10. Принцип дальнейшей работы
+
+1. Сначала официальная документация.
+2. Затем READ ONLY inventory.
+3. Затем проверка GET.
+4. Только после подтверждения endpoint, payload, прав доступа и резервной копии возможны операции изменения данных.
+5. Никаких выдуманных API-путей или неподтверждённых операций.
