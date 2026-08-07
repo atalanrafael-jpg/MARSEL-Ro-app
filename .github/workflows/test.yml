@@ -200,13 +200,3 @@ jobs:
           print_schema(sample)
           print("SCHEMA RESULT: READ-ONLY; VALUES ARE NOT PRINTED; NO RO APP DATA WAS CREATED, UPDATED OR DELETED.")
           PY
-
-      - name: MARSEL V20.3 access reference matrix
-        if: github.event_name != 'pull_request'
-        env:
-          ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
-          ROAPP_API_BASE: https://api.roapp.io/v2
-          ROAPP_DOCS_INDEX: https://roapp.readme.io/llms.txt
-        run: |
-          test -n "$ROAPP_API_KEY"
-          python scripts/marsel_audit_v20_3.py --readonly
