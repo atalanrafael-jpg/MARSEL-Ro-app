@@ -6,6 +6,8 @@ class Settings(BaseSettings):
     roapp_api_key: str = ""
     roapp_timeout_seconds: float = 30
     roapp_max_requests_per_second: int = 3
+    roapp_max_retries: int = 3
+    roapp_retry_base_seconds: float = 0.75
 
     # OpenAI Ads Conversions API credentials must come from Ads Manager > Conversions.
     # Never use the general OpenAI Platform API key for this integration.
