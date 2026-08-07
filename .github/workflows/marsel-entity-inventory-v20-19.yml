@@ -20,8 +20,12 @@ jobs:
       ROAPP_API_BASE: https://api.roapp.io/v2
       ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
       ROAPP_TIMEOUT: 30
+      ROAPP_MAX_RETRIES: 3
+      ROAPP_MIN_REQUEST_INTERVAL: 0.25
       MARSEL_API_INVENTORY_INPUT: marsel-api-inventory-v20-14.json
+      MARSEL_API_INVENTORY_OUTPUT: marsel-api-inventory-v20-14.json
       MARSEL_ENTITY_INVENTORY_OUTPUT: marsel-entity-inventory-v20-19.json
+
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -36,38 +40,8 @@ jobs:
           python -m pip install --disable-pip-version-check --no-input -r requirements.txt
           python -m pip install --disable-pip-version-check --no-input 'httpx>=0.28,<1'
 
-      - name: Download V20.14 inventory artifact
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          python - <<'PY'
-          import json, os, urllib.request, zipfile, io
-          repo=os.environ['GITHUB_REPOSITORY']; token=os.environ['GH_TOKEN']
-          headers={'Authorization':f'Bearer {token}','Accept':'application/vnd.github+json'}
-          event=os.environ.get('GITHUB_EVENT_NAME')
-          with open(os.environ['GITHUB_EVENT_PATH'], encoding='utf-8') as f: event_data=json.load(f)
-          run_id=None
-          if event == 'workflow_run':
-              run_id=event_data['workflow_run']['id']
-          else:
-              req=urllib.request.Request(f'https://api.github.com/repos/{repo}/actions/workflows/marsel-api-inventory-v20-14.yml/runs?status=success&per_page=10',headers=headers)
-              with urllib.request.urlopen(req,timeout=30) as r: data=json.load(r)
-              runs=data.get('workflow_runs',[])
-              if runs: run_id=runs[0]['id']
-          if not run_id: raise SystemExit('No successful V20.14 run found')
-          req=urllib.request.Request(f'https://api.github.com/repos/{repo}/actions/runs/{run_id}/artifacts',headers=headers)
-          with urllib.request.urlopen(req,timeout=30) as r: data=json.load(r)
-          matches=[a for a in data.get('artifacts',[]) if a.get('name')=='marsel-v20-14-api-inventory' and not a.get('expired')]
-          if not matches: raise SystemExit(f'V20.14 artifact not found for run {run_id}')
-          req=urllib.request.Request(matches[0]['archive_download_url'],headers=headers)
-          with urllib.request.urlopen(req,timeout=60) as r: blob=r.read()
-          with zipfile.ZipFile(io.BytesIO(blob)) as z:
-              target='marsel-api-inventory-v20-14.json'
-              if target not in z.namelist(): raise SystemExit(f'{target} missing from artifact')
-              with z.open(target) as src, open(target,'wb') as dst: dst.write(src.read())
-          print(f'V20_14_RUN_ID={run_id}')
-          print(f'INVENTORY_DOWNLOADED={target}')
-          PY
+      - name: Generate fresh V20.14-compatible API inventory (READ ONLY)
+        run: python scripts/marsel_api_inventory_v20_14.py
 
       - name: Verify configuration
         run: |
@@ -78,8 +52,13 @@ jobs:
           import json, os
           d=json.load(open(os.environ['MARSEL_API_INVENTORY_INPUT'],encoding='utf-8'))
           assert isinstance(d,dict)
+          assert d.get('readonly') is True
+          assert d.get('write_requests_made') == 0
+          assert d.get('ro_app_data_mutated') is False
           print('INVENTORY_VERSION=',d.get('version'))
-          print('INVENTORY_READ_ONLY=',d.get('mode',d.get('readonly')))
+          print('INVENTORY_READ_ONLY=',d.get('readonly'))
+          print('INVENTORY_WRITE_REQUESTS=',d.get('write_requests_made'))
+          print('INVENTORY_DATA_MUTATED=',d.get('ro_app_data_mutated'))
           PY
 
       - name: Run V20.19 strict read-only entity inventory
