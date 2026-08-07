@@ -1,0 +1,78 @@
+name: MARSEL V20.16 — Data Quality Gate READ ONLY
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/marsel-data-quality-v20-16.yml'
+      - 'scripts/marsel_data_quality_v20_16.py'
+      - 'scripts/marsel_api_inventory_v20_14.py'
+
+permissions:
+  contents: read
+
+jobs:
+  data-quality:
+    name: MARSEL Data Quality Gate — READ ONLY
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ROAPP_API_BASE: https://api.roapp.io/v2
+      ROAPP_DOCS_INDEX: https://roapp.readme.io/llms.txt
+      ROAPP_TIMEOUT: '30'
+      ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+      MARSEL_API_INVENTORY_OUTPUT: marsel-api-inventory-v20-14.json
+      MARSEL_API_INVENTORY_INPUT: marsel-api-inventory-v20-14.json
+      MARSEL_DATA_QUALITY_OUTPUT: marsel-data-quality-v20-16.json
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip httpx
+
+      - name: Validate required secret
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$ROAPP_API_KEY"
+          echo 'ROAPP_API_KEY is configured.'
+
+      - name: Build official API inventory — READ ONLY
+        run: python scripts/marsel_api_inventory_v20_14.py
+
+      - name: Run V20.16 data quality gate — READ ONLY
+        run: python scripts/marsel_data_quality_v20_16.py
+
+      - name: Verify report invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s marsel-api-inventory-v20-14.json
+          test -s marsel-data-quality-v20-16.json
+          python - <<'PY'
+          import json
+          p = json.load(open('marsel-data-quality-v20-16.json', encoding='utf-8'))
+          assert p['readonly'] is True
+          assert p['write_requests_made'] == 0
+          assert p['ro_app_data_mutated'] is False
+          assert p['summary']['orders_pagination_complete'] is True
+          assert p['summary']['duplicate_order_id_groups'] == 0
+          assert p['summary']['duplicate_order_number_groups'] == 0
+          print('REPORT_INVARIANTS=PASS')
+          PY
+
+      - name: Upload audit reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: marsel-v20-16-data-quality-readonly
+          path: |
+            marsel-api-inventory-v20-14.json
+            marsel-data-quality-v20-16.json
+          if-no-files-found: error
+          retention-days: 14
