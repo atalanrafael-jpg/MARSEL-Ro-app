@@ -43,6 +43,13 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Install V20.18 runtime dependency
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check --no-input 'httpx>=0.28,<1'
+          python -c 'import httpx; print("HTTPX_VERSION=" + httpx.__version__)'
+
       - name: Verify configuration
         shell: bash
         run: |
