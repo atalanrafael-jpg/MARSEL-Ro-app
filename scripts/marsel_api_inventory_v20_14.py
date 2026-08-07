@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
 """MARSEL V20.19 — official RO App API inventory, READ ONLY.
 
-V20.19 fixes endpoint extraction by reading both the ReadMe markdown export
-and the canonical HTML reference page, then extracting explicit METHOD + URL
-pairs. Base URLs (/v2, /1.1) are never treated as operation paths except on
-Getting Started. No identifiers are guessed and only GET requests are used.
+Endpoint extraction supports explicit METHOD+URL pairs, HTML href/src API
+links, relative /v2 and /1.1 paths, and nearby method/path documentation.
+Only GET probes are permitted; no write request is ever made.
 """
-import hashlib, html, json, os, re, sys, time
+import hashlib
+import html
+import json
+import os
+import re
+import sys
+import time
 from urllib.parse import urljoin, urlparse
 from urllib.request import Request, urlopen
 
@@ -21,17 +26,18 @@ RETRY_BASE = float(os.environ.get("ROAPP_RETRY_BASE_SECONDS", "0.75"))
 MIN_INTERVAL = float(os.environ.get("ROAPP_MIN_REQUEST_INTERVAL", "0.25"))
 
 METHOD_RE = re.compile(r"\b(GET|POST|PUT|PATCH|DELETE)\b", re.I)
-METHOD_PATH_RE = re.compile(r"\b(GET|POST|PUT|PATCH|DELETE)\b\s*(?:[:\-]\s*)?(https?://api\.roapp\.io(?:/[A-Za-z0-9_./{}:\-?=&\[\]]*)?|/[A-Za-z0-9_./{}:\-?=&\[\]]+)", re.I)
+METHOD_PATH_RE = re.compile(r"\b(GET|POST|PUT|PATCH|DELETE)\b\s*(?:[:\-]\s*)?(https?://api\.roapp\.io(?:/[A-Za-z0-9_./{}:\-?=&\[\]]*)?|/(?:v2|1\.1)(?:/[A-Za-z0-9_./{}:\-?=&\[\]]*)?)", re.I)
 FULL_API_URL_RE = re.compile(r"https?://api\.roapp\.io(?:/[A-Za-z0-9_./{}:\-?=&\[\]]*)?", re.I)
-PATH_TOKEN_RE = re.compile(r"(?:https?://api\.roapp\.io(?:/[A-Za-z0-9_./{}:\-?=&\[\]]*)?|/[A-Za-z0-9_./{}:\-?=&\[\]]+)", re.I)
-TITLE_METHODS = {"get": "GET", "create": "POST", "add": "POST", "update": "PUT", "delete": "DELETE", "merge": "POST", "change": "PATCH"}
-BASE_ONLY = {"/v2", "/1.1", "/v2/", "/1.1/"}
+PATH_RE = re.compile(r"/(?:v2|1\.1)(?:/[A-Za-z0-9_./{}:\-?=&\[\]]*)?", re.I)
+HREF_RE = re.compile(r"(?:href|src)\s*=\s*[\"']([^\"']+)[\"']", re.I)
+TITLE_METHODS = {"get":"GET","create":"POST","add":"POST","update":"PUT","delete":"DELETE","merge":"POST","change":"PATCH"}
+BASE_ONLY = {"/v2","/1.1","/v2/","/1.1/"}
 _last_request_at = 0.0
 
 
 def fetch(url, headers=None):
     global _last_request_at
-    req_headers = headers or {"User-Agent": "MARSEL-Audit-V20.19", "Accept": "text/plain, text/markdown, text/html, application/json"}
+    req_headers = headers or {"User-Agent":"MARSEL-Audit-V20.19","Accept":"text/plain, text/markdown, text/html, application/json"}
     last_error = None
     for attempt in range(MAX_RETRIES + 1):
         wait = MIN_INTERVAL - (time.monotonic() - _last_request_at)
@@ -64,92 +70,89 @@ def title_method(title):
     return TITLE_METHODS.get(first)
 
 
-def normalize_documented_path(raw):
+def normalize_path(raw):
     raw = clean_url(html.unescape(str(raw)).strip().replace("\\/","/"))
     if raw.startswith(("http://","https://")):
-        parsed=urlparse(raw)
-        if parsed.netloc.lower()!="api.roapp.io" or not parsed.path.startswith(("/v2","/1.1")): return None
-        return parsed.path
-    if raw.startswith(("/v2/","/1.1/")): return raw
+        parsed = urlparse(raw)
+        if parsed.netloc.lower() != "api.roapp.io": return None
+        raw = parsed.path
+    if raw.startswith(("/v2/","/1.1/")) and raw not in BASE_ONLY:
+        raw = raw.replace("/v2/v2/","/v2/").replace("/1.1/1.1/","/1.1/")
+        return raw
     return None
 
 
 def extract_explicit_method_paths(text):
-    normalized=html.unescape(text).replace("\\/","/")
-    found=[]
+    normalized = html.unescape(text).replace("\\/","/")
+    found = []
     for m in METHOD_PATH_RE.finditer(normalized):
-        p=normalize_documented_path(m.group(2))
-        if p and p not in BASE_ONLY: found.append((m.group(1).upper(),p))
-    for um in FULL_API_URL_RE.finditer(normalized):
-        p=normalize_documented_path(um.group(0))
-        if not p or p in BASE_ONLY: continue
-        window=normalized[max(0,um.start()-1800):min(len(normalized),um.end()+400)]
-        nearest=min(((abs((max(0,um.start()-1800)+m.start())-um.start()),m.group(1).upper()) for m in METHOD_RE.finditer(window)),default=None)
-        if nearest: found.append((nearest[1],p))
-    lines=normalized.splitlines()
+        p = normalize_path(m.group(2))
+        if p: found.append((m.group(1).upper(),p))
+    for m in FULL_API_URL_RE.finditer(normalized):
+        p = normalize_path(m.group(0))
+        if not p: continue
+        window = normalized[max(0,m.start()-1200):m.end()+300]
+        methods = list(METHOD_RE.finditer(window))
+        found.append(((methods[-1].group(1).upper() if methods else "GET"),p))
+    for m in HREF_RE.finditer(normalized):
+        p = normalize_path(m.group(1))
+        if not p: continue
+        window = normalized[max(0,m.start()-1200):m.end()+300]
+        methods = list(METHOD_RE.finditer(window))
+        found.append(((methods[-1].group(1).upper() if methods else "GET"),p))
+    for m in PATH_RE.finditer(normalized):
+        p = normalize_path(m.group(0))
+        if not p: continue
+        window = normalized[max(0,m.start()-1000):m.end()+250]
+        methods = list(METHOD_RE.finditer(window))
+        found.append(((methods[-1].group(1).upper() if methods else "GET"),p))
+    lines = normalized.splitlines()
     for i,line in enumerate(lines):
-        methods=METHOD_RE.findall(line)
-        if len(methods)!=1: continue
-        same=[normalize_documented_path(x) for x in PATH_TOKEN_RE.findall(line)]
-        same=[x for x in same if x and x not in BASE_ONLY]
-        if same:
-            for p in same: found.append((methods[0].upper(),p))
-            continue
+        methods = METHOD_RE.findall(line)
+        if len(methods) != 1: continue
         for nxt in lines[i+1:i+16]:
-            candidate=normalize_documented_path(re.sub(r"[`<>\"']","",nxt).strip())
-            if candidate and candidate not in BASE_ONLY:
-                found.append((methods[0].upper(),candidate)); break
+            candidates = [normalize_path(x) for x in PATH_RE.findall(nxt)]
+            candidates = [x for x in candidates if x]
+            if candidates:
+                found.extend((methods[0].upper(),p) for p in candidates)
+                break
     return list(dict.fromkeys(found))
 
 
 def extract_methods(text): return sorted({m.group(1).upper() for m in METHOD_RE.finditer(text)})
 
-def canonical_path(path):
-    path=re.sub(r"\s+","",path).replace("/v2/v2/","/v2/").replace("/1.1/1.1/","/1.1/")
-    return path
-
 def has_placeholder(path): return bool(re.search(r"\{[^}]+\}|<[^>]+>|:[A-Za-z_][A-Za-z0-9_]*",path))
 
 def sha256_json(value): return hashlib.sha256(json.dumps(value,ensure_ascii=False,sort_keys=True,separators=(",",":")).encode()).hexdigest()
 
-
-def page_variants(url):
-    variants=[url]
-    if url.endswith(".md"): variants.append(url[:-3])
-    return list(dict.fromkeys(variants))
+def page_variants(url): return list(dict.fromkeys([url] + ([url[:-3]] if url.endswith(".md") else [])))
 
 
 def main():
     if not KEY: print("ROAPP_API_KEY is required",file=sys.stderr); return 2
-    if not 0<=MIN_INTERVAL<=10: print("ROAPP_MIN_REQUEST_INTERVAL must be between 0 and 10 seconds",file=sys.stderr); return 2
-    status,index_text,elapsed,error=fetch(DOCS_INDEX)
-    if status!=200: print(f"DOCS_INDEX_HTTP={status}",file=sys.stderr); print(error or "documentation index unavailable",file=sys.stderr); return 1
-
+    if not 0 <= MIN_INTERVAL <= 10: print("ROAPP_MIN_REQUEST_INTERVAL must be between 0 and 10 seconds",file=sys.stderr); return 2
+    status,index_text,_,error = fetch(DOCS_INDEX)
+    if status != 200: print(f"DOCS_INDEX_HTTP={status}",file=sys.stderr); print(error or "documentation index unavailable",file=sys.stderr); return 1
     links=[]; seen=set()
     for m in re.finditer(r"\[([^\]]+)\]\(([^)]+/reference/[^)]+)\)",index_text):
         title,href=m.groups(); url=urljoin(DOCS_INDEX,clean_url(href))
         if url not in seen: seen.add(url); links.append({"title":html.unescape(title).strip(),"url":url})
     links=links[:MAX_DOCS]
-
     operations=[]
     for link in links:
-        bodies=[]; doc_status=None; doc_elapsed=0; doc_error=None; sources=[]
+        bodies=[]; sources=[]; doc_status=None; doc_elapsed=0; doc_error=None
         for variant in page_variants(link["url"]):
-            st,text,de,err=fetch(variant)
-            sources.append({"url":variant,"http":st,"elapsed_s":de,"error":err})
-            if st==200:
-                bodies.append(text); doc_status=200; doc_elapsed=max(doc_elapsed,de)
-            elif doc_status is None:
-                doc_status=st; doc_error=err
+            st,text,de,err=fetch(variant); sources.append({"url":variant,"http":st,"elapsed_s":de,"error":err})
+            if st==200: bodies.append(text); doc_status=200; doc_elapsed=max(doc_elapsed,de)
+            elif doc_status is None: doc_status,doc_error=st,err
         combined="\n".join(bodies)
         pairs=extract_explicit_method_paths(combined) if bodies else []
-        methods=sorted({m for m,_ in pairs}); paths=sorted({canonical_path(p) for _,p in pairs})
+        methods=sorted({m for m,_ in pairs}); paths=sorted({p for _,p in pairs})
         if not methods and bodies: methods=extract_methods(combined)
         inferred=title_method(link["title"]); method_source="document_body"
         if not methods and inferred: methods=[inferred]; method_source="operation_title"
         elif not methods: method_source="unresolved"
         operations.append({"title":link["title"],"documentation_url":link["url"],"documentation_variants":sources,"documentation_http":doc_status,"documentation_elapsed_s":doc_elapsed,"documentation_error":doc_error,"methods":methods,"method_source":method_source,"paths":paths,"get_probe":None})
-
     probe_cache={}; headers={"Authorization":f"Bearer {KEY}","Accept":"application/json","User-Agent":"MARSEL-Audit-V20.19"}
     for op in operations:
         if "GET" not in op["methods"]: continue
@@ -160,15 +163,16 @@ def main():
             if path not in probe_cache:
                 url=BASE+path if path.startswith("/") else BASE+"/"+path
                 st,body,pe,pe_err=fetch(url,headers=headers)
-                probe_cache[path]={"path":path,"http":st,"elapsed_s":pe,"json":None,"error":pe_err}
+                item={"path":path,"http":st,"elapsed_s":pe,"json":None,"error":pe_err}
                 if st==200:
                     try:
-                        parsed=json.loads(body); probe_cache[path]["json"]={"type":type(parsed).__name__,"keys":sorted(parsed.keys())[:50] if isinstance(parsed,dict) else None}
-                    except json.JSONDecodeError: probe_cache[path]["error"]="HTTP 200 but response is not JSON"
+                        parsed=json.loads(body); item["json"]={"type":type(parsed).__name__,"keys":sorted(parsed.keys())[:50] if isinstance(parsed,dict) else None}
+                    except json.JSONDecodeError: item["error"]="HTTP 200 but response is not JSON"
+                probe_cache[path]=item
             probes.append(probe_cache[path])
         op["get_probe"]={"status":"PROBED","results":probes}
-
-    def ps(op): return op.get("get_probe",{}).get("status") if isinstance(op.get("get_probe"),dict) else None
+    def ps(op):
+        value=op.get("get_probe"); return value.get("status") if isinstance(value,dict) else None
     dg=sum("GET" in o["methods"] for o in operations); dng=sum(any(m!="GET" for m in o["methods"]) for o in operations)
     resolved=sum(bool(o["paths"]) for o in operations); gp=sum(1 for o in operations if "GET" in o["methods"] and ps(o)=="PROBED")
     gn=sum(1 for o in operations if "GET" in o["methods"] and ps(o)=="NOT_PROBED"); gu=sum(1 for o in operations if "GET" in o["methods"] and ps(o) is None)
