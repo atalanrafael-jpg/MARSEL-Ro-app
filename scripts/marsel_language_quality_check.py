@@ -24,19 +24,25 @@ CYRILLIC_WORD = re.compile(r"^[А-Яа-яЁё]+$")
 
 
 def markdown_text(text: str) -> str:
-    text = re.sub(r"```.*?```", " ", text, flags=re.S)
-    text = re.sub(r"`[^`]*`", " ", text)
-    text = re.sub(r"https?://\S+", " ", text)
-    text = re.sub(r"!?(?:\[[^\]]*\])\([^)]*\)", " ", text)
+    """Mask Markdown syntax without inserting punctuation-adjacent spaces.
+
+    The previous implementation replaced inline code/URLs/links with a single
+    space, which could manufacture false "space before punctuation" findings.
+    Tokens contain only letters so the surrounding prose keeps its spacing.
+    """
+    text = re.sub(r"```.*?```", " MARSEL_CODE_BLOCK ", text, flags=re.S)
+    text = re.sub(r"`[^`]*`", " MARSEL_CODE ", text)
+    text = re.sub(r"https?://\S+", " MARSEL_URL ", text)
+    text = re.sub(r"!?(?:\[[^\]]*\])\([^)]*\)", " MARSEL_LINK ", text)
     return text
 
 
 def check_punctuation(path: Path, text: str) -> list[str]:
     errors: list[str] = []
     for lineno, line in enumerate(text.splitlines(), 1):
-        # Two trailing spaces are valid Markdown hard line breaks.
-        meaningful = line.rstrip()
-        if re.search(r"\s{2,}", meaningful) and not meaningful.lstrip().startswith(">"):
+        # Ignore indentation; repeated internal spaces remain actionable.
+        meaningful = line.rstrip().lstrip()
+        if re.search(r"\S\s{2,}\S", meaningful):
             errors.append(f"{path.relative_to(ROOT)}:{lineno}: repeated internal spaces")
         if re.search(r"\s+[,.!?;:]", meaningful):
             errors.append(f"{path.relative_to(ROOT)}:{lineno}: space before punctuation")
