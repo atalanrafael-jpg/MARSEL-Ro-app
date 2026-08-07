@@ -1,0 +1,55 @@
+name: MARSEL V21.3 Entity Mapping (READ ONLY)
+
+on:
+  push:
+    paths:
+      - 'scripts/marsel_entity_mapping_v21_3.py'
+      - 'docs/MARSEL_INVENTORY_TAXONOMY_V21_2.md'
+      - '.github/workflows/marsel-entity-mapping-v21-3.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mapping:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONUNBUFFERED: '1'
+      MARSEL_ENTITY_INVENTORY_INPUT: marsel-entity-inventory-v20-19.json
+      MARSEL_ENTITY_MAPPING_OUTPUT: marsel-entity-mapping-v21-3.json
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Verify source inventory exists
+        run: test -f "$MARSEL_ENTITY_INVENTORY_INPUT"
+
+      - name: Run V21.3 read-only mapping
+        run: python scripts/marsel_entity_mapping_v21_3.py
+
+      - name: Safety gate
+        run: |
+          set -euo pipefail
+          grep -q 'WRITE_REQUESTS=0' "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+          python - <<'PY'
+          import json
+          p='marsel-entity-mapping-v21-3.json'
+          d=json.load(open(p,encoding='utf-8'))
+          assert d['write_requests'] == 0
+          assert d['ro_app_data_mutated'] is False
+          print('SAFETY_GATE=PASS')
+          print('REVIEW_REQUIRED=', d['review_required'])
+          PY
+
+      - name: Upload mapping report
+        uses: actions/upload-artifact@v4
+        with:
+          name: marsel-v21-3-entity-mapping
+          path: marsel-entity-mapping-v21-3.json
+          if-no-files-found: error
