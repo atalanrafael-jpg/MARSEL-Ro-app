@@ -2,14 +2,19 @@ name: MARSEL V20.18 Strict API Endpoint Diagnostics — READ ONLY
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - 'scripts/marsel_api_endpoint_diagnostics_v20_18.py'
-      - '.github/workflows/marsel-api-endpoint-diagnostics-v20-18.yml'
+    inputs:
+      inventory_run_id:
+        description: 'Successful V20.14 workflow run ID containing marsel-v20-14-api-inventory'
+        required: true
+        type: string
+  workflow_run:
+    workflows:
+      - 'MARSEL V20.14 Official API Inventory — READ ONLY'
+    types: [completed]
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: marsel-api-endpoint-diagnostics-v20-18
@@ -17,6 +22,7 @@ concurrency:
 
 jobs:
   diagnostics:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     name: Strict endpoint diagnostics — READ ONLY
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -27,6 +33,7 @@ jobs:
       MARSEL_API_INVENTORY_INPUT: marsel-api-inventory-v20-14.json
       MARSEL_ENDPOINT_DIAGNOSTICS_OUTPUT: marsel-endpoint-diagnostics-v20-18.json
       ROAPP_PATH_PARAMS_JSON: '{}'
+      INVENTORY_RUN_ID: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || inputs.inventory_run_id }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -41,8 +48,39 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$ROAPP_API_KEY"
-          test -s "$MARSEL_API_INVENTORY_INPUT"
+          test -n "$INVENTORY_RUN_ID"
           python --version
+          echo "INVENTORY_RUN_ID=$INVENTORY_RUN_ID"
+
+      - name: Download V20.14 inventory artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: marsel-v20-14-api-inventory
+          path: .
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ env.INVENTORY_RUN_ID }}
+
+      - name: Verify inventory artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "$MARSEL_API_INVENTORY_INPUT"
+          python - <<'PY'
+          import json, os
+          p=os.environ['MARSEL_API_INVENTORY_INPUT']
+          with open(p, encoding='utf-8') as f:
+              d=json.load(f)
+          assert d.get('version') == '20.14'
+          assert d.get('readonly') is True
+          assert d.get('write_requests_made') == 0
+          assert d.get('ro_app_data_mutated') is False
+          assert d.get('method_policy', {}).get('allowed') == ['GET']
+          print('INVENTORY_ARTIFACT=VALID')
+          print('DOCUMENTED_OPERATIONS=', d.get('summary', {}).get('documented_operations'))
+          print('EXTRACTED_PATHS=', d.get('summary', {}).get('operations_with_extracted_paths'))
+          print('INVENTORY_SHA256=', d.get('summary', {}).get('inventory_sha256'))
+          PY
 
       - name: Run V20.18 strict read-only diagnostics
         shell: bash
