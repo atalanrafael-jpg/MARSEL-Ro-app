@@ -16,6 +16,9 @@ KEY = os.environ.get("ROAPP_API_KEY", "")
 OUT = os.environ.get("MARSEL_API_INVENTORY_OUTPUT", "marsel-api-inventory-v20-14.json")
 TIMEOUT = int(os.environ.get("ROAPP_TIMEOUT", "30"))
 MAX_DOCS = int(os.environ.get("MARSEL_MAX_DOCS", "300"))
+MAX_RETRIES = int(os.environ.get("ROAPP_MAX_RETRIES", "3"))
+RETRY_BASE = float(os.environ.get("ROAPP_RETRY_BASE_SECONDS", "0.75"))
+MIN_INTERVAL = float(os.environ.get("ROAPP_MIN_REQUEST_INTERVAL", "0.25"))
 
 METHOD_RE = re.compile(r"\b(GET|POST|PUT|PATCH|DELETE)\b", re.I)
 METHOD_PATH_RE = re.compile(r"\b(GET|POST|PUT|PATCH|DELETE)\b\s*(?:[:\-]\s*)?(https?://[^\s)\]}>\'\"`]+|/[A-Za-z0-9_./{}:-]+)", re.I)
@@ -23,15 +26,38 @@ FULL_API_URL_RE = re.compile(r"https?://api\.roapp\.io/v2(?:/[A-Za-z0-9_./{}:-]+
 PATH_TOKEN_RE = re.compile(r"(?:https?://[^\s)\]}>\'\"`]+|/[A-Za-z0-9_./{}:-]+)")
 TITLE_METHODS = {"get": "GET", "create": "POST", "add": "POST", "update": "PUT", "delete": "DELETE", "merge": "POST", "change": "PATCH"}
 
+_last_request_at = 0.0
+
 
 def fetch(url, headers=None):
-    req = Request(url, headers=headers or {"User-Agent": "MARSEL-Audit-V20.14", "Accept": "text/plain, text/markdown, text/html, application/json"}, method="GET")
-    started = time.time()
-    try:
-        with urlopen(req, timeout=TIMEOUT) as response:
-            return response.status, response.read().decode("utf-8", errors="replace"), round(time.time() - started, 3), None
-    except Exception as exc:
-        return None, "", round(time.time() - started, 3), f"{type(exc).__name__}: {exc}"
+    global _last_request_at
+    req_headers = headers or {"User-Agent": "MARSEL-Audit-V20.14", "Accept": "text/plain, text/markdown, text/html, application/json"}
+    last_error = None
+    for attempt in range(MAX_RETRIES + 1):
+        wait = MIN_INTERVAL - (time.monotonic() - _last_request_at)
+        if wait > 0:
+            time.sleep(wait)
+        req = Request(url, headers=req_headers, method="GET")
+        started = time.time()
+        try:
+            _last_request_at = time.monotonic()
+            with urlopen(req, timeout=TIMEOUT) as response:
+                body = response.read().decode("utf-8", errors="replace")
+                status = response.status
+                if status not in {408, 425, 429, 500, 502, 503, 504} or attempt >= MAX_RETRIES:
+                    return status, body, round(time.time() - started, 3), None
+                retry_after = response.headers.get("Retry-After")
+                try:
+                    delay = float(retry_after) if retry_after else RETRY_BASE * (2 ** attempt)
+                except ValueError:
+                    delay = RETRY_BASE * (2 ** attempt)
+                time.sleep(min(max(delay, 0.0), 30.0))
+        except Exception as exc:
+            last_error = f"{type(exc).__name__}: {exc}"
+            if attempt >= MAX_RETRIES:
+                return None, "", round(time.time() - started, 3), last_error
+            time.sleep(min(RETRY_BASE * (2 ** attempt), 30.0))
+    return None, "", 0, last_error or "request failed"
 
 
 def clean_url(url): return url.rstrip(".,;:")
@@ -106,6 +132,9 @@ def main():
     if not KEY:
         print("ROAPP_API_KEY is required", file=sys.stderr)
         return 2
+    if not 0 <= MIN_INTERVAL <= 10:
+        print("ROAPP_MIN_REQUEST_INTERVAL must be between 0 and 10 seconds", file=sys.stderr)
+        return 2
     status, index_text, elapsed, error = fetch(DOCS_INDEX)
     if status != 200:
         print(f"DOCS_INDEX_HTTP={status}", file=sys.stderr); print(error or "documentation index unavailable", file=sys.stderr); return 1
@@ -168,6 +197,7 @@ def main():
 
     report = {
         "version": "20.14", "readonly": True, "write_requests_made": 0, "ro_app_data_mutated": False,
+        "request_policy": {"allowed_method": "GET", "min_interval_seconds": MIN_INTERVAL, "max_retries": MAX_RETRIES, "retry_base_seconds": RETRY_BASE},
         "method_policy": {"allowed": ["GET"], "forbidden": ["POST", "PUT", "PATCH", "DELETE"]},
         "documentation": {"index": DOCS_INDEX, "index_http": status, "index_elapsed_s": elapsed, "reference_links": len(links), "parse_errors": sum(1 for op in operations if op["documentation_http"] != 200)},
         "operations": operations,
@@ -189,8 +219,8 @@ def main():
     print(f"DOCUMENTED_GET_OPERATIONS={documented_get}"); print(f"OPERATIONS_WITH_EXTRACTED_PATHS={resolved_path_ops}")
     print(f"OPERATIONS_WITHOUT_EXTRACTED_PATHS={operations_without_paths}"); print(f"GET_OPERATIONS_PROBED={get_probed}")
     print(f"GET_OPERATIONS_NOT_PROBED={get_not_probed}"); print(f"GET_OPERATIONS_WITH_UNRESOLVED_PROBE_STATE={get_unresolved}")
-    print(f"NON_GET_OPERATIONS={non_get_operations}"); print("WRITE_REQUESTS_MADE=0")
-    print(f"INVENTORY_SHA256={report['summary']['inventory_sha256']}"); print(f"REPORT={OUT}")
+    print(f"NON_GET_OPERATIONS={non_get_operations}"); print(f"MIN_REQUEST_INTERVAL={MIN_INTERVAL}"); print(f"MAX_RETRIES={MAX_RETRIES}")
+    print("WRITE_REQUESTS_MADE=0"); print(f"INVENTORY_SHA256={report['summary']['inventory_sha256']}"); print(f"REPORT={OUT}")
     print("RESULT=READ_ONLY; NO RO APP DATA CREATED, UPDATED OR DELETED")
     return 0
 
