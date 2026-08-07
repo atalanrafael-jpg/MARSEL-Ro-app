@@ -1,6 +1,0 @@
-Trigger MARSEL audit v3
-
-This file was added to trigger the MARSEL audit v3 workflow (push trigger).
-Timestamp: 2026-08-03T12:26:53Z
-
-No data changes performed by the workflow — it runs read-only checks against RO App API.
