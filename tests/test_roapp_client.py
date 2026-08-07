@@ -11,40 +11,46 @@ async def test_orders_retries_429(monkeypatch):
     client.retry_base_seconds = 0
     calls = 0
 
-    class FakeResponse:
-        def __init__(self, status_code, payload):
-            self.status_code = status_code
-            self.headers = {}
-            self._payload = payload
+    from app.config import settings
+    original_key = settings.roapp_api_key
+    settings.roapp_api_key = "test-key"
+    try:
+        class FakeResponse:
+            def __init__(self, status_code, payload):
+                self.status_code = status_code
+                self.headers = {}
+                self._payload = payload
 
-        def raise_for_status(self):
-            if self.status_code >= 400:
-                raise httpx.HTTPStatusError("error", request=None, response=self)
+            def raise_for_status(self):
+                if self.status_code >= 400:
+                    raise httpx.HTTPStatusError("error", request=None, response=self)
 
-        def json(self):
-            return self._payload
+            def json(self):
+                return self._payload
 
-    class FakeAsyncClient:
-        def __init__(self, *args, **kwargs):
-            pass
+        class FakeAsyncClient:
+            def __init__(self, *args, **kwargs):
+                pass
 
-        async def __aenter__(self):
-            return self
+            async def __aenter__(self):
+                return self
 
-        async def __aexit__(self, *args):
-            return False
+            async def __aexit__(self, *args):
+                return False
 
-        async def get(self, *args, **kwargs):
-            nonlocal calls
-            calls += 1
-            if calls == 1:
-                return FakeResponse(429, {})
-            return FakeResponse(200, {"count": 0, "data": []})
+            async def get(self, *args, **kwargs):
+                nonlocal calls
+                calls += 1
+                if calls == 1:
+                    return FakeResponse(429, {})
+                return FakeResponse(200, {"count": 0, "data": []})
 
-    monkeypatch.setattr("app.roapp_client.httpx.AsyncClient", FakeAsyncClient)
-    result = await client.get_orders(1)
-    assert result == {"count": 0, "data": []}
-    assert calls == 2
+        monkeypatch.setattr("app.roapp_client.httpx.AsyncClient", FakeAsyncClient)
+        result = await client.get_orders(1)
+        assert result == {"count": 0, "data": []}
+        assert calls == 2
+    finally:
+        settings.roapp_api_key = original_key
 
 
 @pytest.mark.asyncio
