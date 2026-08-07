@@ -200,3 +200,23 @@ jobs:
           print_schema(sample)
           print("SCHEMA RESULT: READ-ONLY; VALUES ARE NOT PRINTED; NO RO APP DATA WAS CREATED, UPDATED OR DELETED.")
           PY
+
+      - name: MARSEL master audit v20.20
+        if: github.event_name != 'pull_request'
+        env:
+          ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+          MARSEL_MAX_ORDER_PAGES: "100"
+        run: python scripts/marsel_master_audit_v20_20.py
+
+      # The raw orders snapshot is intentionally NOT uploaded as an artifact.
+      # It may contain customer data. Only the non-value audit report and hashes are retained.
+      - name: Upload MARSEL master audit report
+        if: always() && github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: marsel-master-audit-v20-20
+          path: |
+            artifacts/marsel-master-audit/master_audit.json
+            artifacts/marsel-master-audit/SHA256.json
+          if-no-files-found: warn
+          retention-days: 7
