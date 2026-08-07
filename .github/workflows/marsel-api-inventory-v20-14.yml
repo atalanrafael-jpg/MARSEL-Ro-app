@@ -128,14 +128,19 @@ jobs:
           assert d['ro_app_data_mutated'] is False
           assert d['method_policy']['allowed'] == ['GET']
           http = d['documentation']['index_http']
+          print('VALIDATION_INPUTS:')
+          print('  DOCS_INDEX_HTTP=', http)
+          print('  DOCUMENTED_OPERATIONS=', d['summary']['documented_operations'])
+          print('  OPERATIONS_WITH_EXTRACTED_PATHS=', d['summary']['operations_with_extracted_paths'])
+          print('  GET_OPERATIONS_PROBED=', d['summary']['get_operations_probed'])
+          print('  GET_OPERATIONS_NOT_PROBED=', d['summary']['get_operations_not_probed'])
+          print('  OPERATIONS_WITH_UNRESOLVED_PROBE_STATE=', d['summary']['operations_with_unresolved_probe_state'])
           assert http == 200 or d.get('degraded') is True
           if http == 200:
-              assert d['summary']['documented_operations'] > 1
-              # Regression guard: the previous V20.14 run discovered 148
-              # reference pages but extracted a path from only one page.
-              # A successful inventory must discover more than one documented
-              # API path from the official reference pages.
-              assert d['summary']['operations_with_extracted_paths'] > 1
+              assert d['summary']['documented_operations'] > 1, 'Expected >1 documented operation from official reference index'
+              # Regression guard: previous V20.14 discovered reference pages
+              # but extracted a path from only one page.
+              assert d['summary']['operations_with_extracted_paths'] > 1, 'API path extraction regression: fewer than 2 documented paths found'
           else:
               assert d['summary']['documented_operations'] == 0
               assert d.get('degraded_reason')
