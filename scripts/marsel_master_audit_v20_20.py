@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
-"""MARSEL V20.20 — read-only master audit for RO App.
-
-This command never mutates RO App. It creates a local orders snapshot,
-SHA-256 manifest and deterministic audit report. It must not be described as
-a full database backup unless every RO App entity has been exported.
-"""
+"""MARSEL V20.20 — read-only master audit for RO App."""
 from __future__ import annotations
 
 import asyncio
 import hashlib
 import json
 import os
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+# Support the existing CI command: `python scripts/marsel_master_audit_v20_20.py`.
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 
 from app.audit import audit_order_pages
 from app.roapp_client import RoAppClient
@@ -51,8 +52,7 @@ async def main() -> int:
         raise SystemExit("MARSEL_MAX_ORDER_PAGES must be between 1 and 100")
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    client = RoAppClient()
-    pages = await client.get_orders_pages(MAX_PAGES)
+    pages = await RoAppClient().get_orders_pages(MAX_PAGES)
     records = extract_records(pages)
     audit = audit_order_pages(pages)
 
@@ -88,8 +88,7 @@ async def main() -> int:
             report_path.name: sha256_bytes(report_bytes),
         },
     }
-    manifest_path = OUTPUT_DIR / "SHA256.json"
-    manifest_path.write_bytes(canonical_json(manifest))
+    (OUTPUT_DIR / "SHA256.json").write_bytes(canonical_json(manifest))
 
     print("=== MARSEL MASTER AUDIT V20.20 / READ ONLY ===")
     print(f"PAGES_SCANNED={len(pages)}")
