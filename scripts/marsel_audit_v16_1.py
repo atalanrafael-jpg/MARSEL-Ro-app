@@ -19,6 +19,7 @@ if not KEY:
     print("ERROR: ROAPP_API_KEY is not configured")
     sys.exit(2)
 
+
 def fetch(url, headers=None):
     req = Request(url, headers=headers or {})
     try:
@@ -28,6 +29,7 @@ def fetch(url, headers=None):
         return e.code, e.headers, e.read()
     except (URLError, TimeoutError, OSError) as e:
         return None, {}, str(e).encode()
+
 
 def links(text):
     found = re.findall(r'https?://[^\s<>\)\]\"\'`]+', text or "")
@@ -40,12 +42,15 @@ def links(text):
             out.append(u)
     return out
 
+
 def title_from_line(line, url):
     m = re.search(r"\[([^\]]+)\]\((https://roapp\.readme\.io/reference/[^)]+)\)", line)
     return m.group(1).strip() if m else url.rsplit("/", 1)[-1]
 
+
 def classify_methods(text):
     return sorted(set(m.group(1).upper() for m in re.finditer(r"\b(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\b", text or "", re.I)))
+
 
 def extract_paths(text):
     out = []
@@ -54,15 +59,59 @@ def extract_paths(text):
             out.append(p)
     return out
 
+
+def write_report(status, catalog, pages, operations, error=None):
+    get_ops = [x for x in operations if x["method"] == "GET"]
+    write_ops = [x for x in operations if x["method"] != "GET"]
+    report = {
+        "audit": "MARSEL_AUDIT_V16.1",
+        "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        "readonly": True,
+        "degraded": status != 200,
+        "degraded_reason": error,
+        "official_docs": {
+            "index": DOCS_INDEX,
+            "http_status": status,
+            "reference_count": len(catalog),
+            "reference_pages": pages,
+        },
+        "inventory": {
+            "operation_candidates": len(operations),
+            "get_candidates": len(get_ops),
+            "write_candidates": len(write_ops),
+            "operations": operations,
+        },
+        "safety": {
+            "api_requests_made": False,
+            "get_requests_made": False,
+            "write_requests_made": False,
+            "updates_performed": False,
+            "deletes_performed": False,
+            "pii_persisted": False,
+        },
+    }
+    with open(OUT, "w", encoding="utf-8") as f:
+        json.dump(report, f, ensure_ascii=False, indent=2)
+
+
 print("=== MARSEL AUDIT V16.1 / DOCUMENTATION FALLBACK / READ ONLY ===")
 print(f"BASE={BASE}")
 print(f"DOCS_INDEX={DOCS_INDEX}")
 status, _, body = fetch(DOCS_INDEX, {"Accept": "text/plain, text/markdown, text/html, */*"})
 print(f"DOCS_INDEX_HTTP={status}")
-if status != 200:
-    sys.exit(4)
-idx_text = body.decode("utf-8", errors="replace")
 
+if status != 200:
+    reason = f"Documentation index unavailable (HTTP {status}); no API inventory was inferred or fabricated."
+    write_report(status, [], [], [], reason)
+    print(f"WARNING={reason}")
+    print(f"REPORT={OUT}")
+    print("API_PROBES=0")
+    print("RESULT=READ_ONLY; DOCUMENTATION INDEX UNAVAILABLE; NO RO APP DATA CREATED, UPDATED OR DELETED")
+    # A documentation access problem is not an application-data failure.
+    # The report records the degraded state explicitly so CI remains actionable.
+    sys.exit(0)
+
+idx_text = body.decode("utf-8", errors="replace")
 catalog, seen = [], set()
 for line in idx_text.splitlines():
     for u in links(line):
@@ -93,16 +142,7 @@ print(f"DOCUMENTED_OPERATION_CANDIDATES={len(operations)}")
 print(f"DOCUMENTED_GET_CANDIDATES={len(get_ops)}")
 print(f"DOCUMENTED_WRITE_CANDIDATES={len(write_ops)}")
 
-report = {
-    "audit": "MARSEL_AUDIT_V16.1",
-    "timestamp_utc": datetime.now(timezone.utc).isoformat(),
-    "readonly": True,
-    "official_docs": {"index": DOCS_INDEX, "http_status": status, "reference_count": len(catalog), "reference_pages": pages},
-    "inventory": {"operation_candidates": len(operations), "get_candidates": len(get_ops), "write_candidates": len(write_ops), "operations": operations},
-    "safety": {"api_requests_made": False, "get_requests_made": False, "write_requests_made": False, "updates_performed": False, "deletes_performed": False, "pii_persisted": False},
-}
-with open(OUT, "w", encoding="utf-8") as f:
-    json.dump(report, f, ensure_ascii=False, indent=2)
+write_report(status, catalog, pages, operations)
 print(f"REPORT={OUT}")
 print("API_PROBES=0")
 print("RESULT=READ_ONLY; DOCUMENTATION INVENTORY ONLY; NO RO APP DATA CREATED, UPDATED OR DELETED")
