@@ -17,8 +17,8 @@ import os
 import re
 import sys
 import time
-from urllib.parse import Request, urljoin, urlparse
-from urllib.request import urlopen
+from urllib.parse import urljoin, urlparse
+from urllib.request import Request, urlopen
 
 DOCS_INDEX = os.environ.get("ROAPP_DOCS_INDEX", "https://roapp.readme.io/llms.txt")
 BASE = os.environ.get("ROAPP_API_BASE", "https://api.roapp.io/v2").rstrip("/")
