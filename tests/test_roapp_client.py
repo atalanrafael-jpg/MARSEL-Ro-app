@@ -25,6 +25,9 @@ async def test_orders_retries_429(monkeypatch):
             return self._payload
 
     class FakeAsyncClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
         async def __aenter__(self):
             return self
 
