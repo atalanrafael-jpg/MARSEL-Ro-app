@@ -50,7 +50,7 @@ def main() -> int:
         fail("unknown HTTP method in inventory")
     if len(keys) != len(set(keys)):
         fail("duplicate method/path operations found")
-    if any(not isinstance(path, str) or not re.match(r"^/(?:v2|1\\.1)/", path) for _, path in keys):
+    if any(not isinstance(path, str) or not re.match(r"^/(?:v2|1\.1)/", path) for _, path in keys):
         fail("operation path is outside supported API prefixes")
 
     summary = data["summary"]
@@ -61,7 +61,6 @@ def main() -> int:
     if summary.get("write_requests_made") != 0:
         fail("summary reports write requests")
 
-    # Detect multiple V20.23 workflow files that could silently diverge.
     v23 = sorted(p.name for p in WORKFLOWS.glob("*v20-23*.yml")) if WORKFLOWS.exists() else []
     if len(v23) > 1:
         fail(f"multiple V20.23 workflows detected: {v23}")
