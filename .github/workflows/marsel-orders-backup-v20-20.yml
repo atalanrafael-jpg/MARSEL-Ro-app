@@ -1,0 +1,57 @@
+name: MARSEL V20.20 — orders backup + audit (READ ONLY)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '15 2 * * *'
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: marsel-orders-backup-v20-20
+  cancel-in-progress: false
+
+jobs:
+  backup-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ROAPP_API_BASE: https://api.roapp.io/v2
+      ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+      ROAPP_TIMEOUT: '30'
+      ROAPP_PAGE_SIZE: '50'
+      MARSEL_BACKUP_OUTPUT: marsel-orders-backup-v20-20.json
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip httpx
+      - name: Validate secret
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$ROAPP_API_KEY"
+      - name: Run V20.20 backup + audit
+        run: python scripts/marsel_orders_backup_audit_v20_20.py
+      - name: Verify read-only invariant
+        run: |
+          python - <<'PY'
+          import json
+          p=json.load(open('marsel-orders-backup-v20-20.json',encoding='utf-8'))
+          assert p['readonly'] is True
+          assert p['summary']['write_requests_made'] == 0
+          assert p['summary']['ro_app_data_mutated'] is False
+          print('READ_ONLY_INVARIANTS=PASS')
+          PY
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: marsel-v20-20-orders-backup-audit-readonly
+          path: marsel-orders-backup-v20-20.json
+          if-no-files-found: error
+          retention-days: 30
