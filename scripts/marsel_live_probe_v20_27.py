@@ -16,6 +16,7 @@ import time
 from pathlib import Path
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
+from urllib.parse import urlsplit
 
 VERSION = "20.27"
 INVENTORY = Path(os.environ.get("MARSEL_API_INVENTORY_INPUT", "marsel-api-inventory-v20-23.json"))
@@ -42,6 +43,18 @@ def wait_rate_limit() -> None:
     delay = MIN_INTERVAL - (time.monotonic() - _last)
     if delay > 0:
         time.sleep(delay)
+
+
+def build_url(path: str) -> str:
+    """Join an API base and documented path without duplicating /v2."""
+    base_parts = urlsplit(BASE)
+    base_path = base_parts.path.rstrip("/")
+    normalized_path = "/" + path.lstrip("/")
+    if base_path and (normalized_path == base_path or normalized_path.startswith(base_path + "/")):
+        final_path = normalized_path
+    else:
+        final_path = base_path + normalized_path
+    return base_parts._replace(path=final_path).geturl()
 
 
 def probe(url: str):
@@ -104,8 +117,9 @@ def main() -> int:
         if path in seen:
             continue
         seen.add(path)
-        result = probe(BASE + path)
-        item = {"method": "GET", "path": path, "url": BASE + path, "http": result.get("http"), "elapsed_s": result.get("elapsed_s"), "content_type": result.get("content_type"), "error": result.get("error")}
+        url = build_url(path)
+        result = probe(url)
+        item = {"method": "GET", "path": path, "url": url, "http": result.get("http"), "elapsed_s": result.get("elapsed_s"), "content_type": result.get("content_type"), "error": result.get("error")}
         body = result.get("body", "")
         if result.get("http") in {200, 201, 202, 204}:
             if body.strip():
@@ -121,11 +135,10 @@ def main() -> int:
                 except json.JSONDecodeError:
                     item["json_valid"] = False
                     item["error"] = "successful HTTP response is not valid JSON"
-            else:
-                item["json_valid"] = result.get("http") == 204
         else:
             item["json_valid"] = None
             item["error_body_sample"] = body[:500] if body else None
+            errors.append(f"GET {url} returned HTTP {result.get('http')}: {body[:500] if body else result.get('error', 'no response')}")
         probes.append(item)
 
     successful = [p for p in probes if p.get("http") in {200, 201, 202, 204}]
@@ -140,7 +153,7 @@ def main() -> int:
         "inventory_sha256": digest(INVENTORY),
         "metrics": {
             "inventory_operations": len(ops),
-            "get_paths_probed": len(successful) + sum(1 for p in probes if p.get("http") is not None and p.get("status") != "NOT_PROBED"),
+            "get_paths_probed": len([p for p in probes if p.get("status") != "NOT_PROBED"]),
             "successful_responses": len(successful),
             "valid_json_responses": len(valid_json),
             "parameterized_not_probed": len(not_probed),
@@ -174,5 +187,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
-# V20.27 trigger revision: intentionally no-op; preserves GET-only behavior.
