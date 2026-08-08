@@ -1,0 +1,87 @@
+name: MARSEL V20.24 Integrity Consolidation — READ ONLY
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/marsel_integrity_v20_24.py'
+      - '.github/workflows/marsel-integrity-v20-24.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: marsel-integrity-v20-24
+  cancel-in-progress: true
+
+jobs:
+  integrity:
+    name: Consolidated integrity gate — READ ONLY
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+      ROAPP_API_BASE: https://api.roapp.io/v2
+      ROAPP_DOCS_INDEX: https://roapp.readme.io/llms.txt
+      ROAPP_TIMEOUT: '30'
+      ROAPP_MIN_REQUEST_INTERVAL: '0.34'
+      ROAPP_MAX_RETRIES: '3'
+      ROAPP_RETRY_BASE_SECONDS: '0.75'
+      MARSEL_API_INVENTORY_OUTPUT: marsel-api-inventory-v20-23.json
+      MARSEL_MAX_DOCS: '300'
+      MARSEL_MAX_DISCOVERY_URLS: '100'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Verify API configuration
+        run: |
+          set -euo pipefail
+          test -n "$ROAPP_API_KEY"
+
+      - name: Verify official documentation
+        run: |
+          set -euo pipefail
+          status="$(curl -L -sS -o /tmp/roapp-llms.txt -w '%{http_code}' --max-time 30 -A 'MARSEL-Audit-V20.24' "$ROAPP_DOCS_INDEX" || true)"
+          test "$status" = "200"
+
+      - name: Generate V20.23 read-only inventory
+        run: python scripts/marsel_api_inventory_v20_23.py
+
+      - name: Run V20.24 consolidation gate
+        run: python scripts/marsel_integrity_v20_24.py
+
+      - name: Enforce zero-write safety
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          d=json.load(open('marsel-api-inventory-v20-23.json',encoding='utf-8'))
+          assert d['readonly'] is True
+          assert d['write_requests_made'] == 0
+          assert d['ro_app_data_mutated'] is False
+          assert d['method_policy']['allowed'] == ['GET']
+          assert d['method_policy']['blocked'] == ['POST','PUT','PATCH','DELETE']
+          assert d['safety']['status'] == 'PASS'
+          print('SAFETY_GATE=PASS')
+          PY
+
+      - name: Write SHA-256 sidecar
+        run: |
+          set -euo pipefail
+          sha256sum marsel-api-inventory-v20-23.json | tee marsel-api-inventory-v20-23.sha256
+
+      - name: Upload consolidated evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: marsel-v20-24-integrity-evidence
+          path: |
+            marsel-api-inventory-v20-23.json
+            marsel-api-inventory-v20-23.sha256
+          if-no-files-found: error
