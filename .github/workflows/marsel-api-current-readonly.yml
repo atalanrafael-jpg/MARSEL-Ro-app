@@ -1,0 +1,119 @@
+name: MARSEL Current API Inventory + Live Read-Only Probe
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/marsel_api_inventory_current.py'
+      - 'scripts/marsel_api_inventory_v20_28.py'
+      - 'scripts/marsel_live_probe_v20_27.py'
+      - '.github/workflows/marsel-api-current-readonly.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  readonly-audit:
+    name: Current docs inventory + GET-only live probe
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify API configuration
+        env:
+          ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$ROAPP_API_KEY"
+      - name: Generate inventory from current official docs
+        env:
+          ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+          ROAPP_API_BASE: https://api.roapp.io/v2
+          MARSEL_API_INVENTORY_OUTPUT: marsel-api-inventory-current.json
+          ROAPP_MIN_REQUEST_INTERVAL: '0.34'
+        run: python scripts/marsel_api_inventory_current.py
+      - name: Validate inventory semantics
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          d=json.load(open('marsel-api-inventory-current.json',encoding='utf-8'))
+          assert d['readonly'] is True
+          assert d['method_policy']['allowed'] == ['GET']
+          assert d['write_requests_made'] == 0
+          assert d['ro_app_data_mutated'] is False
+          assert d['sources']['documentation_index'] == 'https://roappua.readme.io/llms.txt'
+          assert d['contract_state']['title_method_classification_is_not_url_evidence'] is True
+          assert d['contract_state']['parameterized_identifiers_guessed'] is False
+          print('CURRENT_INVENTORY_SAFETY=PASS')
+          print('REFERENCE_PAGES=', d['documentation']['pages_discovered'])
+          print('CONFIRMED_OPERATIONS=', len(d['operations']))
+          print('EXPLICIT_PATH_PAGES=', d['documentation']['pages_with_explicit_api_path_evidence'])
+          PY
+      - name: Run live GET-only probe
+        env:
+          ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+          ROAPP_API_BASE: https://api.roapp.io/v2
+          MARSEL_API_INVENTORY_INPUT: marsel-api-inventory-current.json
+          MARSEL_LIVE_PROBE_OUTPUT: marsel-live-probe-current.json
+          ROAPP_MIN_REQUEST_INTERVAL: '0.34'
+        run: python scripts/marsel_live_probe_v20_27.py
+      - name: Enforce zero-write and HTTP integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          d=json.load(open('marsel-live-probe-current.json',encoding='utf-8'))
+          assert d['readonly'] is True
+          assert d['method_policy']['allowed'] == ['GET']
+          assert d['safety']['write_requests_made'] == 0
+          assert d['safety']['ro_app_data_mutated'] is False
+          assert d['contract_state']['parameterized_identifiers_guessed'] is False
+          assert not d['errors']
+          print('ZERO_WRITE_SAFETY=PASS')
+          print('HTTP_ERROR_RESPONSES=', d['metrics']['http_error_responses'])
+          print('SUCCESSFUL_RESPONSES=', d['metrics']['successful_responses'])
+          PY
+      - name: Write SHA-256 evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum marsel-api-inventory-current.json marsel-live-probe-current.json > marsel-current-sha256.txt
+          cat marsel-current-sha256.txt
+      - name: Upload current evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: marsel-current-readonly-evidence
+          path: |
+            marsel-api-inventory-current.json
+            marsel-live-probe-current.json
+            marsel-current-sha256.txt
+          if-no-files-found: error
+          retention-days: 90
+      - name: Verify evidence publication
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_ARTIFACT: marsel-current-readonly-evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in {1..10}; do
+            found="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts?per_page=100" --jq ".artifacts[] | select(.name == \"${EXPECTED_ARTIFACT}\" and .expired == false) | .id" | head -n1 || true)"
+            if [ -n "$found" ]; then
+              echo "EVIDENCE_ARTIFACT_ID=$found"
+              echo 'EVIDENCE_PUBLICATION=PASS'
+              exit 0
+            fi
+            sleep 3
+          done
+          echo 'EVIDENCE_PUBLICATION=FAIL'
+          exit 1
