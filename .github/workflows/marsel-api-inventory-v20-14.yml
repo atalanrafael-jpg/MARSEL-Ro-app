@@ -1,4 +1,4 @@
-name: MARSEL V20.14 Official API Inventory — READ ONLY
+name: MARSEL V20.19 Official API Inventory — READ ONLY
 
 on:
   workflow_dispatch:
@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: marsel-api-inventory-v20-14
+  group: marsel-api-inventory-v20-19
   cancel-in-progress: true
 
 jobs:
@@ -25,7 +25,7 @@ jobs:
       ROAPP_API_BASE: https://api.roapp.io/v2
       ROAPP_DOCS_INDEX: https://roapp.readme.io/llms.txt
       ROAPP_TIMEOUT: '30'
-      MARSEL_API_INVENTORY_OUTPUT: marsel-api-inventory-v20-14.json
+      MARSEL_API_INVENTORY_OUTPUT: marsel-api-inventory-v20-19.json
       MARSEL_MAX_DOCS: '300'
     steps:
       - name: Checkout
@@ -48,7 +48,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          status="$(curl -L -sS -o /tmp/roapp-llms.txt -w '%{http_code}' --max-time 30 -A 'MARSEL-Audit-V20.14' "$ROAPP_DOCS_INDEX" || true)"
+          status="$(curl -L -sS -o /tmp/roapp-llms.txt -w '%{http_code}' --max-time 30 -A 'MARSEL-Audit-V20.19' "$ROAPP_DOCS_INDEX" || true)"
           echo "http=$status" >> "$GITHUB_OUTPUT"
           echo "ROAPP_DOCS_INDEX_HTTP=$status"
           case "$status" in
@@ -56,7 +56,7 @@ jobs:
             *) echo "Unexpected documentation HTTP status: $status" >&2; exit 1 ;;
           esac
 
-      - name: Run MARSEL V20.14 official API inventory
+      - name: Run MARSEL V20.19 official API inventory
         if: steps.docs.outputs.http == '200'
         shell: bash
         run: |
@@ -72,7 +72,7 @@ jobs:
           import json, os, hashlib
           status = int(os.environ.get('DOCS_HTTP', '0'))
           report = {
-              'version': '20.14', 'readonly': True, 'degraded': True,
+              'version': '20.19', 'readonly': True, 'degraded': True,
               'degraded_reason': 'Official RO App documentation index was not accessible; no undocumented endpoints were assumed.',
               'write_requests_made': 0, 'ro_app_data_mutated': False,
               'method_policy': {'allowed': ['GET'], 'forbidden': ['POST', 'PUT', 'PATCH', 'DELETE']},
@@ -98,17 +98,17 @@ jobs:
         env:
           DOCS_HTTP: ${{ steps.docs.outputs.http }}
 
-      - name: Validate V20.14 report
+      - name: Validate V20.19 report
         shell: bash
         run: |
           set -euo pipefail
-          test -s marsel-api-inventory-v20-14.json
+          test -s marsel-api-inventory-v20-19.json
           python - <<'PY'
           import json
-          p='marsel-api-inventory-v20-14.json'
+          p='marsel-api-inventory-v20-19.json'
           with open(p, encoding='utf-8') as f:
               d=json.load(f)
-          assert d['version'] == '20.14'
+          assert d['version'] == '20.19'
           assert d['readonly'] is True
           assert d['write_requests_made'] == 0
           assert d['ro_app_data_mutated'] is False
@@ -137,10 +137,10 @@ jobs:
           print('INVENTORY_SHA256=', d['summary']['inventory_sha256'])
           PY
 
-      - name: Upload V20.14 inventory
+      - name: Upload V20.19 inventory
         uses: actions/upload-artifact@v7
         with:
-          name: marsel-v20-14-api-inventory
-          path: marsel-api-inventory-v20-14.json
+          name: marsel-v20-19-api-inventory
+          path: marsel-api-inventory-v20-19.json
           if-no-files-found: error
           compression-level: 6
