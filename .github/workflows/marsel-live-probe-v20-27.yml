@@ -11,6 +11,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   live-probe:
@@ -67,6 +68,7 @@ jobs:
           sha256sum marsel-api-inventory-v20-23.json marsel-live-probe-v20-27.json > marsel-v20-27-sha256.txt
           cat marsel-v20-27-sha256.txt
       - name: Upload V20.27 evidence
+        id: upload-evidence
         uses: actions/upload-artifact@v4
         with:
           name: marsel-v20-27-live-probe-evidence
@@ -76,3 +78,22 @@ jobs:
             marsel-v20-27-sha256.txt
           if-no-files-found: error
           retention-days: 90
+      - name: Verify V20.27 evidence is published
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_ARTIFACT: marsel-v20-27-live-probe-evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in {1..10}; do
+            found="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts?per_page=100" \
+              --jq ".artifacts[] | select(.name == \"${EXPECTED_ARTIFACT}\" and .expired == false) | .id" | head -n1 || true)"
+            if [ -n "$found" ]; then
+              echo "EVIDENCE_ARTIFACT_ID=$found"
+              echo 'EVIDENCE_PUBLICATION=PASS'
+              exit 0
+            fi
+            sleep 3
+          done
+          echo 'EVIDENCE_PUBLICATION=FAIL'
+          exit 1
