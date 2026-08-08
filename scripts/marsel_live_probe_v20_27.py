@@ -124,8 +124,6 @@ def main() -> int:
             else:
                 item["json_valid"] = result.get("http") == 204
         else:
-            # Error responses are observed only as returned by a real GET; no synthetic
-            # invalid identifiers or write requests are generated.
             item["json_valid"] = None
             item["error_body_sample"] = body[:500] if body else None
         probes.append(item)
@@ -176,3 +174,5 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+# V20.27 trigger revision: intentionally no-op; preserves GET-only behavior.
