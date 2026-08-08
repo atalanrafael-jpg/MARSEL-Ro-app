@@ -7,11 +7,17 @@ on:
       - 'scripts/marsel_api_inventory_v20_28.py'
       - 'scripts/marsel_live_probe_v20_27.py'
       - '.github/workflows/marsel-api-v20-28-readonly.yml'
+  schedule:
+    - cron: '17 */6 * * *'
   workflow_dispatch:
 
 permissions:
   contents: read
   actions: read
+
+concurrency:
+  group: marsel-readonly-api-audit
+  cancel-in-progress: true
 
 jobs:
   readonly-audit:
