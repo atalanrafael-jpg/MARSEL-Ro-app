@@ -35,7 +35,6 @@ HEADERS = {
     "User-Agent": "MARSEL-Data-Quality-V22-READONLY",
 }
 
-# Principal collections whose rows matter for duplicate/data-integrity analysis.
 COLLECTIONS = {
     "products": "/catalog/products",
     "services": "/catalog/services",
@@ -93,12 +92,20 @@ def audit_collection(client: httpx.Client, name: str, path: str) -> dict:
         if expected_total_pages is None:
             expected_total_pages = pi.get("total_pages")
             expected_count = pi.get("count")
-        pages.append({"page": page, "http": response.status_code, "elapsed_s": elapsed,
-                      "batch_size": len(batch), "paging": pi})
+        pages.append({
+            "page": page,
+            "http": response.status_code,
+            "elapsed_s": elapsed,
+            "batch_size": len(batch),
+            "paging": pi,
+        })
         rows.extend(batch)
 
         if expected_total_pages is not None and page >= int(expected_total_pages):
             break
+        # If the API does not provide total_pages, the short-page condition is
+        # the only safe completion signal. Use the actual decoded batch length,
+        # not a field removed by page_info().
         if len(batch) < PAGE_SIZE:
             break
         page += 1
@@ -112,10 +119,14 @@ def audit_collection(client: httpx.Client, name: str, path: str) -> dict:
         "path": path,
         "rows_read": len(rows),
         "expected_count": expected_count,
+        "count_matches_rows": expected_count is None or int(expected_count) == len(rows),
         "expected_total_pages": expected_total_pages,
         "pages_read": len(pages),
-        "pagination_complete": (expected_total_pages is not None and len(pages) == int(expected_total_pages))
-            or (expected_total_pages is None and bool(pages) and len(pages[-1].get("paging", {}).get("data", [])) < PAGE_SIZE),
+        "pagination_complete": (
+            expected_total_pages is not None and len(pages) == int(expected_total_pages)
+        ) or (
+            expected_total_pages is None and bool(pages) and pages[-1]["batch_size"] < PAGE_SIZE
+        ),
         "missing_id": missing_id,
         "duplicate_id_groups": duplicate_id,
         "duplicate_id_group_count": len(duplicate_id),
@@ -140,7 +151,6 @@ def main() -> int:
     started = time.monotonic()
     results = {}
     with httpx.Client(timeout=TIMEOUT, follow_redirects=True) as client:
-        # Basic company identity check is also GET-only.
         company = client.get(BASE + "/company", headers=HEADERS)
         company.raise_for_status()
         company_payload = company.json()
@@ -152,12 +162,14 @@ def main() -> int:
         for key in ("missing_id", "duplicate_id_group_count"):
             if r.get(key):
                 hard_issues.append(f"{name}.{key}={r[key]}")
+        if not r.get("count_matches_rows", True):
+            hard_issues.append(f"{name}.count_mismatch={r['expected_count']}!={r['rows_read']}")
         for key in ("duplicate_code_group_count", "duplicate_sku_group_count", "duplicate_number_group_count"):
             if r.get(key):
                 hard_issues.append(f"{name}.{key}={r[key]}")
 
     report = {
-        "version": "22",
+        "version": "22.1",
         "mode": "READ_ONLY",
         "generated_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "api_base": BASE,
@@ -186,7 +198,7 @@ def main() -> int:
     ).hexdigest()
     OUT.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    print("=== MARSEL V22 / COMPREHENSIVE DATA QUALITY / READ ONLY ===")
+    print("=== MARSEL V22.1 / COMPREHENSIVE DATA QUALITY / READ ONLY ===")
     for k, v in report["summary"].items():
         print(f"{k.upper()}={v}")
     print(f"HARD_ISSUES={hard_issues}")
