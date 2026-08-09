@@ -59,7 +59,8 @@ jobs:
           assert d['contract_state']['parameterized_identifiers_guessed'] is False
           print('INVENTORY_SAFETY=PASS')
           PY
-      - name: Run V20.27 GET-only live probe
+      - name: Run V20 GET-only live probe and retain evidence on endpoint errors
+        continue-on-error: true
         env:
           ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
           ROAPP_API_BASE: https://api.roapp.io/v2
@@ -69,6 +70,20 @@ jobs:
           ROAPP_MAX_RETRIES: '0'
           ROAPP_MIN_REQUEST_INTERVAL: '0.20'
         run: python scripts/marsel_live_probe_v20_27.py
+      - name: Enforce live-probe safety contract
+        run: |
+          python - <<'PY'
+          import json
+          d=json.load(open('marsel-live-probe-v20-30.json',encoding='utf-8'))
+          assert d['readonly'] is True
+          assert d['method_policy']['allowed'] == ['GET']
+          assert d['safety']['write_requests_made'] == 0
+          assert d['safety']['ro_app_data_mutated'] is False
+          assert d['contract_state']['parameterized_identifiers_guessed'] is False
+          print('LIVE_PROBE_SAFETY=PASS')
+          print('LIVE_PROBE_STATUS='+str(d.get('status')))
+          print('HTTP_ERRORS='+str(d.get('metrics',{}).get('http_error_responses')))
+          PY
       - name: Run V21 entity integrity audit
         env:
           MARSEL_API_INVENTORY_INPUT: marsel-api-inventory-v20-30.json
