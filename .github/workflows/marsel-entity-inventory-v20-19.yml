@@ -8,7 +8,7 @@ on:
       - 'scripts/marsel_entity_inventory_v20_19.py'
       - '.github/workflows/marsel-entity-inventory-v20-19.yml'
       - 'scripts/marsel_api_inventory_v20_29.py'
-      - 'scripts/marsel_api_inventory_v20_30.py'
+      - 'scripts/marsel_api_inventory_v20_31.py'
       - 'scripts/marsel_live_probe_v20_27.py'
   workflow_run:
     workflows: ["MARSEL V20.29 API Inventory + Live Read-Only Probe"]
@@ -22,20 +22,20 @@ jobs:
   inventory:
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
       ROAPP_API_BASE: https://api.roapp.io/v2
       ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
-      ROAPP_TIMEOUT: 8
+      ROAPP_TIMEOUT: 12
       MARSEL_API_INVENTORY_INPUT: marsel-api-inventory-v20-29.json
       MARSEL_API_INVENTORY_OUTPUT: marsel-api-inventory-v20-29.json
       MARSEL_ENTITY_INVENTORY_OUTPUT: marsel-entity-inventory-v20-19.json
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - name: Install dependencies
@@ -47,8 +47,9 @@ jobs:
           ROAPP_DOCS_INDEXES: https://roapp.readme.io/llms.txt,https://roappua.readme.io/llms.txt
           MARSEL_API_INVENTORY_OUTPUT: marsel-api-inventory-v20-29.json
           ROAPP_MIN_REQUEST_INTERVAL: '0.34'
-        run: python scripts/marsel_api_inventory_v20_30.py
-      - name: Validate inventory safety
+          MARSEL_INVENTORY_BUDGET_SECONDS: '240'
+        run: python scripts/marsel_api_inventory_v20_31.py
+      - name: Validate inventory safety and completeness floor
         run: |
           python - <<'PY'
           import json
@@ -57,8 +58,13 @@ jobs:
           assert d.get('write_requests_made') == 0
           assert d.get('ro_app_data_mutated') is False
           assert d.get('safety',{}).get('write_methods_used') == []
+          assert d.get('contract_state',{}).get('parameterized_identifiers_guessed') is False
+          assert d.get('openapi_discovery',{}).get('candidate_urls',0) >= 0
           print('INVENTORY_SAFETY=PASS')
           print('CONFIRMED_OPERATIONS=',len(d.get('operations',[])))
+          print('GET_OPERATIONS=',d.get('summary',{}).get('get_operations'))
+          print('OPENAPI_CANDIDATES=',d.get('openapi_discovery',{}).get('candidate_urls'))
+          print('OPENAPI_DOCUMENTS_WITH_OPERATIONS=',d.get('openapi_discovery',{}).get('documents_with_operations'))
           print('PARAMETERIZED_NOT_PROBED=',d.get('summary',{}).get('parameterized_not_probed'))
           PY
       - name: Run V20.34 strict read-only entity inventory
@@ -76,7 +82,7 @@ jobs:
           print('CLASSIFICATIONS=',d['classifications'])
           PY
       - name: Upload V20.19 report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: marsel-v20-19-entity-inventory
           path: |
