@@ -1,12 +1,15 @@
 name: MARSEL V21.1 Semantic Review (READ ONLY)
 
 on:
+  push:
+    branches: [audit/marsel-v20-35-followup]
+    paths:
+      - 'scripts/marsel_semantic_review_v21_1.py'
+      - '.github/workflows/marsel-semantic-review-v21-1.yml'
   pull_request:
     paths:
       - 'scripts/marsel_semantic_review_v21_1.py'
       - '.github/workflows/marsel-semantic-review-v21-1.yml'
-      - 'scripts/marsel_entity_inventory_v20_19.py'
-      - '.github/workflows/marsel-entity-inventory-v20-19.yml'
   workflow_dispatch:
 
 permissions:
@@ -30,7 +33,7 @@ jobs:
         run: |
           set -euo pipefail
           python - <<'PY'
-          import os, urllib.request, zipfile
+          import os, urllib.request, zipfile, json
           repo = os.environ['GITHUB_REPOSITORY']
           artifact_id = 9037049287
           expected_name = 'marsel-v20-36-entity-inventory'
@@ -38,7 +41,6 @@ jobs:
           headers = {'Authorization': f"Bearer {os.environ['GH_TOKEN']}", 'Accept': 'application/vnd.github+json'}
           meta_url = f'https://api.github.com/repos/{repo}/actions/artifacts/{artifact_id}'
           req = urllib.request.Request(meta_url, headers=headers)
-          import json
           meta = json.load(urllib.request.urlopen(req, timeout=20))
           assert meta['name'] == expected_name
           assert meta['expired'] is False
