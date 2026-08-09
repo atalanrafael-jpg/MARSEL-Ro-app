@@ -208,15 +208,27 @@ jobs:
           MARSEL_MAX_ORDER_PAGES: "100"
         run: python scripts/marsel_master_audit_v20_20.py
 
+      # Full API inventory: documentation-confirmed operations plus concrete GET probes.
+      # The inventory script is hard-coded to GET-only execution and never guesses parameter IDs.
+      - name: MARSEL API inventory v20.28 - read only
+        if: github.event_name != 'pull_request'
+        env:
+          ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+          MARSEL_API_INVENTORY_OUTPUT: artifacts/marsel-api-inventory/marsel-api-inventory-v20-28.json
+        run: |
+          mkdir -p artifacts/marsel-api-inventory
+          python scripts/marsel_api_inventory_v20_28.py
+
       # The raw orders snapshot is intentionally NOT uploaded as an artifact.
-      # It may contain customer data. Only the non-value audit report and hashes are retained.
-      - name: Upload MARSEL master audit report
+      # It may contain customer data. Only non-value audit reports and API inventory are retained.
+      - name: Upload MARSEL audit reports
         if: always() && github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
-          name: marsel-master-audit-v20-20
+          name: marsel-audit-v20-28
           path: |
             artifacts/marsel-master-audit/master_audit.json
             artifacts/marsel-master-audit/SHA256.json
+            artifacts/marsel-api-inventory/marsel-api-inventory-v20-28.json
           if-no-files-found: warn
           retention-days: 7
