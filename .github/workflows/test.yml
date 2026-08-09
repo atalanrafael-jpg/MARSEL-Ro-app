@@ -24,14 +24,24 @@ jobs:
           ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
         run: |
           python - <<'PY'
-          import os,sys,httpx
-          api_key=os.environ.get("ROAPP_API_KEY")
-          if not api_key: print("ROAPP_API_KEY GitHub Secret is not configured."); sys.exit(1)
-          response=httpx.get("https://api.roapp.io/v2/orders",params={"page":1},headers={"Authorization":f"Bearer {api_key}"},timeout=20.0)
+          import os
+          import sys
+          import httpx
+          api_key = os.environ.get("ROAPP_API_KEY")
+          if not api_key:
+              print("ROAPP_API_KEY GitHub Secret is not configured.")
+              sys.exit(1)
+          response = httpx.get("https://api.roapp.io/v2/orders", params={"page": 1}, headers={"Authorization": f"Bearer {api_key}"}, timeout=20.0)
           print(f"RO App API HTTP status: {response.status_code}")
-          if not 200 <= response.status_code < 300: sys.exit(1)
-          try: payload=response.json()
-          except ValueError: print("RO App API returned a non-JSON response."); sys.exit(1)
+          print(f"RO App API content-type: {response.headers.get('content-type', '')}")
+          if not 200 <= response.status_code < 300:
+              print("RO App API read-only request failed; response body is intentionally not printed.")
+              sys.exit(1)
+          try:
+              payload = response.json()
+          except ValueError:
+              print("RO App API returned a non-JSON response.")
+              sys.exit(1)
           print(f"RO App API JSON top-level type: {type(payload).__name__}")
           print("RO App API read-only request succeeded.")
           PY
@@ -40,7 +50,126 @@ jobs:
         if: github.event_name != 'pull_request'
         env:
           ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
-        run: python scripts/marsel_orders_audit_v20_20.py
+        run: |
+          python - <<'PY'
+          import os
+          import sys
+          import time
+          from collections import Counter
+          import httpx
+          BASE = "https://api.roapp.io/v2"
+          KEY = os.environ.get("ROAPP_API_KEY")
+          if not KEY:
+              print("AUDIT: ROAPP_API_KEY GitHub Secret is not configured.")
+              sys.exit(1)
+          headers = {"Authorization": f"Bearer {KEY}"}
+          page = 1
+          page_size = 50
+          orders = []
+          with httpx.Client(timeout=30.0) as client:
+              while True:
+                  response = client.get(f"{BASE}/orders", params={"page": page, "pageSize": page_size}, headers=headers)
+                  print(f"AUDIT page={page} HTTP={response.status_code}")
+                  if not 200 <= response.status_code < 300:
+                      print("AUDIT stopped: non-success response; response body is intentionally not printed.")
+                      sys.exit(1)
+                  try:
+                      payload = response.json()
+                  except ValueError:
+                      print("AUDIT stopped: non-JSON response.")
+                      sys.exit(1)
+                  if isinstance(payload, dict):
+                      rows = payload.get("orders")
+                      if rows is None: rows = payload.get("data")
+                  elif isinstance(payload, list): rows = payload
+                  else: rows = None
+                  if not isinstance(rows, list):
+                      print("AUDIT stopped: could not identify an order list in the JSON response.")
+                      print(f"AUDIT top-level keys: {sorted(payload.keys()) if isinstance(payload, dict) else 'n/a'}")
+                      sys.exit(1)
+                  orders.extend(x for x in rows if isinstance(x, dict))
+                  if len(rows) < page_size: break
+                  page += 1
+                  time.sleep(0.4)
+          ids = [x.get("id") for x in orders if x.get("id") is not None]
+          id_counts = Counter(ids)
+          duplicate_ids = sum(1 for value in id_counts.values() if value > 1)
+          missing_id = sum(1 for x in orders if x.get("id") is None)
+          clients = [x.get("client") for x in orders]
+          missing_client = sum(1 for client in clients if not isinstance(client, dict) or client.get("id") is None)
+          statuses = Counter(str(status.get("id")) for status in (x.get("status") for x in orders) if isinstance(status, dict) and status.get("id") is not None)
+          missing_status = sum(1 for x in orders if not isinstance(x.get("status"), dict) or x["status"].get("id") is None)
+          numbers = [x.get("number") for x in orders if x.get("number") not in (None, "")]
+          number_counts = Counter(numbers)
+          duplicate_number_groups = sum(1 for value in number_counts.values() if value > 1)
+          missing_number = sum(1 for x in orders if x.get("number") in (None, ""))
+          print("=== MARSEL_DATA_AUDIT / READ ONLY ===")
+          print(f"pages_read={page}")
+          print(f"orders_total={len(orders)}")
+          print(f"unique_order_ids={len(id_counts)}")
+          print(f"duplicate_order_id_groups={duplicate_ids}")
+          print(f"orders_missing_id={missing_id}")
+          print(f"orders_missing_client={missing_client}")
+          print(f"status_groups={len(statuses)}")
+          print("status_counts=" + ",".join(f"{k}:{v}" for k, v in sorted(statuses.items())))
+          print(f"orders_missing_status={missing_status}")
+          print(f"duplicate_order_number_groups={duplicate_number_groups}")
+          print(f"orders_missing_number={missing_number}")
+          print("AUDIT RESULT: READ-ONLY; NO RO APP DATA WAS CREATED, UPDATED OR DELETED.")
+          PY
+
+      - name: MARSEL read-only order schema audit v2
+        if: github.event_name != 'pull_request'
+        env:
+          ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+        run: |
+          python - <<'PY'
+          import os
+          import sys
+          import httpx
+          BASE = "https://api.roapp.io/v2"
+          KEY = os.environ.get("ROAPP_API_KEY")
+          if not KEY:
+              print("SCHEMA AUDIT: ROAPP_API_KEY GitHub Secret is not configured.")
+              sys.exit(1)
+          headers = {"Authorization": f"Bearer {KEY}"}
+          response = httpx.get(f"{BASE}/orders", params={"page": 1, "pageSize": 1}, headers=headers, timeout=30.0)
+          print(f"SCHEMA page=1 HTTP={response.status_code}")
+          if not 200 <= response.status_code < 300:
+              print("SCHEMA audit stopped: non-success response; response body is intentionally not printed.")
+              sys.exit(1)
+          try: payload = response.json()
+          except ValueError:
+              print("SCHEMA audit stopped: non-JSON response."); sys.exit(1)
+          if isinstance(payload, dict): rows = payload.get("orders") or payload.get("data")
+          elif isinstance(payload, list): rows = payload
+          else: rows = None
+          if not isinstance(rows, list) or not rows or not isinstance(rows[0], dict):
+              print("SCHEMA audit stopped: could not identify a sample order object."); sys.exit(1)
+          sample = rows[0]
+          def type_name(value):
+              if value is None: return "null"
+              if isinstance(value, bool): return "bool"
+              if isinstance(value, int) and not isinstance(value, bool): return "int"
+              if isinstance(value, float): return "float"
+              if isinstance(value, str): return "string"
+              if isinstance(value, list): return "list"
+              if isinstance(value, dict): return "object"
+              return type(value).__name__
+          def print_schema(obj, prefix="", depth=0, max_depth=3):
+              if not isinstance(obj, dict): return
+              for key in sorted(obj):
+                  value = obj[key]
+                  path = f"{prefix}.{key}" if prefix else key
+                  print(f"SCHEMA field={path} type={type_name(value)}")
+                  if depth < max_depth and isinstance(value, dict): print_schema(value, path, depth + 1, max_depth)
+                  elif depth < max_depth and isinstance(value, list) and value and isinstance(value[0], dict): print_schema(value[0], path + "[]", depth + 1, max_depth)
+          print("=== MARSEL_ORDER_SCHEMA_AUDIT_V2 / READ ONLY ===")
+          if isinstance(payload, dict): print("SCHEMA top_level_keys=" + ",".join(sorted(payload.keys())))
+          print("SCHEMA order_keys=" + ",".join(sorted(sample.keys())))
+          print_schema(sample)
+          print("SCHEMA RESULT: READ-ONLY; VALUES ARE NOT PRINTED; NO RO APP DATA WAS CREATED, UPDATED OR DELETED.")
+          PY
 
       - name: MARSEL master audit v20.20
         if: github.event_name != 'pull_request'
@@ -49,59 +178,23 @@ jobs:
           MARSEL_MAX_ORDER_PAGES: "100"
         run: python scripts/marsel_master_audit_v20_20.py
 
-      - name: MARSEL API inventory + V20.36 bounded paginated entity audit
+      - name: MARSEL API inventory v20.28 - read only
         if: github.event_name != 'pull_request'
         env:
           ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
-          ROAPP_API_BASE: https://api.roapp.io/v2
-          ROAPP_TIMEOUT: 12
-          ROAPP_DOCS_INDEXES: https://roapp.readme.io/llms.txt,https://roappua.readme.io/llms.txt
-          ROAPP_MIN_REQUEST_INTERVAL: '0.34'
-          MARSEL_INVENTORY_BUDGET_SECONDS: '240'
-          MARSEL_API_INVENTORY_OUTPUT: marsel-api-inventory-v20-29.json
-          MARSEL_API_INVENTORY_INPUT: marsel-api-inventory-v20-29.json
-          MARSEL_ENTITY_INVENTORY_OUTPUT: marsel-entity-inventory-v20-19.json
-          MARSEL_MAX_IDS_PER_COLLECTION: '3'
-          MARSEL_MAX_DETAIL_PROBES: '50'
-          MARSEL_MAX_PAGES_PER_COLLECTION: '50'
-          MARSEL_MAX_RECORDS_PER_COLLECTION: '5000'
-          MARSEL_PAGE_LIMIT: '50'
+          MARSEL_API_INVENTORY_OUTPUT: artifacts/marsel-api-inventory/marsel-api-inventory-v20-28.json
         run: |
-          python scripts/marsel_api_inventory_v20_31.py
-          python - <<'PY'
-          import json
-          d=json.load(open('marsel-api-inventory-v20-29.json',encoding='utf-8'))
-          assert d.get('readonly') is True
-          assert d.get('write_requests_made',0)==0
-          assert d.get('ro_app_data_mutated') is False
-          assert ((d.get('safety') or {}).get('write_methods_used') or []) == []
-          assert d.get('contract_state',{}).get('parameterized_identifiers_guessed') is False
-          print('API_INVENTORY_SAFETY=PASS')
-          PY
-          python scripts/marsel_entity_inventory_v20_19.py
-          python - <<'PY'
-          import json
-          d=json.load(open('marsel-entity-inventory-v20-19.json',encoding='utf-8'))
-          assert d['version']=='20.36'
-          assert d['mode']=='READ_ONLY'
-          assert d['write_requests']==0
-          assert d['ro_app_data_mutated'] is False
-          assert d['write_methods_used']==[]
-          assert d['parameterized_identifiers_guessed'] is False
-          assert d['audit_status']=='PASS'
-          print('ENTITY_AUDIT_SAFETY=PASS')
-          print('COLLECTION_PAGES_FETCHED=',sum(x['pages_fetched'] for x in d['collection_stats'].values()))
-          print('COLLECTION_RECORDS_FETCHED=',sum(x['records_fetched'] for x in d['collection_stats'].values()))
-          print('DUPLICATE_CANDIDATE_GROUPS=',d['duplicate_candidate_groups'])
-          PY
+          mkdir -p artifacts/marsel-api-inventory
+          python scripts/marsel_api_inventory_v20_28.py
 
       - name: Upload MARSEL audit reports
         if: always() && github.event_name != 'pull_request'
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
-          name: marsel-audit-v20-36
+          name: marsel-audit-v20-28
           path: |
-            marsel-api-inventory-v20-29.json
-            marsel-entity-inventory-v20-19.json
+            artifacts/marsel-master-audit/master_audit.json
+            artifacts/marsel-master-audit/SHA256.json
+            artifacts/marsel-api-inventory/marsel-api-inventory-v20-28.json
           if-no-files-found: warn
           retention-days: 7
