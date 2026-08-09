@@ -7,10 +7,10 @@ writes to RO App and never guesses identifiers.
 """
 from __future__ import annotations
 import hashlib, html, json, os, re, sys, time
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
-VERSION="20.31"
+VERSION="20.23"
 INDEXES=[x.strip() for x in os.environ.get("ROAPP_DOCS_INDEXES","https://roapp.readme.io/llms.txt").split(",") if x.strip()]
 OUT=os.environ.get("MARSEL_API_INVENTORY_OUTPUT","marsel-api-inventory-v20-29.json")
 TIMEOUT=min(int(os.environ.get("ROAPP_TIMEOUT","8")),10)
@@ -34,10 +34,15 @@ def norm(raw):
         if p.netloc.lower()!="api.roapp.io":return None
         raw=p.path
     raw=raw.split("#",1)[0]
+    if raw in ("/v2", "/1.1"):
+        return None
     if not raw.startswith(("/v2/","/1.1/")):return None
     raw=re.sub(r"/v2/v2/","/v2/",raw)
     raw=re.sub(r"/1\.1/1\.1/","/1.1/",raw)
     return raw
+
+# Backward-compatible public name retained for the V20.23 test contract.
+normalize_path = norm
 
 def main():
     if not os.environ.get("ROAPP_API_KEY"):
@@ -60,6 +65,7 @@ def main():
             if s2!=200:continue
             for m in URL_RE.finditer(b2):
                 p=norm(m.group()); w=b2[max(0,m.start()-120):m.end()+120]; mm=METHOD_RE.findall(w)
+                if not p:continue
                 method=mm[-1].upper() if mm else "GET";ops[(method,p)]={"method":method,"path":p,"source":u}
             for m in PATH_RE.finditer(b2):
                 p=norm(m.group());
