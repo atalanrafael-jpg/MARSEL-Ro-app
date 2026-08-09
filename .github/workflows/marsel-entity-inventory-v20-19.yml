@@ -4,8 +4,13 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
+    paths:
+      - 'scripts/marsel_entity_inventory_v20_19.py'
+      - '.github/workflows/marsel-entity-inventory-v20-19.yml'
+      - 'scripts/marsel_api_inventory_v20_29.py'
+      - 'scripts/marsel_live_probe_v20_27.py'
   workflow_run:
-    workflows: ["MARSEL V20.14 API Inventory (READ ONLY)"]
+    workflows: ["MARSEL V20.29 API Inventory + Live Read-Only Probe"]
     types: [completed]
 
 permissions:
@@ -16,72 +21,63 @@ jobs:
   inventory:
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     env:
       ROAPP_API_BASE: https://api.roapp.io/v2
       ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
       ROAPP_TIMEOUT: 8
-      ROAPP_MAX_RETRIES: 0
-      ROAPP_MIN_REQUEST_INTERVAL: 0.25
-      MARSEL_MAX_DOCS: 25
-      MARSEL_API_INVENTORY_INPUT: marsel-api-inventory-v20-14.json
-      MARSEL_API_INVENTORY_OUTPUT: marsel-api-inventory-v20-14.json
+      MARSEL_API_INVENTORY_INPUT: marsel-api-inventory-v20-29.json
+      MARSEL_API_INVENTORY_OUTPUT: marsel-api-inventory-v20-29.json
       MARSEL_ENTITY_INVENTORY_OUTPUT: marsel-entity-inventory-v20-19.json
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
-
+        uses: actions/checkout@v4
       - name: Setup Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-
       - name: Install dependencies
+        run: python -m pip install --disable-pip-version-check --no-input 'httpx>=0.28,<1'
+      - name: Generate current API inventory
+        env:
+          ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+          ROAPP_API_BASE: https://api.roapp.io/v2
+          ROAPP_DOCS_INDEXES: https://roapp.readme.io/llms.txt,https://roappua.readme.io/llms.txt
+          MARSEL_API_INVENTORY_OUTPUT: marsel-api-inventory-v20-29.json
+          ROAPP_MIN_REQUEST_INTERVAL: '0.34'
+        run: python scripts/marsel_api_inventory_v20_29.py
+      - name: Validate inventory safety
         run: |
-          python -m pip install --disable-pip-version-check --no-input -r requirements.txt
-          python -m pip install --disable-pip-version-check --no-input 'httpx>=0.28,<1'
-
-      - name: Generate bounded V20.14-compatible API inventory (READ ONLY)
-        run: python scripts/marsel_api_inventory_v20_14.py
-
-      - name: Verify configuration
-        run: |
-          set -euo pipefail
-          test -n "$ROAPP_API_KEY"
-          test -s "$MARSEL_API_INVENTORY_INPUT"
           python - <<'PY'
-          import json, os
-          d=json.load(open(os.environ['MARSEL_API_INVENTORY_INPUT'],encoding='utf-8'))
-          assert isinstance(d,dict)
+          import json
+          d=json.load(open('marsel-api-inventory-v20-29.json',encoding='utf-8'))
           assert d.get('readonly') is True
           assert d.get('write_requests_made') == 0
           assert d.get('ro_app_data_mutated') is False
-          print('INVENTORY_VERSION=',d.get('version'))
-          print('INVENTORY_READ_ONLY=',d.get('readonly'))
-          print('INVENTORY_WRITE_REQUESTS=',d.get('write_requests_made'))
-          print('INVENTORY_DATA_MUTATED=',d.get('ro_app_data_mutated'))
+          print('INVENTORY_SAFETY=PASS')
+          print('CONFIRMED_OPERATIONS=',len(d.get('operations',[])))
           PY
-
-      - name: Run V20.19 strict read-only entity inventory
+      - name: Run V20.33 strict read-only entity inventory
         run: python scripts/marsel_entity_inventory_v20_19.py
-
       - name: Validate report safety
         run: |
           python - <<'PY'
-          import json, os
-          d=json.load(open(os.environ['MARSEL_ENTITY_INVENTORY_OUTPUT'],encoding='utf-8'))
+          import json
+          d=json.load(open('marsel-entity-inventory-v20-19.json',encoding='utf-8'))
           assert d['mode']=='READ_ONLY'
           assert d['write_requests']==0
           assert d['ro_app_data_mutated'] is False
           assert d['write_methods_used']==[]
           print('SAFETY_VALIDATION=PASS')
+          print('CLASSIFICATIONS=',d['classifications'])
           PY
-
       - name: Upload V20.19 report
         uses: actions/upload-artifact@v4
         with:
           name: marsel-v20-19-entity-inventory
-          path: marsel-entity-inventory-v20-19.json
+          path: |
+            marsel-api-inventory-v20-29.json
+            marsel-entity-inventory-v20-19.json
           if-no-files-found: error
           retention-days: 30
