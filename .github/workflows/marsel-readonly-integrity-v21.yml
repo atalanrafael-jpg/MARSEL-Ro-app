@@ -21,7 +21,7 @@ concurrency:
 jobs:
   audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -41,7 +41,10 @@ jobs:
           ROAPP_API_BASE: https://api.roapp.io/v2
           ROAPP_DOCS_INDEXES: https://roapp.readme.io/llms.txt,https://roappua.readme.io/llms.txt
           MARSEL_API_INVENTORY_OUTPUT: marsel-api-inventory-v20-29.json
-          ROAPP_MIN_REQUEST_INTERVAL: '0.34'
+          MARSEL_MAX_DOCS: '200'
+          ROAPP_TIMEOUT: '15'
+          ROAPP_MAX_RETRIES: '1'
+          ROAPP_MIN_REQUEST_INTERVAL: '0.20'
         run: python scripts/marsel_api_inventory_v20_29.py
       - name: Enforce inventory zero-write contract
         run: |
@@ -61,7 +64,9 @@ jobs:
           ROAPP_API_BASE: https://api.roapp.io/v2
           MARSEL_API_INVENTORY_INPUT: marsel-api-inventory-v20-29.json
           MARSEL_LIVE_PROBE_OUTPUT: marsel-live-probe-v20-29.json
-          ROAPP_MIN_REQUEST_INTERVAL: '0.34'
+          ROAPP_TIMEOUT: '15'
+          ROAPP_MAX_RETRIES: '1'
+          ROAPP_MIN_REQUEST_INTERVAL: '0.20'
         run: python scripts/marsel_live_probe_v20_27.py
       - name: Run V21 entity integrity audit
         env:
