@@ -34,7 +34,6 @@ TITLE_METHODS = {"get":"GET","create":"POST","add":"POST","update":"PUT","delete
 BASE_ONLY = {"/v2","/1.1","/v2/","/1.1/"}
 _last_request_at = 0.0
 
-
 def fetch(url, headers=None):
     global _last_request_at
     req_headers = headers or {"User-Agent":"MARSEL-Audit-V20.19","Accept":"text/plain, text/markdown, text/html, application/json"}
@@ -61,15 +60,10 @@ def fetch(url, headers=None):
             time.sleep(min(RETRY_BASE*(2**attempt),30.0))
     return None,"",0,last_error or "request failed"
 
-
 def clean_url(url): return url.rstrip(".,;:")
-
-
 def title_method(title):
     first = title.strip().split(None,1)[0].casefold() if title.strip() else ""
     return TITLE_METHODS.get(first)
-
-
 def normalize_path(raw):
     raw = clean_url(html.unescape(str(raw)).strip().replace("\\/","/"))
     if raw.startswith(("http://","https://")):
@@ -80,7 +74,6 @@ def normalize_path(raw):
         raw = raw.replace("/v2/v2/","/v2/").replace("/1.1/1.1/","/1.1/")
         return raw
     return None
-
 
 def extract_explicit_method_paths(text):
     normalized = html.unescape(text).replace("\\/","/")
@@ -117,16 +110,16 @@ def extract_explicit_method_paths(text):
                 found.extend((methods[0].upper(),p) for p in candidates)
                 break
     return list(dict.fromkeys(found))
-
-
 def extract_methods(text): return sorted({m.group(1).upper() for m in METHOD_RE.finditer(text)})
-
 def has_placeholder(path): return bool(re.search(r"\{[^}]+\}|<[^>]+>|:[A-Za-z_][A-Za-z0-9_]*",path))
-
 def sha256_json(value): return hashlib.sha256(json.dumps(value,ensure_ascii=False,sort_keys=True,separators=(",",":")).encode()).hexdigest()
-
 def page_variants(url): return list(dict.fromkeys([url] + ([url[:-3]] if url.endswith(".md") else [])))
 
+def probe_url(path):
+    """Join a documented absolute API path to BASE without duplicating /v2 or /1.1."""
+    if path.startswith("/v2/") and BASE.endswith("/v2"): return BASE + path[3:]
+    if path.startswith("/1.1/") and BASE.endswith("/1.1"): return BASE + path[4:]
+    return BASE+path if path.startswith("/") else BASE+"/"+path
 
 def main():
     if not KEY: print("ROAPP_API_KEY is required",file=sys.stderr); return 2
@@ -161,9 +154,9 @@ def main():
         probes=[]
         for path in concrete:
             if path not in probe_cache:
-                url=BASE+path if path.startswith("/") else BASE+"/"+path
+                url=probe_url(path)
                 st,body,pe,pe_err=fetch(url,headers=headers)
-                item={"path":path,"http":st,"elapsed_s":pe,"json":None,"error":pe_err}
+                item={"path":path,"url":url,"http":st,"elapsed_s":pe,"json":None,"error":pe_err}
                 if st==200:
                     try:
                         parsed=json.loads(body); item["json"]={"type":type(parsed).__name__,"keys":sorted(parsed.keys())[:50] if isinstance(parsed,dict) else None}
