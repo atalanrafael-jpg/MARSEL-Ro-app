@@ -25,7 +25,6 @@ PAGE_LIMIT=min(int(os.getenv("MARSEL_PAGE_LIMIT","50")),100)
 PARAM_RE=re.compile(r"\{([^}]+)\}|:([A-Za-z_][\w-]*)|<([^>]+)>")
 WRITE={"POST","PUT","PATCH","DELETE"}
 
-
 def normalize(raw:str)->str|None:
     raw=raw.strip()
     if raw.startswith(("http://","https://")):
@@ -35,7 +34,6 @@ def normalize(raw:str)->str|None:
     if raw.startswith("/v2/"): raw=raw[3:]
     if not raw.startswith("/"): raw="/"+raw
     return re.sub(r"/{2,}","/",raw)
-
 
 def request_get(client:httpx.Client,path:str):
     started=time.monotonic()
@@ -47,15 +45,12 @@ def request_get(client:httpx.Client,path:str):
     except httpx.HTTPError as e:
         return None,round((time.monotonic()-started)*1000,1),type(e).__name__
 
-
 def classify(status):
     return "OK" if status==200 else "AUTH_REQUIRED" if status in (401,403) else "NOT_FOUND" if status==404 else "HTTP_ERROR"
-
 
 def payload_rows(payload):
     if isinstance(payload,dict) and isinstance(payload.get("data"),list): return payload["data"]
     return []
-
 
 def extract_ids(rows):
     ids=[]
@@ -66,15 +61,12 @@ def extract_ids(rows):
             if len(ids)>=MAX_IDS_PER_COLLECTION: break
     return ids
 
-
 def replace_first_parameter(template,id_value):
     return PARAM_RE.sub(lambda m:str(id_value),template,count=1)
-
 
 def page_path(path,page):
     sep="&" if "?" in path else "?"
     return f"{path}{sep}{urlencode({'page':page,'limit':PAGE_LIMIT})}"
-
 
 def duplicate_candidates(path,rows):
     # Conservative candidates only: never labels a record as a confirmed duplicate.
@@ -86,11 +78,8 @@ def duplicate_candidates(path,rows):
         for f in fields:
             v=row.get(f)
             if isinstance(v,str) and v.strip(): values.append((f,v.strip().casefold()))
-        if values:
-            key=tuple(values)
-            groups[key].append(str(row.get("id")))
+        if values: groups[tuple(values)].append(str(row.get("id")))
     return [{"key":list(k),"ids":v} for k,v in groups.items() if len(v)>1]
-
 
 def main():
     if not KEY: print("ROAPP_API_KEY_missing",file=sys.stderr); return 2
@@ -106,21 +95,18 @@ def main():
         if not p: continue
         if PARAM_RE.search(p): parameterized.append(p)
         elif p not in collection_paths: collection_paths.append(p)
-
     results=[]; detail_results=[]; detail_templates={}; collection_ids={}; collection_stats={}; duplicate_reports={}
     headers={"Authorization":f"Bearer {KEY}","Accept":"application/json","User-Agent":"MARSEL-V20.36-Readonly"}
     with httpx.Client(base_url=BASE,headers=headers,timeout=TIMEOUT,follow_redirects=False) as client:
         for path in collection_paths:
-            all_rows=[]; pages_seen=0; total_pages=None; first_error=None
+            all_rows=[]; pages_seen=0; total_pages=None
             for page in range(1,MAX_PAGES_PER_COLLECTION+1):
                 concrete=path if page==1 else page_path(path,page)
-                r,lat,err=request_get(client,concrete)
-                pages_seen+=1
+                r,lat,err=request_get(client,concrete); pages_seen+=1
                 if r is None:
-                    first_error=err; results.append({"path":path,"method":"GET","page":page,"http":None,"classification":"NETWORK_ERROR","latency_ms":lat,"error":err}); break
-                body=r.text
+                    results.append({"path":path,"method":"GET","page":page,"http":None,"classification":"NETWORK_ERROR","latency_ms":lat,"error":err}); break
                 if page==1:
-                    results.append({"path":path,"method":"GET","page":1,"http":r.status_code,"classification":classify(r.status_code),"content_type":r.headers.get("content-type",""),"latency_ms":lat,"response_preview":body.replace("\n"," ")[:500]})
+                    results.append({"path":path,"method":"GET","page":1,"http":r.status_code,"classification":classify(r.status_code),"content_type":r.headers.get("content-type",""),"latency_ms":lat,"response_preview":r.text.replace("\n"," ")[:500]})
                 if r.status_code!=200: break
                 try: payload=r.json()
                 except ValueError: break
@@ -129,15 +115,13 @@ def main():
                 if isinstance(paging,dict):
                     try: total_pages=int(paging.get("total_pages")) if paging.get("total_pages") is not None else None
                     except (TypeError,ValueError): total_pages=None
-                if len(all_rows)>=MAX_RECORDS_PER_COLLECTION: break
-                if not rows or (total_pages is not None and page>=total_pages): break
+                if len(all_rows)>=MAX_RECORDS_PER_COLLECTION or not rows or (total_pages is not None and page>=total_pages): break
                 time.sleep(0.2)
             collection_ids[path]=extract_ids(all_rows)
             collection_stats[path]={"pages_fetched":pages_seen,"total_pages_reported":total_pages,"records_fetched":len(all_rows),"record_cap_reached":len(all_rows)>=MAX_RECORDS_PER_COLLECTION}
             dup=duplicate_candidates(path,all_rows)
             if dup: duplicate_reports[path]=dup
             time.sleep(0.2)
-
         for template in parameterized: detail_templates.setdefault(template,None)
         probes=0
         for template in sorted(detail_templates):
@@ -149,8 +133,7 @@ def main():
             if not ids: continue
             for value in ids:
                 if probes>=MAX_DETAIL_PROBES: break
-                concrete=replace_first_parameter(template,value)
-                r,lat,err=request_get(client,concrete)
+                concrete=replace_first_parameter(template,value); r,lat,err=request_get(client,concrete)
                 item={"template":template,"collection_path":collection,"identifier":value,"path":concrete,"method":"GET","latency_ms":lat}
                 if r is None: item.update({"http":None,"classification":"NETWORK_ERROR","error":err})
                 else:
@@ -160,19 +143,10 @@ def main():
                         except ValueError: item["json_valid"]=False
                     else: item["json_valid"]=None
                 detail_results.append(item); probes+=1; time.sleep(0.2)
-
     counts={}; detail_counts={}
     for r in results+detail_results: counts[r["classification"]]=counts.get(r["classification"],0)+1
     for r in detail_results: detail_counts[r["classification"]]=detail_counts.get(r["classification"],0)+1
-    report={
-        "version":"20.36","mode":"READ_ONLY","generated_at":datetime.now(timezone.utc).isoformat(),"api_base":BASE,"source_inventory":INPUT,
-        "source_inventory_sha256":hashlib.sha256(open(INPUT,"rb").read()).hexdigest(),"collection_paths_considered":len(collection_paths),"results":results,
-        "collection_stats":collection_stats,"parameterized_templates_considered":len(parameterized),"real_identifiers_extracted":sum(len(v) for v in collection_ids.values()),
-        "identifiers_by_collection":collection_ids,"detail_results":detail_results,"detail_classifications":detail_counts,"classifications":counts,
-        "duplicate_candidates":duplicate_reports,"duplicate_candidate_groups":sum(len(v) for v in duplicate_reports.values()),
-        "write_requests":0,"ro_app_data_mutated":False,"safe_methods_used":["GET"],"write_methods_used":[],"blocked_write_methods_detected":blocked,
-        "blocked_write_methods_count":len(blocked),"parameterized_identifiers_guessed":False,"audit_status":"PASS"
-    }
+    report={"version":"20.36","mode":"READ_ONLY","generated_at":datetime.now(timezone.utc).isoformat(),"api_base":BASE,"source_inventory":INPUT,"source_inventory_sha256":hashlib.sha256(open(INPUT,"rb").read()).hexdigest(),"collection_paths_considered":len(collection_paths),"results":results,"collection_stats":collection_stats,"parameterized_templates_considered":len(parameterized),"real_identifiers_extracted":sum(len(v) for v in collection_ids.values()),"identifiers_by_collection":collection_ids,"detail_results":detail_results,"detail_classifications":detail_counts,"classifications":counts,"duplicate_candidates":duplicate_reports,"duplicate_candidate_groups":sum(len(v) for v in duplicate_reports.values()),"write_requests":0,"ro_app_data_mutated":False,"safe_methods_used":["GET"],"write_methods_used":[],"blocked_write_methods_detected":blocked,"blocked_write_methods_count":len(blocked),"parameterized_identifiers_guessed":False,"audit_status":"PASS"}
     with open(OUTPUT,"w",encoding="utf-8") as f: json.dump(report,f,ensure_ascii=False,indent=2); f.write("\n")
     print("=== MARSEL V20.36 PAGINATED ENTITY + DETAIL INVENTORY / READ ONLY ===")
     print(f"COLLECTION_PATHS_CONSIDERED={len(collection_paths)}")
