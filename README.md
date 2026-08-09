@@ -2,7 +2,7 @@
 
 Интеграционный проект Ювелирной студии MARSEL для безопасной работы с RO App API.
 
-> **Текущий статус:** API inventory V20.14 и Master Audit V20.20 работают в режиме READ ONLY. Production-данные RO App не изменяются.
+> **Текущий режим:** READ ONLY. Production-данные RO App не изменяются.
 
 ## 1. Назначение
 
@@ -10,13 +10,14 @@
 
 - RO App API client;
 - FastAPI-сервис MARSEL;
-- read-only аудит заказов;
-- официальный inventory API-документации RO App;
+- read-only аудит заказов и каталога;
+- API inventory и диагностику официальной документации RO App;
 - GitHub Actions для автоматических проверок;
-- OpenAI Ads Conversions API integration;
 - документацию, backup/hash-контроль и безопасность.
 
 ## 2. Архитектура
+
+Основные компоненты:
 
 ```text
 app/
@@ -27,122 +28,145 @@ app/
 └── openai_ads.py
 
 scripts/
+├── marsel_data_quality_v22_readonly.py
+├── marsel_product_code_collision_audit_v22_1.py
 ├── marsel_api_inventory_v20_14.py
 ├── marsel_master_audit_v20_20.py
-├── marsel_audit_v20_10.py
-├── marsel_audit_v20_11.py
-├── marsel_deep_audit_v20_13.py
-├── marsel_inventory_v20_12.py
-└── roapp_reference_fallback.txt
+└── ...
 
 .github/workflows/
-├── marsel-api-inventory-v20-14.yml
-├── marsel-audit-v20-10.yml
-├── marsel-audit-v20-11.yml
-├── marsel-deep-audit-v20-13.yml
-├── marsel-inventory-v20-12.yml
-└── test.yml
+├── marsel-data-quality-v22-readonly.yml
+├── marsel-api-inventory-v20-22.yml
+├── marsel-api-inventory-v20-23.yml
+└── ...
 ```
-
-Единственная рабочая Python-точка входа приложения — `app.main:app`.
 
 ## 3. RO App API
 
-Параметры API:
+Параметры API, подтверждённые проектной документацией:
 
 - Base URL: `https://api.roapp.io/v2`;
 - Bearer authentication через `ROAPP_API_KEY`;
-- подтверждённый read-only endpoint: `GET /orders`.
+- подтверждённый пример: `GET /orders`;
+- rate limit: 3 requests/second;
+- пагинация: `page`, до 50 записей за запрос.
 
 Источник: официальная документация RO App — `https://roapp.readme.io/reference/getting-started-with-api`.
 
-### V20.14 — официальный API inventory
+### Важное ограничение
 
-Последний ранее подтверждённый inventory зафиксировал:
+Наличие ссылки на API-документацию не означает, что каждая операция из документации доступна текущему ключу или безопасна для production. Исполняются только операции, которые подтверждены документированным методом/path и разрешены текущей политикой проекта.
 
-- `DOCS_INDEX_HTTP=200`;
-- `REFERENCE_LINKS=148`;
-- `DOCUMENTED_OPERATIONS=148`;
-- `DOCUMENTED_GET_OPERATIONS=95`;
-- `OPERATIONS_WITH_EXTRACTED_PATHS=146`;
-- `GET_OPERATIONS_PROBED=94`;
-- `GET_OPERATIONS_NOT_PROBED=1`;
-- `WRITE_REQUESTS_MADE=0`;
-- `RO App data mutated=False`.
+## 4. V22.1 — comprehensive data-quality audit
 
-В V20.14 дополнительно разделены три разных состояния: GET, которые реально проверены; GET без concrete path; и операции, которые вообще не являются GET. Поэтому `NON_GET_OPERATIONS` больше не смешивается с `GET_OPERATIONS_WITH_UNRESOLVED_PROBE_STATE`.
+Актуальный read-only аудит `scripts/marsel_data_quality_v22_readonly.py` проверяет три основные коллекции:
 
-После следующего CI необходимо использовать новый inventory artifact как источник актуальных чисел, а не переносить старые показатели вручную.
+- `/catalog/products`;
+- `/catalog/services`;
+- `/orders`.
 
-## 4. Master Audit V20.20
+Для каждой коллекции контролируются:
 
-Master Audit работает только с `GET /orders` и создаёт локальный snapshot для контроля целостности.
-
-Проверяется:
-
-- количество страниц;
-- количество заказов;
+- полная пагинация;
+- количество прочитанных строк;
+- соответствие API count фактически прочитанным строкам;
+- отсутствие записей без ID;
 - duplicate IDs;
-- missing IDs;
-- missing status;
-- SHA-256 snapshot;
-- SHA-256 отчёта.
+- duplicate product/service code;
+- duplicate SKU;
+- duplicate order number;
+- отсутствующие title/number там, где они ожидаются.
 
-Raw snapshot намеренно не публикуется в GitHub Actions Artifact, поскольку может содержать клиентские данные. В Artifact сохраняются только `master_audit.json` и `SHA256.json`.
+Аудит использует только `GET`. Запросы `POST`, `PUT`, `PATCH`, `DELETE` блокированы политикой проекта.
 
-Это **не полный backup базы RO App**. Полный backup возможен только после подтверждения полного API inventory и разрешённых методов чтения для соответствующих сущностей.
+Последний зафиксированный коммит V22.1 исправляет проверку завершения пагинации и добавляет контроль `count == rows_read`. Это изменение опубликовано в `0272b0bdc14e14ba6b8ac67cd6755171b6a917bb`.
 
-## 5. Безопасность
+## 5. Product code collision audit V22.1
 
-Read-only inventory разрешает только `GET`.
+Отдельный read-only аудит анализирует коллизии кодов товаров. Коллизия кода сама по себе не классифицируется как доказанная порча данных: это finding, требующий проверки бизнес-правила уникальности.
 
-Запрещены:
+Источник реализации: `scripts/marsel_product_code_collision_audit_v22_1.py`.
 
-- `POST`;
-- `PUT`;
-- `PATCH`;
-- `DELETE`.
+## 6. Master Audit и backup
+
+Master Audit создаёт локальный snapshot для контроля целостности и SHA-256 отчётов.
+
+Raw snapshot с клиентскими данными не публикуется в GitHub Actions Artifact.
+
+**Полный backup всей базы RO App пока не подтверждён.** Наличие read-only аудита не является доказательством наличия полного резервного копирования всех сущностей.
+
+Перед любыми изменениями production необходимы:
+
+1. подтверждённый полный перечень доступных сущностей;
+2. подтверждённые GET-методы для резервного чтения;
+3. проверенный экспорт/snapshot;
+4. контроль целостности;
+5. план восстановления;
+6. только после этого — отдельная процедура `AUDIT → PROPOSE → APPLY`.
+
+## 7. Безопасность
 
 API-ключи не должны находиться в исходниках, README, артефактах или логах. Для CI используется GitHub Actions Secret `ROAPP_API_KEY`.
 
-До подтверждения endpoint, payload, прав доступа и резервной копии mutation-запросы не выполняются.
+Автоматическое удаление или изменение записей запрещено до подтверждения endpoint, payload, прав доступа, идемпотентности и возможности отката.
 
-## 6. Запуск
+Дубликаты сначала выявляются и попадают в отчёт. Автоматическое удаление не выполняется.
 
-```bash
-pip install -r requirements.txt
-uvicorn app.main:app --host 0.0.0.0 --port 8000
-pytest -q
+## 8. CI/CD
+
+Workflow разделены по назначению:
+
+- базовые тесты;
+- API inventory;
+- endpoint diagnostics;
+- read-only data-quality audit;
+- product code collision audit;
+- schema/deep audits.
+
+Актуальные результаты должны считаться источником фактического состояния. Старые показатели из предыдущих версий inventory нельзя переносить вручную в новые отчёты.
+
+## 9. Что сейчас закрыто и что нет
+
+### Закрыто в коде
+
+- READ ONLY политика;
+- защита от write-запросов в аудитах;
+- аудит products/services/orders;
+- проверка пагинации;
+- проверка count против фактически прочитанных строк;
+- проверки дубликатов и пропущенных идентификаторов;
+- hash-контроль отчётов.
+
+### Не подтверждено
+
+1. Полный backup всей рабочей базы RO App.
+2. Полный inventory всех сущностей и связей на текущем состоянии API.
+3. Безопасная процедура массового исправления production-записей.
+4. Возможность автоматического удаления/слияния дублей без потери связанных данных.
+5. Реальное изменение production-данных через API.
+
+## 10. Принцип дальнейшей работы
+
+```text
+OFFICIAL DOCS
+      ↓
+READ-ONLY INVENTORY
+      ↓
+LIVE GET PROBES
+      ↓
+DATA-QUALITY AUDIT
+      ↓
+BACKUP / HASH / RESTORE CHECK
+      ↓
+AUDIT FINDINGS
+      ↓
+PROPOSED CHANGES
+      ↓
+CONTROLLED APPLY
+      ↓
+POST-CHANGE READ-ONLY AUDIT
+      ↓
+REGRESSION TEST
 ```
 
-## 7. CI/CD
-
-GitHub Actions разделены по назначению:
-
-- **test** — базовая проверка проекта и read-only аудит;
-- **V20.10** — read-only аудит;
-- **V20.11** — schema audit;
-- **V20.12** — inventory;
-- **V20.13** — deep audit;
-- **V20.14** — официальный API inventory;
-- **V20.20** — Master Audit.
-
-## 8. Что сейчас не закрыто
-
-1. Полный inventory сущностей и их связей нужно повторно подтвердить свежим V20.14 CI после изменения классификации probe-state.
-2. Полный backup всей базы пока не подтверждён.
-3. Mutation endpoints намеренно не используются.
-4. Автоматическое исправление/удаление записей не выполняется до подтверждения API-контракта и backup.
-
-## 9. Принцип дальнейшей работы
-
-1. Официальная документация.
-2. READ ONLY API inventory.
-3. Проверка подтверждённых GET.
-4. Полный read-only audit сущностей и связей.
-5. Backup/hash перед любыми изменениями.
-6. Формирование предложений `AUDIT → PROPOSE → APPLY`.
-7. Mutation только после подтверждения endpoint, payload и прав доступа.
-8. После каждой записи — повторный read-only audit и регрессионный тест.
-
-Никаких выдуманных API-путей или неподтверждённых операций.
+Никаких выдуманных API-путей, неподтверждённых операций или заявлений о выполненном изменении без фактического подтверждения результата.
