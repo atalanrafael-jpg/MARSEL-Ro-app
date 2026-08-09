@@ -16,12 +16,14 @@ jobs:
   inventory:
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     env:
       ROAPP_API_BASE: https://api.roapp.io/v2
       ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
-      ROAPP_TIMEOUT: 30
-      ROAPP_MAX_RETRIES: 3
+      ROAPP_TIMEOUT: 8
+      ROAPP_MAX_RETRIES: 0
       ROAPP_MIN_REQUEST_INTERVAL: 0.25
+      MARSEL_MAX_DOCS: 25
       MARSEL_API_INVENTORY_INPUT: marsel-api-inventory-v20-14.json
       MARSEL_API_INVENTORY_OUTPUT: marsel-api-inventory-v20-14.json
       MARSEL_ENTITY_INVENTORY_OUTPUT: marsel-entity-inventory-v20-19.json
@@ -40,7 +42,7 @@ jobs:
           python -m pip install --disable-pip-version-check --no-input -r requirements.txt
           python -m pip install --disable-pip-version-check --no-input 'httpx>=0.28,<1'
 
-      - name: Generate fresh V20.14-compatible API inventory (READ ONLY)
+      - name: Generate bounded V20.14-compatible API inventory (READ ONLY)
         run: python scripts/marsel_api_inventory_v20_14.py
 
       - name: Verify configuration
