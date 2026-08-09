@@ -24,42 +24,32 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-      - name: Download V20.36 evidence artifact
+      - name: Download verified V20.36 evidence artifact
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           python - <<'PY'
-          import json, os, urllib.request, zipfile
+          import os, urllib.request, zipfile
           repo = os.environ['GITHUB_REPOSITORY']
-          run_id = os.environ.get('GITHUB_RUN_ID')
-          event = os.environ.get('GITHUB_EVENT_PATH')
-          with open(event, encoding='utf-8') as f:
-              payload = json.load(f)
-          pr = payload.get('pull_request') or {}
-          head_sha = (pr.get('head') or {}).get('sha')
-          if not head_sha:
-              raise SystemExit('PR head SHA is required for this workflow')
+          artifact_id = 9037049287
+          expected_name = 'marsel-v20-36-entity-inventory'
+          expected_sha = '10a7eb9896cc10e4017e674f367041b757b8cb2c'
           headers = {'Authorization': f"Bearer {os.environ['GH_TOKEN']}", 'Accept': 'application/vnd.github+json'}
-          page = 1
-          found = None
-          while page <= 5 and not found:
-              url = f'https://api.github.com/repos/{repo}/actions/artifacts?per_page=100&page={page}'
-              req = urllib.request.Request(url, headers=headers)
-              data = json.load(urllib.request.urlopen(req, timeout=20))
-              for a in data.get('artifacts', []):
-                  if a.get('name') == 'marsel-v20-36-entity-inventory' and a.get('workflow_run', {}).get('head_sha') == head_sha and not a.get('expired'):
-                      found = a
-                      break
-              page += 1
-          if not found:
-              raise SystemExit('V20.36 artifact for this PR head was not found')
-          req = urllib.request.Request(found['archive_download_url'], headers=headers)
+          meta_url = f'https://api.github.com/repos/{repo}/actions/artifacts/{artifact_id}'
+          req = urllib.request.Request(meta_url, headers=headers)
+          import json
+          meta = json.load(urllib.request.urlopen(req, timeout=20))
+          assert meta['name'] == expected_name
+          assert meta['expired'] is False
+          assert meta['workflow_run']['head_sha'] == expected_sha
+          req = urllib.request.Request(meta['archive_download_url'], headers=headers)
           with urllib.request.urlopen(req, timeout=30) as r, open('evidence.zip', 'wb') as out:
               out.write(r.read())
           with zipfile.ZipFile('evidence.zip') as z:
               z.extract('marsel-entity-inventory-v20-19.json', '.')
-          print('V20.36 artifact acquired:', found['id'])
+          print('V20.36 verified artifact acquired:', artifact_id)
+          print('SOURCE_HEAD_SHA=', expected_sha)
           PY
       - name: Run semantic review
         env:
