@@ -43,9 +43,7 @@ jobs:
 
     steps:
       - name: Checkout
-        run: |
-          git fetch --no-tags --prune --depth=1 origin "$GITHUB_SHA"
-          git checkout --detach "$GITHUB_SHA"
+        uses: actions/checkout@v6
       - name: Setup Python
         uses: actions/setup-python@v6
         with:
