@@ -2,6 +2,12 @@ name: MARSEL V20.19 Entity Inventory (READ ONLY)
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'scripts/marsel_entity_inventory_v20_19.py'
+      - '.github/workflows/marsel-entity-inventory-v20-19.yml'
+      - 'scripts/marsel_api_inventory_v20_31.py'
+      - 'scripts/marsel_live_probe_v20_27.py'
   push:
     branches: [main]
     paths:
@@ -63,7 +69,7 @@ jobs:
           assert d.get('readonly') is True
           assert d.get('write_requests_made',0)==0
           assert d.get('ro_app_data_mutated') is False
-          assert (d.get('safety') or {}).get('write_methods_used') or [] == []
+          assert ((d.get('safety') or {}).get('write_methods_used') or []) == []
           assert d.get('contract_state',{}).get('parameterized_identifiers_guessed') is False
           print('INVENTORY_SAFETY=PASS')
           print('CONFIRMED_OPERATIONS=',len(d.get('operations') or []))
