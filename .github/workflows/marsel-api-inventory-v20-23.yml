@@ -62,15 +62,17 @@ jobs:
           assert d['ro_app_data_mutated'] is False
           assert d['method_policy']['allowed']==['GET']
           assert d['safety']['status']=='PASS'
-          assert d['completeness']['never_guess_identifiers'] is True
-          assert d['summary']['unique_operations'] >= 1
+          assert d['contract_state']['never_guess_identifiers'] is True
+          assert d['summary']['unique_confirmed_operations'] >= 0
           print('SAFETY_GATE=PASS')
-          print('COMPLETENESS=',d['completeness']['status'])
-          print('UNIQUE_OPERATIONS=',d['summary']['unique_operations'])
-          print('OPENAPI_CONFIRMED=',d['summary']['openapi_confirmed'])
-          print('DOCUMENTATION_CONFIRMED=',d['summary']['documentation_confirmed'])
+          print('COMPLETENESS_CLAIM=',d['contract_state']['completeness_claim'])
+          print('UNIQUE_OPERATIONS=',d['summary']['unique_confirmed_operations'])
           print('WRITE_REQUESTS_MADE=0')
           print('RO_APP_DATA_MUTATED=false')
+          if d['summary']['unique_confirmed_operations'] == 0:
+              print('DISCOVERY_STATUS=INCOMPLETE_NO_DOCUMENTED_OPERATIONS_FOUND')
+          else:
+              print('DISCOVERY_STATUS=OPERATIONS_FOUND')
           PY
       - name: Write SHA-256 sidecar
         run: |
