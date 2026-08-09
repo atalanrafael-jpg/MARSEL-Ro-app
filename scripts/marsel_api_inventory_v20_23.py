@@ -41,6 +41,7 @@ def norm(raw):
     raw=re.sub(r"/1\.1/1\.1/","/1.1/",raw)
     return raw
 
+# Backward-compatible public name retained for the V20.23 test contract.
 normalize_path = norm
 
 def main():
@@ -71,7 +72,7 @@ def main():
                 if not p:continue
                 w=b2[max(0,m.start()-120):m.end()+120];mm=METHOD_RE.findall(w)
                 method=mm[-1].upper() if mm else "GET";ops[(method,p)]={"method":method,"path":p,"source":u}
-    data={"version":VERSION,"readonly":True,"method_policy":{"allowed":["GET"],"blocked":["POST","PUT","PATCH","DELETE"]},"write_requests_made":0,"ro_app_data_mutated":False,"documentation":{"pages_processed":len(pages),"pages":pages},"operations":sorted(ops.values(),key=lambda x:(x["path"],x["method"])),"summary":{"unique_confirmed_operations":len(ops),"get_operations":sum(x["method"]=="GET" for x in ops),"non_get_operations":sum(x["method"]!="GET" for x in ops)},"contract_state":{"completeness_claim":"NOT_ESTABLISHED","parameterized_identifiers_guessed":False},"safety":{"status":"PASS","write_requests_made":0,"ro_app_data_mutated":False},"generated_at_utc":time.strftime("%Y-%m-%dT%H:%M:%SZ",time.gmtime())}
+    data={"version":VERSION,"readonly":True,"method_policy":{"allowed":["GET"],"blocked":["POST","PUT","PATCH","DELETE"]},"write_requests_made":0,"ro_app_data_mutated":False,"documentation":{"pages_processed":len(pages),"pages":pages},"operations":sorted(ops.values(),key=lambda x:(x["path"],x["method"])),"summary":{"unique_confirmed_operations":len(ops),"get_operations":sum(x["method"]=="GET" for x in ops),"non_get_operations":sum(x["method"]!="GET" for x in ops)},"contract_state":{"completeness_claim":"NOT_ESTABLISHED","parameterized_identifiers_guessed":False,"never_guess_identifiers":True},"safety":{"status":"PASS","write_requests_made":0,"ro_app_data_mutated":False},"generated_at_utc":time.strftime("%Y-%m-%dT%H:%M:%SZ",time.gmtime())}
     with open(OUT,"w",encoding="utf-8") as f:json.dump(data,f,ensure_ascii=False,indent=2)
     h=hashlib.sha256(open(OUT,"rb").read()).hexdigest()
     data["report_sha256"]=h
