@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""MARSEL V20.32 — Live GET-only API probe.
+"""MARSEL V20.33 — Live GET-only API probe.
 
-Classifies documented concrete GETs by outcome. Parameterized paths are not
-probed. Only GET requests are ever issued. A 4xx/5xx response is recorded as
-an observed endpoint result rather than making the entire read-only audit fail.
-The workflow can fail only on safety violations or malformed probe execution.
+The API inventory may contain documented non-GET operations for inventory
+completeness. This probe never executes them. Only concrete GET paths are
+probed; parameterized identifiers are never guessed. HTTP 4xx/5xx responses
+are recorded as endpoint evidence and do not fail the audit. The probe fails
+only for transport/execution errors or an actual write request.
 """
 from __future__ import annotations
 import hashlib,json,os,re,sys,time
@@ -13,9 +14,9 @@ from urllib.error import HTTPError
 from urllib.request import Request,urlopen
 from urllib.parse import urlsplit
 
-VERSION="20.32"
-INVENTORY=Path(os.environ.get("MARSEL_API_INVENTORY_INPUT","marsel-api-inventory-v20-23.json"))
-OUT=Path(os.environ.get("MARSEL_LIVE_PROBE_OUTPUT","marsel-live-probe-v20-27.json"))
+VERSION="20.33"
+INVENTORY=Path(os.environ.get("MARSEL_API_INVENTORY_INPUT","marsel-api-inventory-v20-29.json"))
+OUT=Path(os.environ.get("MARSEL_LIVE_PROBE_OUTPUT","marsel-live-probe-v20-29.json"))
 BASE=os.environ.get("ROAPP_API_BASE","https://api.roapp.io/v2").rstrip("/")
 KEY=os.environ.get("ROAPP_API_KEY","")
 TIMEOUT=min(int(os.environ.get("ROAPP_TIMEOUT","15")),20)
@@ -42,7 +43,8 @@ def build_url(path):
 
 def probe(url):
  global _last
- wait_rate_limit(); req=Request(url,headers={"Authorization":f"Bearer {KEY}","Accept":"application/json","User-Agent":f"MARSEL-Audit-V{VERSION}"},method="GET")
+ wait_rate_limit()
+ req=Request(url,headers={"Authorization":f"Bearer {KEY}","Accept":"application/json","User-Agent":f"MARSEL-Audit-V{VERSION}"},method="GET")
  started=time.time();_last=time.monotonic()
  try:
   with urlopen(req,timeout=TIMEOUT) as r:
@@ -51,7 +53,8 @@ def probe(url):
  except HTTPError as e:
   body=e.read().decode("utf-8",errors="replace")[:10000]
   return {"http":e.code,"elapsed_s":round(time.time()-started,3),"content_type":e.headers.get("Content-Type","") if e.headers else "","body":body,"error":"HTTPError"}
- except Exception as e:return {"http":None,"elapsed_s":round(time.time()-started,3),"content_type":"","body":"","error":f"{type(e).__name__}: {e}"}
+ except Exception as e:
+  return {"http":None,"elapsed_s":round(time.time()-started,3),"content_type":"","body":"","error":f"{type(e).__name__}: {e}"}
 
 def shape(v,d=0):
  if d>=3:return "..."
@@ -64,11 +67,15 @@ def main():
  if not INVENTORY.exists():return print(f"inventory not found: {INVENTORY}",file=sys.stderr) or 1
  try:inv=json.loads(INVENTORY.read_text(encoding="utf-8"))
  except Exception as e:return print(f"invalid inventory JSON: {e}",file=sys.stderr) or 1
- ops=inv.get("operations",[]); probes=[]; safety_errors=[];seen=set()
+ ops=inv.get("operations",[]); probes=[]; execution_errors=[];seen=set(); skipped_non_get=[]
  for op in ops:
   method=str(op.get("method","")).upper();path=str(op.get("path",""))
-  if method in WRITE_METHODS:safety_errors.append(f"write-capable method present in inventory: {method} {path}");continue
-  if method!="GET":continue
+  if method in WRITE_METHODS:
+   skipped_non_get.append({"method":method,"path":path,"reason":"documented_non_get_operation_not_executed"})
+   continue
+  if method!="GET":
+   skipped_non_get.append({"method":method,"path":path,"reason":"non_get_operation_not_executed"})
+   continue
   if not path or PARAM_RE.search(path):
    probes.append({"method":"GET","path":path,"status":"NOT_PROBED","reason":"parameterized_or_empty_path"});continue
   if path in seen:continue
@@ -81,18 +88,19 @@ def main():
      p=json.loads(body);item.update({"json_valid":True,"json_type":type(p).__name__,"shape":shape(p)})
      if isinstance(p,dict):item["top_level_keys"]=sorted(p.keys())[:100]
      elif isinstance(p,list):item["array_length"]=len(p)
-    except json.JSONDecodeError:item.update({"json_valid":False,"error":"successful HTTP response is not valid JSON"})
+    except json.JSONDecodeError:
+     item.update({"json_valid":False,"error":"successful HTTP response is not valid JSON"});execution_errors.append(f"non-JSON success: GET {path}")
   else:
    item.update({"json_valid":None,"classification":"HTTP_ERROR_OR_UNAVAILABLE","error_body_sample":body[:500] if body else r.get("error")})
+   if r.get("http") is None:execution_errors.append(f"transport error: GET {path}: {r.get('error')}")
   probes.append(item)
  successful=[p for p in probes if p.get("http") in {200,201,202,204}]
  valid=[p for p in successful if p.get("json_valid") is True]
  notp=[p for p in probes if p.get("status")=="NOT_PROBED"]
- transport=[p for p in probes if p.get("http") is None]
- # HTTP errors are evidence about endpoint behavior, not safety failures.
- status="PASS" if not safety_errors and not transport and probes else "FAIL"
- report={"version":VERSION,"status":status,"readonly":True,"method_policy":{"allowed":["GET"],"blocked":sorted(WRITE_METHODS)},"inventory_sha256":digest(INVENTORY),"metrics":{"inventory_operations":len(ops),"get_paths_probed":len([p for p in probes if p.get("status")!="NOT_PROBED"]),"successful_responses":len(successful),"valid_json_responses":len(valid),"parameterized_not_probed":len(notp),"http_error_responses":sum(1 for p in probes if isinstance(p.get("http"),int) and p["http"]>=400),"transport_errors":len(transport)},"probes":probes,"contract_state":{"live_response_schema":"CHECKED_FOR_PROBED_CONCRETE_GETS","field_types":"OBSERVED_FOR_PROBED_JSON","pagination_behavior":"OBSERVED_ONLY_WHEN_RETURNED","http_error_shapes":"OBSERVED_ONLY_WHEN_RETURNED","parameterized_identifiers_guessed":False,"completeness_claim":"NOT_ESTABLISHED"},"safety":{"write_requests_made":0,"ro_app_data_mutated":False},"safety_errors":safety_errors,"generated_at_utc":time.strftime("%Y-%m-%dT%H:%M:%SZ",time.gmtime())}
+ http_errors=[p for p in probes if isinstance(p.get("http"),int) and p["http"]>=400]
+ status="PASS" if not execution_errors and probes else "FAIL"
+ report={"version":VERSION,"status":status,"readonly":True,"method_policy":{"allowed":["GET"],"blocked":sorted(WRITE_METHODS)},"inventory_sha256":digest(INVENTORY),"metrics":{"inventory_operations":len(ops),"get_paths_probed":len([p for p in probes if p.get("status")!="NOT_PROBED"]),"successful_responses":len(successful),"valid_json_responses":len(valid),"parameterized_not_probed":len(notp),"http_error_responses":len(http_errors),"transport_errors":sum(1 for p in probes if p.get("http") is None),"non_get_operations_skipped":len(skipped_non_get)},"probes":probes,"skipped_non_get_operations":skipped_non_get,"contract_state":{"live_response_schema":"CHECKED_FOR_PROBED_CONCRETE_GETS","field_types":"OBSERVED_FOR_PROBED_JSON","pagination_behavior":"OBSERVED_ONLY_WHEN_RETURNED","http_error_shapes":"OBSERVED_ONLY_WHEN_RETURNED","parameterized_identifiers_guessed":False,"completeness_claim":"NOT_ESTABLISHED"},"safety":{"write_requests_made":0,"ro_app_data_mutated":False},"errors":execution_errors,"generated_at_utc":time.strftime("%Y-%m-%dT%H:%M:%SZ",time.gmtime())}
  OUT.write_text(json.dumps(report,ensure_ascii=False,indent=2,sort_keys=True)+"\n",encoding="utf-8");report["report_sha256"]=digest(OUT);OUT.write_text(json.dumps(report,ensure_ascii=False,indent=2,sort_keys=True)+"\n",encoding="utf-8")
- print(f"V{VERSION}_LIVE_PROBE={status}");print(f"SUCCESSFUL_RESPONSES={len(successful)}");print(f"VALID_JSON_RESPONSES={len(valid)}");print(f"PARAMETERIZED_NOT_PROBED={len(notp)}");print(f"HTTP_ERROR_RESPONSES={report['metrics']['http_error_responses']}");print("WRITE_REQUESTS_MADE=0");print("RO_APP_DATA_MUTATED=false");print(f"REPORT_SHA256={report['report_sha256']}")
+ print(f"V{VERSION}_LIVE_PROBE={status}");print(f"SUCCESSFUL_RESPONSES={len(successful)}");print(f"VALID_JSON_RESPONSES={len(valid)}");print(f"PARAMETERIZED_NOT_PROBED={len(notp)}");print(f"HTTP_ERROR_RESPONSES={len(http_errors)}");print(f"NON_GET_OPERATIONS_SKIPPED={len(skipped_non_get)}");print("WRITE_REQUESTS_MADE=0");print("RO_APP_DATA_MUTATED=false");print(f"REPORT_SHA256={report['report_sha256']}")
  return 0 if status=="PASS" else 1
 if __name__=="__main__":raise SystemExit(main())
