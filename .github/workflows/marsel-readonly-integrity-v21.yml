@@ -21,7 +21,7 @@ concurrency:
 jobs:
   audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -35,22 +35,23 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$ROAPP_API_KEY"
-      - name: Build V20.29 official multi-index inventory
+      - name: Build V20.30 official multi-index inventory
         env:
           ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
           ROAPP_API_BASE: https://api.roapp.io/v2
           ROAPP_DOCS_INDEXES: https://roapp.readme.io/llms.txt,https://roappua.readme.io/llms.txt
-          MARSEL_API_INVENTORY_OUTPUT: marsel-api-inventory-v20-29.json
-          MARSEL_MAX_DOCS: '200'
-          ROAPP_TIMEOUT: '15'
-          ROAPP_MAX_RETRIES: '1'
+          MARSEL_API_INVENTORY_OUTPUT: marsel-api-inventory-v20-30.json
+          MARSEL_MAX_DOCS: '60'
+          MARSEL_INVENTORY_BUDGET_SECONDS: '240'
+          ROAPP_TIMEOUT: '10'
+          ROAPP_MAX_RETRIES: '0'
           ROAPP_MIN_REQUEST_INTERVAL: '0.20'
         run: python scripts/marsel_api_inventory_v20_29.py
       - name: Enforce inventory zero-write contract
         run: |
           python - <<'PY'
           import json
-          d=json.load(open('marsel-api-inventory-v20-29.json',encoding='utf-8'))
+          d=json.load(open('marsel-api-inventory-v20-30.json',encoding='utf-8'))
           assert d['readonly'] is True
           assert d['method_policy']['allowed'] == ['GET']
           assert d['write_requests_made'] == 0
@@ -62,30 +63,30 @@ jobs:
         env:
           ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
           ROAPP_API_BASE: https://api.roapp.io/v2
-          MARSEL_API_INVENTORY_INPUT: marsel-api-inventory-v20-29.json
-          MARSEL_LIVE_PROBE_OUTPUT: marsel-live-probe-v20-29.json
-          ROAPP_TIMEOUT: '15'
-          ROAPP_MAX_RETRIES: '1'
+          MARSEL_API_INVENTORY_INPUT: marsel-api-inventory-v20-30.json
+          MARSEL_LIVE_PROBE_OUTPUT: marsel-live-probe-v20-30.json
+          ROAPP_TIMEOUT: '10'
+          ROAPP_MAX_RETRIES: '0'
           ROAPP_MIN_REQUEST_INTERVAL: '0.20'
         run: python scripts/marsel_live_probe_v20_27.py
       - name: Run V21 entity integrity audit
         env:
-          MARSEL_API_INVENTORY_INPUT: marsel-api-inventory-v20-29.json
-          MARSEL_LIVE_PROBE_INPUT: marsel-live-probe-v20-29.json
+          MARSEL_API_INVENTORY_INPUT: marsel-api-inventory-v20-30.json
+          MARSEL_LIVE_PROBE_INPUT: marsel-live-probe-v20-30.json
           MARSEL_INTEGRITY_OUTPUT: marsel-readonly-integrity-v21.json
         run: python scripts/marsel_readonly_integrity_v21.py
       - name: Write SHA-256 manifest
         run: |
           set -euo pipefail
-          sha256sum marsel-api-inventory-v20-29.json marsel-live-probe-v20-29.json marsel-readonly-integrity-v21.json > marsel-v21-sha256.txt
+          sha256sum marsel-api-inventory-v20-30.json marsel-live-probe-v20-30.json marsel-readonly-integrity-v21.json > marsel-v21-sha256.txt
           cat marsel-v21-sha256.txt
       - name: Upload non-public audit evidence
         uses: actions/upload-artifact@v4
         with:
           name: marsel-v21-readonly-integrity-evidence
           path: |
-            marsel-api-inventory-v20-29.json
-            marsel-live-probe-v20-29.json
+            marsel-api-inventory-v20-30.json
+            marsel-live-probe-v20-30.json
             marsel-readonly-integrity-v21.json
             marsel-v21-sha256.txt
           if-no-files-found: error
