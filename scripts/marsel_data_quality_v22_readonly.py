@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""MARSEL V22 — comprehensive read-only data-quality audit.
+"""MARSEL V22.1 — comprehensive read-only data-quality audit.
 
 Audits every paginated row in the principal business collections exposed by the
 RoApp v2 API. GET only: no POST/PUT/PATCH/DELETE requests are made.
@@ -104,8 +104,7 @@ def audit_collection(client: httpx.Client, name: str, path: str) -> dict:
         if expected_total_pages is not None and page >= int(expected_total_pages):
             break
         # If the API does not provide total_pages, the short-page condition is
-        # the only safe completion signal. Use the actual decoded batch length,
-        # not a field removed by page_info().
+        # the only safe completion signal. Use the actual decoded batch length.
         if len(batch) < PAGE_SIZE:
             break
         page += 1
