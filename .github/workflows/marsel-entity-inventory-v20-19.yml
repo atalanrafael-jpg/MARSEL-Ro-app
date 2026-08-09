@@ -8,6 +8,7 @@ on:
       - 'scripts/marsel_entity_inventory_v20_19.py'
       - '.github/workflows/marsel-entity-inventory-v20-19.yml'
       - 'scripts/marsel_api_inventory_v20_29.py'
+      - 'scripts/marsel_api_inventory_v20_30.py'
       - 'scripts/marsel_live_probe_v20_27.py'
   workflow_run:
     workflows: ["MARSEL V20.29 API Inventory + Live Read-Only Probe"]
@@ -46,7 +47,7 @@ jobs:
           ROAPP_DOCS_INDEXES: https://roapp.readme.io/llms.txt,https://roappua.readme.io/llms.txt
           MARSEL_API_INVENTORY_OUTPUT: marsel-api-inventory-v20-29.json
           ROAPP_MIN_REQUEST_INTERVAL: '0.34'
-        run: python scripts/marsel_api_inventory_v20_29.py
+        run: python scripts/marsel_api_inventory_v20_30.py
       - name: Validate inventory safety
         run: |
           python - <<'PY'
@@ -55,10 +56,12 @@ jobs:
           assert d.get('readonly') is True
           assert d.get('write_requests_made') == 0
           assert d.get('ro_app_data_mutated') is False
+          assert d.get('safety',{}).get('write_methods_used') == []
           print('INVENTORY_SAFETY=PASS')
           print('CONFIRMED_OPERATIONS=',len(d.get('operations',[])))
+          print('PARAMETERIZED_NOT_PROBED=',d.get('summary',{}).get('parameterized_not_probed'))
           PY
-      - name: Run V20.33 strict read-only entity inventory
+      - name: Run V20.34 strict read-only entity inventory
         run: python scripts/marsel_entity_inventory_v20_19.py
       - name: Validate report safety
         run: |
