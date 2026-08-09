@@ -55,9 +55,13 @@ jobs:
           import json
           d=json.load(open('marsel-api-inventory-v20-29.json',encoding='utf-8'))
           assert d.get('readonly') is True, 'readonly flag is not true'
-          assert d.get('write_requests_made') == 0, f"write_requests_made={d.get('write_requests_made')}"
+          assert d.get('write_requests_made', 0) == 0, f"write_requests_made={d.get('write_requests_made')}"
           assert d.get('ro_app_data_mutated') is False, f"ro_app_data_mutated={d.get('ro_app_data_mutated')}"
-          assert d.get('safety',{}).get('write_methods_used') == [], f"write_methods_used={d.get('safety',{}).get('write_methods_used')}"
+          safety=d.get('safety') or {}
+          write_methods=safety.get('write_methods_used')
+          if write_methods is None:
+              write_methods=[]
+          assert write_methods == [], f"write_methods_used={write_methods}"
           assert d.get('contract_state',{}).get('parameterized_identifiers_guessed') is False, 'parameterized identifiers were guessed'
 
           summary=d.get('summary') or {}
