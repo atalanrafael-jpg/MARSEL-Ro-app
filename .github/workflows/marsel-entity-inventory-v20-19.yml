@@ -1,5 +1,6 @@
 name: MARSEL V20.19 Entity Inventory (READ ONLY)
 
+# CI trigger: validate the current main revision after safety-validator fixes.
 on:
   workflow_dispatch:
   push:
