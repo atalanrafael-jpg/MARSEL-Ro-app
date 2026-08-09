@@ -1,0 +1,89 @@
+name: MARSEL V21.1 Semantic Review (READ ONLY)
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/marsel_semantic_review_v21_1.py'
+      - '.github/workflows/marsel-semantic-review-v21-1.yml'
+      - 'scripts/marsel_entity_inventory_v20_19.py'
+      - '.github/workflows/marsel-entity-inventory-v20-19.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: marsel-semantic-review-v21-1-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Download V20.36 evidence artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os, urllib.request, zipfile
+          repo = os.environ['GITHUB_REPOSITORY']
+          run_id = os.environ.get('GITHUB_RUN_ID')
+          event = os.environ.get('GITHUB_EVENT_PATH')
+          with open(event, encoding='utf-8') as f:
+              payload = json.load(f)
+          pr = payload.get('pull_request') or {}
+          head_sha = (pr.get('head') or {}).get('sha')
+          if not head_sha:
+              raise SystemExit('PR head SHA is required for this workflow')
+          headers = {'Authorization': f"Bearer {os.environ['GH_TOKEN']}", 'Accept': 'application/vnd.github+json'}
+          page = 1
+          found = None
+          while page <= 5 and not found:
+              url = f'https://api.github.com/repos/{repo}/actions/artifacts?per_page=100&page={page}'
+              req = urllib.request.Request(url, headers=headers)
+              data = json.load(urllib.request.urlopen(req, timeout=20))
+              for a in data.get('artifacts', []):
+                  if a.get('name') == 'marsel-v20-36-entity-inventory' and a.get('workflow_run', {}).get('head_sha') == head_sha and not a.get('expired'):
+                      found = a
+                      break
+              page += 1
+          if not found:
+              raise SystemExit('V20.36 artifact for this PR head was not found')
+          req = urllib.request.Request(found['archive_download_url'], headers=headers)
+          with urllib.request.urlopen(req, timeout=30) as r, open('evidence.zip', 'wb') as out:
+              out.write(r.read())
+          with zipfile.ZipFile('evidence.zip') as z:
+              z.extract('marsel-entity-inventory-v20-19.json', '.')
+          print('V20.36 artifact acquired:', found['id'])
+          PY
+      - name: Run semantic review
+        env:
+          MARSEL_ENTITY_INVENTORY_INPUT: marsel-entity-inventory-v20-19.json
+          MARSEL_SEMANTIC_REVIEW_OUTPUT: marsel-semantic-review-v21-1.json
+        run: python scripts/marsel_semantic_review_v21_1.py
+      - name: Validate zero-write contract
+        run: |
+          python - <<'PY'
+          import json
+          d=json.load(open('marsel-semantic-review-v21-1.json',encoding='utf-8'))
+          assert d['version']=='21.1'
+          assert d['status']=='PASS'
+          assert d['confirmed_duplicates']==0
+          assert d['writes_performed']==0
+          assert d['ro_app_data_mutated'] is False
+          print('SEMANTIC_REVIEW_SAFETY=PASS')
+          print('CANDIDATE_GROUPS=',d['duplicate_candidate_groups'])
+          print('BY_ENTITY_TYPE=',d['candidate_groups_by_entity_type'])
+          PY
+      - name: Upload review report
+        uses: actions/upload-artifact@v7
+        with:
+          name: marsel-v21-1-semantic-review
+          path: marsel-semantic-review-v21-1.json
+          if-no-files-found: error
+          retention-days: 90
