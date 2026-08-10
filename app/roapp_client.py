@@ -1,5 +1,6 @@
 import asyncio
 import random
+import time
 from typing import Any
 
 import httpx
@@ -16,6 +17,9 @@ class RoAppClient:
         self.timeout = settings.roapp_timeout_seconds
         self.max_retries = settings.roapp_max_retries
         self.retry_base_seconds = settings.roapp_retry_base_seconds
+        self.max_requests_per_second = max(1, settings.roapp_max_requests_per_second)
+        self._rate_lock = asyncio.Lock()
+        self._last_request_at = 0.0
 
     def _headers(self) -> dict[str, str]:
         if not settings.roapp_api_key:
@@ -23,14 +27,25 @@ class RoAppClient:
         return {
             "Authorization": f"Bearer {settings.roapp_api_key}",
             "Accept": "application/json",
-            "User-Agent": "MARSEL-RoApp-Audit/1.0",
+            "User-Agent": "MARSEL-RoApp-Audit/1.1",
         }
+
+    async def _throttle(self) -> None:
+        """Respect the configured requests/second ceiling across this client instance."""
+        interval = 1.0 / self.max_requests_per_second
+        async with self._rate_lock:
+            now = time.monotonic()
+            wait_for = interval - (now - self._last_request_at)
+            if wait_for > 0:
+                await asyncio.sleep(wait_for)
+            self._last_request_at = time.monotonic()
 
     async def _get(self, path: str, *, params: dict[str, Any] | None = None) -> Any:
         url = f"{self.base_url}/{path.lstrip('/')}"
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             for attempt in range(self.max_retries + 1):
                 try:
+                    await self._throttle()
                     response = await client.get(url, params=params, headers=self._headers())
                     if response.status_code not in self.RETRYABLE_STATUS_CODES:
                         response.raise_for_status()
