@@ -33,6 +33,24 @@ def fail(msg: str) -> int:
     return 1
 
 
+def write_report(result: dict) -> str:
+    """Write a deterministic report and return its content hash.
+
+    The hash is calculated over the exact serialized report *without* the
+    self-referential report_sha256 field, then embedded once in the final file.
+    """
+    payload = dict(result)
+    payload.pop("report_sha256", None)
+    canonical = json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+    digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    payload["report_sha256"] = digest
+    OUT.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return digest
+
+
 def main() -> int:
     if not INVENTORY.exists():
         return fail(f"inventory not found: {INVENTORY}")
@@ -59,7 +77,11 @@ def main() -> int:
 
     missing_paths = sum(1 for x in ops if not str(x.get("path", "")).strip())
     missing_evidence = sum(1 for x in ops if not x.get("sources"))
-    parameterized_gets = sum(1 for x in ops if str(x.get("method", "")).upper() == "GET" and PARAM_RE.search(str(x.get("path", ""))))
+    parameterized_gets = sum(
+        1 for x in ops
+        if str(x.get("method", "")).upper() == "GET"
+        and PARAM_RE.search(str(x.get("path", "")))
+    )
     get_count = sum(1 for x in ops if str(x.get("method", "")).upper() == "GET")
 
     if missing_paths:
@@ -69,8 +91,6 @@ def main() -> int:
     if not ops:
         errors.append("no API operations available for contract verification")
 
-    # Inventory-level contract checks. These do NOT imply that live payloads
-    # were fetched or that every response field has been verified.
     summary = data.get("summary", {})
     if summary.get("get_operations") != get_count:
         errors.append("summary.get_operations does not match inventory")
@@ -83,10 +103,12 @@ def main() -> int:
         if hits:
             pagination_mentions.append({"method": op.get("method"), "path": op.get("path"), "fields": hits})
 
-    warnings.append("LIVE_RESPONSE_SCHEMA=NOT_VERIFIED")
-    warnings.append("HTTP_ERROR_CONTRACT=NOT_VERIFIED")
-    warnings.append("PAGINATION_BEHAVIOR=DOCUMENTATION_ONLY")
-    warnings.append("REQUIRED_FIELD_CONTRACT=NOT_VERIFIED")
+    warnings.extend([
+        "LIVE_RESPONSE_SCHEMA=NOT_VERIFIED",
+        "HTTP_ERROR_CONTRACT=NOT_VERIFIED",
+        "PAGINATION_BEHAVIOR=DOCUMENTATION_ONLY",
+        "REQUIRED_FIELD_CONTRACT=NOT_VERIFIED",
+    ])
 
     result = {
         "version": VERSION,
@@ -118,9 +140,7 @@ def main() -> int:
             "ro_app_data_mutated": False,
         },
     }
-    OUT.write_text(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    result["report_sha256"] = sha256(OUT)
-    OUT.write_text(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    report_sha = write_report(result)
 
     print(f"V{VERSION}_CONTRACT_AUDIT={result['status']}")
     print(f"OPERATIONS={len(ops)}")
@@ -130,7 +150,7 @@ def main() -> int:
     print("COMPLETENESS_CLAIM=NOT_ESTABLISHED")
     print("WRITE_REQUESTS_MADE=0")
     print("RO_APP_DATA_MUTATED=false")
-    print(f"REPORT_SHA256={result['report_sha256']}")
+    print(f"REPORT_SHA256={report_sha}")
     return 0 if not errors else 1
 
 
