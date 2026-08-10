@@ -1,0 +1,46 @@
+entity,field,required,type,source_of_truth,notes
+product,marsel_id,true,string,MARSEL,stable canonical identifier
+product,sku,true,string,Ro App,article/SKU
+product,title,true,string,Ro App/Wix,display title
+product,product_type,true,enum,Ro App,ring/earrings/pendant/etc
+product,category_id,true,string,MARSEL,category dimension
+product,collection_id,false,string,MARSEL,commercial collection
+product,status,true,enum,Ro App,lifecycle status
+product,metal_ids,true,array,MARSEL,linked metals
+product,stone_ids,true,array,MARSEL,linked stones
+product,weight_g,false,decimal,Ro App,grams
+product,dimensions,false,string,Ro App,dimensions
+product,stock_status,true,enum,Ro App,availability
+product,price,false,decimal,Ro App,commercial price
+product,cost,false,decimal,Ro App,authoritative cost
+product,made_to_order,true,boolean,Ro App,order mode
+product,description,false,string,AI+approved,AI may draft; human/source facts prevail
+asset,asset_id,true,string,MARSEL,stable asset identifier
+asset,marsel_id,true,string,MARSEL,parent product
+asset,asset_type,true,enum,MARSEL,main/front/back/side/detail/model/certificate/technical/before/after
+asset,original_uri,true,string,Asset storage,original file
+asset,web_uri,false,string,Asset storage,optimized web file
+asset,thumbnail_uri,false,string,Asset storage,thumbnail
+asset,sort_order,true,integer,MARSEL,display order
+asset,publication_status,true,enum,MARSEL,per-channel publication control
+metal,metal_id,true,string,MARSEL,stable identifier
+metal,metal_type,true,string,Ro App,metal type
+metal,fineness,true,string,Ro App,fineness
+metal,color,false,string,Ro App,metal color
+metal,weight_g,false,decimal,Ro App,weight
+stone,stone_id,true,string,MARSEL,stable identifier
+stone,stone_type,true,string,Ro App,stone type
+stone,origin,false,string,Ro App,origin where known
+stone,quantity,true,integer,Ro App,count
+stone,carat_weight,false,decimal,Ro App,carat weight
+stone,shape,false,string,Ro App,shape
+stone,cut,false,string,Ro App,cut
+stone,color,false,string,Ro App,color
+stone,clarity,false,string,Ro App,clarity
+stone,certificate_id,false,string,Ro App,certificate reference
+stone,cost,false,decimal,Ro App,authoritative cost
+document,document_id,true,string,MARSEL,stable identifier
+document,marsel_id,true,string,MARSEL,parent product
+document,document_type,true,enum,MARSEL,certificate/warranty/technical/etc
+document,uri,true,string,Document storage,document location
+document,verification_status,true,enum,MARSEL,verified/unverified/expired
