@@ -1,0 +1,77 @@
+name: MARSEL V20.30 Corrected API Inventory + Read-Only Probe
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/marsel_api_inventory_v20_30.py'
+      - '.github/workflows/marsel-api-v20-30-readonly.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: marsel-readonly-api-audit-v20-30
+  cancel-in-progress: true
+
+jobs:
+  readonly-audit:
+    name: V20.30 corrected inventory + GET-only probe
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify API configuration
+        env:
+          ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$ROAPP_API_KEY"
+      - name: Run corrected V20.30 inventory
+        env:
+          ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+          ROAPP_API_BASE: https://api.roapp.io/v2
+          ROAPP_DOCS_INDEXES: https://roapp.readme.io/llms.txt,https://roappua.readme.io/llms.txt
+          MARSEL_API_INVENTORY_OUTPUT: marsel-api-inventory-v20-30.json
+          ROAPP_MIN_REQUEST_INTERVAL: '0.34'
+        run: python scripts/marsel_api_inventory_v20_30.py
+      - name: Enforce read-only and placeholder safety
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          d=json.load(open('marsel-api-inventory-v20-30.json',encoding='utf-8'))
+          assert d['readonly'] is True
+          assert d['method_policy']['allowed'] == ['GET']
+          assert d['write_requests_made'] == 0
+          assert d['ro_app_data_mutated'] is False
+          assert d['safety']['write_requests_made'] == 0
+          assert d['safety']['ro_app_data_mutated'] is False
+          assert d['summary']['parameterized_not_probed'] >= 1
+          assert all(x.get('status') == 'NOT_PROBED' for x in d['get_probes'] if '{' in x.get('path','') or ':' in x.get('path','') or '<' in x.get('path',''))
+          print('V20_30_READ_ONLY=PASS')
+          print('V20_30_PARAMETERIZED_NOT_PROBED=', d['summary']['parameterized_not_probed'])
+          print('V20_30_GET_PROBES_200=', d['summary']['get_probes_http_200'])
+          print('WRITE_REQUESTS_MADE=0')
+          print('RO_APP_DATA_MUTATED=false')
+          PY
+      - name: Write SHA-256 evidence
+        shell: bash
+        run: sha256sum marsel-api-inventory-v20-30.json > marsel-v20-30-sha256.txt
+      - name: Upload V20.30 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: marsel-v20-30-readonly-evidence
+          path: |
+            marsel-api-inventory-v20-30.json
+            marsel-v20-30-sha256.txt
+          if-no-files-found: error
+          retention-days: 90
