@@ -3,6 +3,11 @@
 
 Uses only GET /orders. Produces a timestamped JSON backup and a deterministic
 SHA-256 manifest. No write HTTP methods are present or used.
+
+The RO App /orders response uses nested objects for client, status and total
+and assignee/manager IDs for employee responsibility. The audit therefore
+checks the actual response schema instead of looking only for legacy flat
+field names such as client_id/status_id/total_price/employee_id.
 """
 import hashlib, json, os, sys, time
 from collections import Counter
@@ -54,13 +59,57 @@ with httpx.Client(timeout=TIMEOUT) as client:
         page += 1
         time.sleep(0.35)
 
-ids = [x.get("id") for x in orders if x.get("id") is not None]
-status_ids = [x.get("status_id") for x in orders if x.get("status_id") is not None]
-client_ids = [x.get("client_id") for x in orders if x.get("client_id") is not None]
-id_counts = Counter(ids)
+def nested(obj, *keys):
+    value = obj
+    for key in keys:
+        if not isinstance(value, dict):
+            return None
+        value = value.get(key)
+    return value
 
-def missing(field):
-    return sum(1 for x in orders if x.get(field) in (None, ""))
+def present(value):
+    return value not in (None, "", [])
+
+def first_present(order, *paths):
+    for path in paths:
+        value = nested(order, *path)
+        if present(value):
+            return value
+    return None
+
+ids = [x.get("id") for x in orders if present(x.get("id"))]
+status_ids = [
+    value for value in (first_present(x, ("status", "id"), ("status_id",)) for x in orders)
+    if present(value)
+]
+client_ids = [
+    value for value in (first_present(x, ("client", "id"), ("client_id",)) for x in orders)
+    if present(value)
+]
+id_counts = Counter(ids)
+status_names = Counter(
+    nested(x, "status", "name") for x in orders if present(nested(x, "status", "name"))
+)
+order_type_names = Counter(
+    nested(x, "order_type", "name") for x in orders if present(nested(x, "order_type", "name"))
+)
+
+def missing_id():
+    return sum(1 for x in orders if not present(x.get("id")))
+
+def missing_client():
+    return sum(1 for x in orders if not present(first_present(x, ("client", "id"), ("client_id",))))
+
+def missing_status():
+    return sum(1 for x in orders if not present(first_present(x, ("status", "id"), ("status_id",))))
+
+def missing_total():
+    return sum(1 for x in orders if not present(first_present(x, ("total",), ("total_price",), ("estimated_price",))))
+
+def missing_employee():
+    return sum(1 for x in orders if not present(first_present(
+        x, ("assignee_id",), ("manager_id",), ("employee_id",), ("created_by_id",)
+    )))
 
 summary = {
     "retrieved_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -69,12 +118,13 @@ summary = {
     "orders_total": len(orders),
     "unique_order_ids": len(set(ids)),
     "duplicate_order_id_groups": sum(1 for c in id_counts.values() if c > 1),
-    "orders_missing_id": missing("id"),
-    "orders_missing_client": missing("client_id"),
-    "orders_missing_status": missing("status_id"),
-    "orders_missing_total_price": missing("total_price"),
-    "orders_missing_employee": missing("employee_id"),
-    "status_counts": dict(sorted(Counter(status_ids).items(), key=lambda kv: str(kv[0]))),
+    "orders_missing_id": missing_id(),
+    "orders_missing_client": missing_client(),
+    "orders_missing_status": missing_status(),
+    "orders_missing_total_price": missing_total(),
+    "orders_missing_employee": missing_employee(),
+    "status_counts": dict(sorted(status_names.items(), key=lambda kv: kv[0])),
+    "order_type_counts": dict(sorted(order_type_names.items(), key=lambda kv: kv[0])),
     "client_id_count": len(set(client_ids)),
     "http_errors": http_errors,
     "write_requests_made": 0,
