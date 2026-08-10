@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """MARSEL V20.26 — API/Data Contract Verification, strictly READ ONLY.
 
-Validates the documented inventory contract without issuing write requests.
-It distinguishes documented structure from verified live-response structure.
+Validates the structure and provenance of documented API operations without
+issuing write requests. Documentation may describe POST/PUT/PATCH/DELETE
+operations; that is not itself a write request and must not fail a read-only
+inventory gate. Actual mutation remains prohibited.
 """
 from __future__ import annotations
 
@@ -34,20 +36,12 @@ def fail(msg: str) -> int:
 
 
 def write_report(result: dict) -> str:
-    """Write a deterministic report and return its content hash.
-
-    The hash is calculated over the exact serialized report *without* the
-    self-referential report_sha256 field, then embedded once in the final file.
-    """
     payload = dict(result)
     payload.pop("report_sha256", None)
     canonical = json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
     digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
     payload["report_sha256"] = digest
-    OUT.write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+    OUT.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return digest
 
 
@@ -71,31 +65,32 @@ def main() -> int:
         errors.append("inventory ro_app_data_mutated is not false")
 
     methods = {str(x.get("method", "")).upper() for x in ops}
-    unsafe = sorted(methods & WRITE_METHODS)
-    if unsafe:
-        errors.append(f"write-capable methods present in inventory: {unsafe}")
+    documented_write_methods = sorted(methods & WRITE_METHODS)
+    # These are documentation facts, not performed HTTP writes.
+    if documented_write_methods:
+        warnings.append(f"DOCUMENTED_WRITE_METHODS_PRESENT={documented_write_methods}; NO_WRITE_REQUESTS_PERFORMED")
 
     missing_paths = sum(1 for x in ops if not str(x.get("path", "")).strip())
-    missing_evidence = sum(1 for x in ops if not x.get("sources"))
+    missing_evidence = sum(1 for x in ops if not x.get("source"))
     parameterized_gets = sum(
         1 for x in ops
-        if str(x.get("method", "")).upper() == "GET"
-        and PARAM_RE.search(str(x.get("path", "")))
+        if str(x.get("method", "")).upper() == "GET" and PARAM_RE.search(str(x.get("path", "")))
     )
     get_count = sum(1 for x in ops if str(x.get("method", "")).upper() == "GET")
 
     if missing_paths:
         errors.append(f"operations without path: {missing_paths}")
     if missing_evidence:
-        errors.append(f"operations without evidence sources: {missing_evidence}")
+        errors.append(f"operations without evidence source: {missing_evidence}")
     if not ops:
-        errors.append("no API operations available for contract verification")
+        errors.append("no documented API operations available for contract verification")
 
     summary = data.get("summary", {})
-    if summary.get("get_operations") != get_count:
-        errors.append("summary.get_operations does not match inventory")
+    inventory_get_count = summary.get("get_operations")
+    if inventory_get_count != get_count:
+        errors.append(f"summary.get_operations does not match inventory: {inventory_get_count!r}!={get_count}")
 
-    pagination_fields = {"page", "page_size", "limit", "offset", "cursor", "next", "next_page", "next_cursor"}
+    pagination_fields = {"page", "page_size", "pagesize", "limit", "offset", "cursor", "next", "next_page", "next_cursor"}
     pagination_mentions = []
     for op in ops:
         text = json.dumps(op, ensure_ascii=False).lower()
@@ -120,6 +115,7 @@ def main() -> int:
         "metrics": {
             "operations": len(ops),
             "get_operations": get_count,
+            "documented_write_operations": sum(1 for x in ops if str(x.get("method", "")).upper() in WRITE_METHODS),
             "parameterized_gets": parameterized_gets,
             "missing_paths": missing_paths,
             "missing_evidence_sources": missing_evidence,
@@ -138,6 +134,7 @@ def main() -> int:
         "safety": {
             "write_requests_made": 0,
             "ro_app_data_mutated": False,
+            "documented_write_methods_are_not_executed": True,
         },
     }
     report_sha = write_report(result)
@@ -145,6 +142,7 @@ def main() -> int:
     print(f"V{VERSION}_CONTRACT_AUDIT={result['status']}")
     print(f"OPERATIONS={len(ops)}")
     print(f"GET_OPERATIONS={get_count}")
+    print(f"DOCUMENTED_WRITE_OPERATIONS={result['metrics']['documented_write_operations']}")
     print(f"PARAMETERIZED_GETS={parameterized_gets}")
     print("LIVE_RESPONSE_SCHEMA=NOT_VERIFIED")
     print("COMPLETENESS_CLAIM=NOT_ESTABLISHED")
