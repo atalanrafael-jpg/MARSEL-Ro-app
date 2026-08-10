@@ -37,7 +37,12 @@ jobs:
           ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
           ROAPP_API_BASE: https://api.roapp.io/v2
           ROAPP_MIN_REQUEST_INTERVAL: '0.34'
+          MARSEL_API_INVENTORY_OUTPUT: marsel-api-inventory-v20-23.json
         run: python scripts/marsel_api_inventory_v20_23.py
+      - name: Verify inventory artifact exists
+        run: |
+          set -euo pipefail
+          test -s marsel-api-inventory-v20-23.json
       - name: Run V20.27 live GET-only probe
         env:
           ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
