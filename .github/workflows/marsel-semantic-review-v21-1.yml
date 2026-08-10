@@ -32,25 +32,28 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          python - <<'PY'
-          import os, urllib.request, zipfile, json
-          repo = os.environ['GITHUB_REPOSITORY']
-          artifact_id = 9037049287
-          expected_name = 'marsel-v20-36-entity-inventory'
-          expected_sha = '10a7eb9896cc10e4017e674f367041b757b8cb2c'
-          headers = {'Authorization': f"Bearer {os.environ['GH_TOKEN']}", 'Accept': 'application/vnd.github+json'}
-          meta_url = f'https://api.github.com/repos/{repo}/actions/artifacts/{artifact_id}'
-          req = urllib.request.Request(meta_url, headers=headers)
-          meta = json.load(urllib.request.urlopen(req, timeout=20))
-          assert meta['name'] == expected_name
+          repo="${GITHUB_REPOSITORY}"
+          artifact_id=9037049287
+          expected_name='marsel-v20-36-entity-inventory'
+          expected_sha='10a7eb9896cc10e4017e674f367041b757b8cb2c'
+          meta="$(gh api "/repos/${repo}/actions/artifacts/${artifact_id}")"
+          python - <<'PY' "$meta" "$expected_name" "$expected_sha"
+          import json, sys
+          meta=json.loads(sys.argv[1])
+          assert meta['name'] == sys.argv[2]
           assert meta['expired'] is False
-          assert meta['workflow_run']['head_sha'] == expected_sha
-          req = urllib.request.Request(meta['archive_download_url'], headers=headers)
-          with urllib.request.urlopen(req, timeout=30) as r, open('evidence.zip', 'wb') as out:
-              out.write(r.read())
+          assert meta['workflow_run']['head_sha'] == sys.argv[3]
+          print('V20.36 artifact metadata verified')
+          PY
+          gh api "/repos/${repo}/actions/artifacts/${artifact_id}/zip" > evidence.zip
+          python - <<'PY'
+          import zipfile
           with zipfile.ZipFile('evidence.zip') as z:
-              z.extract('marsel-entity-inventory-v20-19.json', '.')
-          print('V20.36 verified artifact acquired:', artifact_id)
+              names=z.namelist()
+              target='marsel-entity-inventory-v20-19.json'
+              assert target in names, f'{target} not found in artifact: {names}'
+              z.extract(target, '.')
+          print('V20.36 evidence artifact acquired:', artifact_id)
           print('SOURCE_HEAD_SHA=', expected_sha)
           PY
       - name: Run semantic review
