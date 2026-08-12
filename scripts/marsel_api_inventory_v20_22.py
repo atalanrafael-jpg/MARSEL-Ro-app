@@ -116,7 +116,7 @@ def extract_explicit_method_paths(text):
 def extract_openapi_candidates(text):
     candidates = []
     for raw in OPENAPI_URL_RE.findall(text):
-        url = html.unescape(raw).rstrip(".,);\]")
+        url = html.unescape(raw).rstrip(".,);]")
         if url not in candidates:
             candidates.append(url)
     return candidates
