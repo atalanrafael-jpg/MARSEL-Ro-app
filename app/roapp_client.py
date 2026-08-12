@@ -5,10 +5,15 @@ from typing import Any
 
 import httpx
 from .config import settings
+from .roapp_contract import ROAPP_API_PAGE_SIZE, ROAPP_API_RATE_LIMIT_PER_SECOND
 
 
 class RoAppClient:
-    """Read-only RO App API client used by the audit layer."""
+    """Read-only RO App API client used by the audit layer.
+
+    This client intentionally exposes only verified read operations.
+    No POST/PUT/PATCH/DELETE method is implemented here.
+    """
 
     RETRYABLE_STATUS_CODES = {408, 425, 429, 500, 502, 503, 504}
 
@@ -17,7 +22,8 @@ class RoAppClient:
         self.timeout = settings.roapp_timeout_seconds
         self.max_retries = settings.roapp_max_retries
         self.retry_base_seconds = settings.roapp_retry_base_seconds
-        self.max_requests_per_second = max(1, settings.roapp_max_requests_per_second)
+        configured_limit = max(1, settings.roapp_max_requests_per_second)
+        self.max_requests_per_second = min(configured_limit, ROAPP_API_RATE_LIMIT_PER_SECOND)
         self._rate_lock = asyncio.Lock()
         self._last_request_at = 0.0
 
@@ -27,11 +33,11 @@ class RoAppClient:
         return {
             "Authorization": f"Bearer {settings.roapp_api_key}",
             "Accept": "application/json",
-            "User-Agent": "MARSEL-RoApp-Audit/1.1",
+            "User-Agent": "MARSEL-RoApp-Audit/1.2",
         }
 
     async def _throttle(self) -> None:
-        """Respect the configured requests/second ceiling across this client instance."""
+        """Respect the documented RO App requests/second ceiling."""
         interval = 1.0 / self.max_requests_per_second
         async with self._rate_lock:
             now = time.monotonic()
@@ -85,6 +91,6 @@ class RoAppClient:
                 break
             if isinstance(count, int) and page * len(items) >= count:
                 break
-            if len(items) < 50:
+            if len(items) < ROAPP_API_PAGE_SIZE:
                 break
         return pages
