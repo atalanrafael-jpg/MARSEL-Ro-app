@@ -42,6 +42,25 @@ services:
     name: "Ремонт часов"
   - id: eyewear_repair
     name: "Ремонт очков"
+    subgroups:
+      - id: frame_repair
+        name: "Ремонт оправы"
+      - id: temple_repair
+        name: "Ремонт дужки"
+      - id: hinge_repair
+        name: "Ремонт шарнира"
+      - id: nose_pad_replacement
+        name: "Замена носоупоров"
+      - id: lens_replacement
+        name: "Замена линз"
+      - id: screw_replacement
+        name: "Замена винтов и крепежа"
+      - id: soldering
+        name: "Пайка"
+      - id: cleaning_adjustment
+        name: "Чистка и регулировка"
+      - id: other_eyewear_repair
+        name: "Прочий ремонт очков"
   - id: manufacturing
     name: "Изготовление"
   - id: cleaning_polishing
