@@ -79,3 +79,14 @@ async def test_pagination_stops_on_short_page(monkeypatch):
     pages = await client.get_orders_pages(100)
     assert len(pages) == 1
     assert calls == [1]
+
+
+def test_configured_rate_limit_cannot_exceed_documented_ceiling(monkeypatch):
+    from app.config import settings
+    original = settings.roapp_max_requests_per_second
+    settings.roapp_max_requests_per_second = 100
+    try:
+        client = RoAppClient()
+        assert client.max_requests_per_second == 3
+    finally:
+        settings.roapp_max_requests_per_second = original
