@@ -1,0 +1,97 @@
+version: "1.0"
+language: ru
+status: "PROPOSED_SEED_NOT_LIVE"
+source_of_truth: "MARSEL_MASTER_REFERENCE_DATA"
+
+rules:
+  normalized_names: true
+  stable_ids: true
+  no_silent_duplicates: true
+  inactive_records_preserved: true
+
+brands: []
+categories:
+  - id: jewelry
+    name: "Ювелирные изделия"
+    groups:
+      - id: rings
+        name: "Кольца"
+      - id: earrings
+        name: "Серьги"
+      - id: pendants
+        name: "Подвески"
+      - id: necklaces
+        name: "Колье и ожерелья"
+      - id: bracelets
+        name: "Браслеты"
+      - id: chains
+        name: "Цепи"
+      - id: brooches
+        name: "Броши"
+      - id: sets
+        name: "Комплекты"
+      - id: wedding
+        name: "Обручальные и помолвочные"
+      - id: custom
+        name: "Индивидуальные изделия"
+
+services:
+  - id: jewelry_repair
+    name: "Ремонт ювелирных изделий"
+  - id: watch_repair
+    name: "Ремонт часов"
+  - id: manufacturing
+    name: "Изготовление"
+  - id: cleaning_polishing
+    name: "Чистка и полировка"
+  - id: resizing
+    name: "Изменение размера"
+  - id: stone_setting
+    name: "Закрепка камней"
+
+warehouse_types:
+  - id: main
+    name: "Основной склад"
+  - id: production
+    name: "Производство"
+  - id: repair
+    name: "Ремонт"
+  - id: finished_goods
+    name: "Готовые изделия"
+  - id: quarantine
+    name: "Карантин / контроль качества"
+  - id: transit
+    name: "Транзит"
+
+material_types:
+  - id: metal
+    name: "Металл"
+  - id: stone
+    name: "Камень"
+  - id: consumable
+    name: "Расходный материал"
+
+payment_methods:
+  - id: cash
+    name: "Наличные"
+  - id: card
+    name: "Банковская карта"
+  - id: bank_transfer
+    name: "Банковский перевод"
+  - id: online
+    name: "Онлайн-оплата"
+  - id: other
+    name: "Другое"
+
+asset_types:
+  - id: photo
+    name: "Фотография"
+  - id: model
+    name: "3D-модель"
+  - id: document
+    name: "Документ"
+
+notes:
+  - "Seed values are proposed and must be reconciled with live Ro App capabilities before import."
+  - "Brands, metals, stones, warehouses, employees and prices must not be fabricated; populate from verified MARSEL source data."
+  - "No production write is authorized by this file."
