@@ -40,6 +40,8 @@ services:
     name: "Ремонт ювелирных изделий"
   - id: watch_repair
     name: "Ремонт часов"
+  - id: eyewear_repair
+    name: "Ремонт очков"
   - id: manufacturing
     name: "Изготовление"
   - id: cleaning_polishing
