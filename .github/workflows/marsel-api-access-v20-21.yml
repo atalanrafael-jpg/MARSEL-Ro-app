@@ -1,0 +1,54 @@
+name: MARSEL V20.21 — RO App API access diagnostics (READ ONLY)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: marsel-api-access-v20-21
+  cancel-in-progress: false
+
+jobs:
+  access-diagnostics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      ROAPP_API_BASE: https://api.roapp.io/v2
+      ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+      ROAPP_TIMEOUT: '30'
+      MARSEL_DIAGNOSTIC_OUTPUT: marsel-api-access-diagnostics-v20-21.json
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip httpx
+      - name: Validate secret
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$ROAPP_API_KEY"
+      - name: Run V20.21 access diagnostics
+        run: python scripts/marsel_api_access_diagnostics_v20_21.py
+      - name: Verify read-only invariant
+        run: |
+          python - <<'PY'
+          import json
+          p=json.load(open('marsel-api-access-diagnostics-v20-21.json',encoding='utf-8'))
+          assert p['readonly'] is True
+          assert p['write_requests_made'] == 0
+          assert p['ro_app_data_mutated'] is False
+          print('READ_ONLY_INVARIANTS=PASS')
+          PY
+      - name: Upload diagnostic artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: marsel-v20-21-api-access-diagnostics-readonly
+          path: marsel-api-access-diagnostics-v20-21.json
+          if-no-files-found: error
+          retention-days: 30
