@@ -1,0 +1,29 @@
+{
+  "brand": "MARSEL",
+  "version": "1.0.0",
+  "source": "user-approved visual reference uploaded in ChatGPT on 2026-08-12",
+  "colors": {
+    "graphite": "#333333",
+    "gray": "#6B6B6B",
+    "light": "#E6E6E6",
+    "gold": "#C9A96E",
+    "white": "#FFFFFF"
+  },
+  "fonts": {
+    "heading": ["Playfair Display", "Cormorant Garamond", "serif"],
+    "body": ["Montserrat", "Inter", "sans-serif"]
+  },
+  "logo": {
+    "primary": "MARSEL full lockup with M monogram",
+    "dark": "light/inverted lockup",
+    "mark": "M monogram in decorative circular frame",
+    "horizontal": "MARSEL / ЮВЕЛИРНАЯ СТУДИЯ"
+  },
+  "usage": {
+    "gold_is_accent_only": true,
+    "avoid_gradients": true,
+    "avoid_heavy_shadows": true,
+    "preserve_logo_proportions": true,
+    "contact_data_source": "NAP/CRM master data"
+  }
+}
