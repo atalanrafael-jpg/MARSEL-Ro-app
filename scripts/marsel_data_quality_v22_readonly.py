@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
-"""MARSEL V22.1 — comprehensive read-only data-quality audit.
+"""MARSEL V22.2 — comprehensive read-only data-quality audit.
 
-Audits every paginated row in the principal business collections exposed by the
-RoApp v2 API. GET only: no POST/PUT/PATCH/DELETE requests are made.
-The audit is diagnostic; it never changes RoApp data.
+Audits the verified read collections exposed by the RO App v2 API.
+GET only: no POST/PUT/PATCH/DELETE requests are made.
+The audit is diagnostic; it never changes RO App data.
+
+V22.2 changes:
+- does not assume an unverified /company response schema;
+- records access failures (401/403/404/405/429/5xx) as diagnostics;
+- does not abort before producing a machine-readable report;
+- keeps production mutation invariants explicit.
 """
 from __future__ import annotations
 
@@ -65,6 +71,12 @@ def duplicate_groups(rows: list[dict], field: str) -> dict[str, int]:
     return {str(k): v for k, v in counts.items() if v > 1}
 
 
+def safe_error(response: httpx.Response) -> dict:
+    """Return status and a bounded diagnostic body without leaking auth headers."""
+    body = response.text[:1000]
+    return {"http": response.status_code, "body": body}
+
+
 def audit_collection(client: httpx.Client, name: str, path: str) -> dict:
     rows: list[dict] = []
     pages: list[dict] = []
@@ -85,7 +97,23 @@ def audit_collection(client: httpx.Client, name: str, path: str) -> dict:
         )
         last_request = time.monotonic()
         elapsed = round(time.monotonic() - started, 3)
-        response.raise_for_status()
+
+        if response.status_code != 200:
+            return {
+                "path": path,
+                "rows_read": len(rows),
+                "expected_count": expected_count,
+                "count_matches_rows": False,
+                "expected_total_pages": expected_total_pages,
+                "pages_read": len(pages),
+                "pagination_complete": False,
+                "missing_id": 0,
+                "duplicate_id_groups": {},
+                "duplicate_id_group_count": 0,
+                "pages": pages,
+                "access_error": safe_error(response),
+            }
+
         payload = response.json()
         batch = extract_rows(payload)
         pi = page_info(payload)
@@ -103,8 +131,6 @@ def audit_collection(client: httpx.Client, name: str, path: str) -> dict:
 
         if expected_total_pages is not None and page >= int(expected_total_pages):
             break
-        # If the API does not provide total_pages, the short-page condition is
-        # the only safe completion signal. Use the actual decoded batch length.
         if len(batch) < PAGE_SIZE:
             break
         page += 1
@@ -146,18 +172,32 @@ def audit_collection(client: httpx.Client, name: str, path: str) -> dict:
     return result
 
 
+def probe_company(client: httpx.Client) -> dict:
+    """Probe /company without interpreting undocumented response fields."""
+    try:
+        response = client.get(BASE + "/company", headers=HEADERS)
+        result = {"http": response.status_code}
+        if response.status_code != 200:
+            result["error"] = safe_error(response)
+        return result
+    except (httpx.TimeoutException, httpx.NetworkError) as exc:
+        return {"http": None, "error": {"type": type(exc).__name__, "message": str(exc)[:500]}}
+
+
 def main() -> int:
     started = time.monotonic()
     results = {}
     with httpx.Client(timeout=TIMEOUT, follow_redirects=True) as client:
-        company = client.get(BASE + "/company", headers=HEADERS)
-        company.raise_for_status()
-        company_payload = company.json()
+        company_probe = probe_company(client)
         for name, path in COLLECTIONS.items():
             results[name] = audit_collection(client, name, path)
 
     hard_issues = []
+    access_failures = []
     for name, r in results.items():
+        if r.get("access_error"):
+            access_failures.append({"collection": name, **r["access_error"]})
+            continue
         for key in ("missing_id", "duplicate_id_group_count"):
             if r.get(key):
                 hard_issues.append(f"{name}.{key}={r[key]}")
@@ -168,15 +208,16 @@ def main() -> int:
                 hard_issues.append(f"{name}.{key}={r[key]}")
 
     report = {
-        "version": "22.1",
+        "version": "22.2",
         "mode": "READ_ONLY",
         "generated_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "api_base": BASE,
-        "company": {k: company_payload.get(k) for k in ("name", "country", "currency", "timezone")},
+        "company_probe": company_probe,
         "method_policy": {"allowed": ["GET"], "blocked": ["POST", "PUT", "PATCH", "DELETE"]},
         "write_requests_made": 0,
         "ro_app_data_mutated": False,
         "collections": results,
+        "access_failures": access_failures,
         "hard_issues": hard_issues,
         "elapsed_s": round(time.monotonic() - started, 3),
     }
@@ -185,9 +226,7 @@ def main() -> int:
         "products_rows": results["products"]["rows_read"],
         "services_rows": results["services"]["rows_read"],
         "orders_rows": results["orders"]["rows_read"],
-        "products_pagination_complete": results["products"]["pagination_complete"],
-        "services_pagination_complete": results["services"]["pagination_complete"],
-        "orders_pagination_complete": results["orders"]["pagination_complete"],
+        "access_failure_count": len(access_failures),
         "hard_issue_count": len(hard_issues),
         "write_requests_made": 0,
         "ro_app_data_mutated": False,
@@ -197,13 +236,15 @@ def main() -> int:
     ).hexdigest()
     OUT.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    print("=== MARSEL V22.1 / COMPREHENSIVE DATA QUALITY / READ ONLY ===")
+    print("=== MARSEL V22.2 / COMPREHENSIVE DATA QUALITY / READ ONLY ===")
     for k, v in report["summary"].items():
         print(f"{k.upper()}={v}")
+    print(f"ACCESS_FAILURES={access_failures}")
     print(f"HARD_ISSUES={hard_issues}")
     print(f"REPORT={OUT}")
     print(f"REPORT_SHA256={report['report_sha256']}")
-    print("RESULT=PASS" if not hard_issues and all(results[n]["pagination_complete"] for n in results) else "RESULT=REVIEW_REQUIRED")
+    ok = not access_failures and not hard_issues and all(r["pagination_complete"] for r in results.values())
+    print("RESULT=PASS" if ok else "RESULT=REVIEW_REQUIRED")
     return 0
 
 
