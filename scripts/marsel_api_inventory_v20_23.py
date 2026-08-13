@@ -34,6 +34,8 @@ def normalize_path(raw):
             return None
         raw = parsed.path
     raw = raw.split("#", 1)[0]
+    if raw in {"/v2", "/v2/", "/1.1", "/1.1/"}:
+        return None
     if not raw.startswith(("/v2/", "/1.1/")):
         return None
     raw = re.sub(r"/v2/v2/", "/v2/", raw)
@@ -43,6 +45,7 @@ def normalize_path(raw):
 
 # Backward-compatible internal alias; both names are read-only normalizers.
 norm = normalize_path
+never_guess_identifiers = True
 
 
 def main():
@@ -95,11 +98,7 @@ def main():
         "ro_app_data_mutated": False,
         "documentation": {"pages_processed": len(pages), "pages": pages},
         "operations": sorted(operations.values(), key=lambda item: (item["path"], item["method"])),
-        "summary": {
-            "unique_confirmed_operations": len(operations),
-            "get_operations": sum(item["method"] == "GET" for item in operations.values()),
-            "non_get_operations": sum(item["method"] != "GET" for item in operations.values()),
-        },
+        "summary": {"unique_confirmed_operations": len(operations), "get_operations": sum(item["method"] == "GET" for item in operations.values()), "non_get_operations": sum(item["method"] != "GET" for item in operations.values())},
         "contract_state": {"completeness_claim": "NOT_ESTABLISHED", "parameterized_identifiers_guessed": False},
         "safety": {"status": "PASS", "write_requests_made": 0, "ro_app_data_mutated": False, "write_methods_used": []},
         "generated_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
