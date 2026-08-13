@@ -1,11 +1,5 @@
 #!/usr/bin/env python3
-"""MARSEL V20.22 — RO App API inventory, strictly READ ONLY.
-
-This parser keeps documentation pages and machine-readable OpenAPI operations
-separate. It never invents endpoint paths: paths are accepted only when they
-are extracted from the documentation page or an OpenAPI document discovered
-from the documentation index.
-"""
+"""MARSEL V20.22 — RO App API inventory, strictly READ ONLY."""
 import hashlib
 import html
 import json
@@ -38,10 +32,7 @@ _last_request_at = 0.0
 
 def fetch(url, headers=None):
     global _last_request_at
-    req_headers = headers or {
-        "User-Agent": "MARSEL-Audit-V20.22",
-        "Accept": "text/plain, text/markdown, text/html, application/json, application/yaml, text/yaml",
-    }
+    req_headers = headers or {"User-Agent": "MARSEL-Audit-V20.22", "Accept": "text/plain, text/markdown, text/html, application/json, application/yaml, text/yaml"}
     last_error = None
     for attempt in range(MAX_RETRIES + 1):
         wait = MIN_INTERVAL - (time.monotonic() - _last_request_at)
@@ -56,12 +47,6 @@ def fetch(url, headers=None):
                 status = response.status
                 if status not in {408, 425, 429, 500, 502, 503, 504} or attempt >= MAX_RETRIES:
                     return status, body, round(time.time() - started, 3), None
-                retry_after = response.headers.get("Retry-After")
-                try:
-                    delay = float(retry_after) if retry_after else RETRY_BASE * (2 ** attempt)
-                except ValueError:
-                    delay = RETRY_BASE * (2 ** attempt)
-                time.sleep(min(max(delay, 0.0), 30.0))
         except Exception as exc:
             last_error = f"{type(exc).__name__}: {exc}"
             if attempt >= MAX_RETRIES:
@@ -116,7 +101,7 @@ def extract_explicit_method_paths(text):
 def extract_openapi_candidates(text):
     candidates = []
     for raw in OPENAPI_URL_RE.findall(text):
-        url = html.unescape(raw).rstrip(".,);\]")
+        url = html.unescape(raw).rstrip(".,);]")
         if url not in candidates:
             candidates.append(url)
     return candidates
@@ -160,16 +145,11 @@ def main():
     if not KEY:
         print("ROAPP_API_KEY is required", file=sys.stderr)
         return 2
-    if not 0 <= MIN_INTERVAL <= 10:
-        print("ROAPP_MIN_REQUEST_INTERVAL must be between 0 and 10 seconds", file=sys.stderr)
-        return 2
-
     status, index_text, _, error = fetch(DOCS_INDEX)
     if status != 200:
         print(f"DOCS_INDEX_HTTP={status}", file=sys.stderr)
         print(error or "documentation index unavailable", file=sys.stderr)
         return 1
-
     links, seen = [], set()
     for m in re.finditer(r"\[([^\]]+)\]\(([^)]+/reference/[^)]+)\)", index_text):
         title, href = m.groups()
@@ -178,7 +158,6 @@ def main():
             seen.add(url)
             links.append({"title": html.unescape(title).strip(), "url": url})
     links = links[:MAX_DOCS]
-
     operations = []
     openapi_candidates = extract_openapi_candidates(index_text)
     openapi_documents = []
@@ -188,7 +167,6 @@ def main():
         openapi_documents.append({"url": spec_url, "http": st, "elapsed_s": elapsed, "error": err, "operations": len(extracted)})
         for method, path, source in extracted:
             operations.append({"title": f"OpenAPI {method} {path}", "documentation_url": spec_url, "methods": [method], "method_source": source, "paths": [path], "get_probe": None})
-
     for link in links:
         bodies, sources = [], []
         doc_status = None
@@ -205,24 +183,11 @@ def main():
         pairs = extract_explicit_method_paths(combined) if bodies else []
         methods = sorted({m for m, _, _ in pairs})
         paths = sorted({p for _, p, _ in pairs})
-        operations.append({
-            "title": link["title"],
-            "documentation_url": link["url"],
-            "documentation_variants": sources,
-            "documentation_http": doc_status,
-            "documentation_error": doc_error,
-            "methods": methods,
-            "method_source": "document_body" if methods else "unresolved",
-            "paths": paths,
-            "get_probe": None,
-        })
-
+        operations.append({"title": link["title"], "documentation_url": link["url"], "documentation_variants": sources, "documentation_http": doc_status, "documentation_error": doc_error, "methods": methods, "method_source": "document_body" if methods else "unresolved", "paths": paths, "get_probe": None})
     dedup = {}
     for op in operations:
-        key = (op.get("documentation_url"), tuple(op.get("methods", [])), tuple(op.get("paths", [])))
-        dedup[key] = op
+        dedup[(op.get("documentation_url"), tuple(op.get("methods", [])), tuple(op.get("paths", [])))] = op
     operations = list(dedup.values())
-
     probe_cache = {}
     headers = {"Authorization": f"Bearer {KEY}", "Accept": "application/json", "User-Agent": "MARSEL-Audit-V20.22"}
     for op in operations:
@@ -247,54 +212,18 @@ def main():
                 probe_cache[path] = item
             probes.append(probe_cache[path])
         op["get_probe"] = {"status": "PROBED", "results": probes}
-
     get_ops = [o for o in operations if "GET" in o.get("methods", [])]
     non_get_ops = [o for o in operations if any(m != "GET" for m in o.get("methods", []))]
     extracted_paths = sum(bool(o.get("paths")) for o in operations)
     probed = sum(1 for o in get_ops if (o.get("get_probe") or {}).get("status") == "PROBED")
     not_probed = sum(1 for o in get_ops if (o.get("get_probe") or {}).get("status") == "NOT_PROBED")
     unresolved = sum(1 for o in get_ops if not o.get("get_probe"))
-
-    report = {
-        "version": "20.22",
-        "readonly": True,
-        "write_requests_made": 0,
-        "ro_app_data_mutated": False,
-        "method_policy": {"allowed": ["GET"], "forbidden": ["POST", "PUT", "PATCH", "DELETE"]},
-        "documentation": {"index": DOCS_INDEX, "index_http": status, "reference_links": len(links)},
-        "openapi": {"candidates": len(openapi_candidates), "documents": openapi_documents, "operations_extracted": sum(x["operations"] for x in openapi_documents)},
-        "operations": operations,
-        "summary": {
-            "reference_links": len(links),
-            "documented_operations": len(operations),
-            "documented_get_operations": len(get_ops),
-            "documented_non_get_operations": len(non_get_ops),
-            "operations_with_extracted_paths": extracted_paths,
-            "operations_without_extracted_paths": len(operations) - extracted_paths,
-            "get_operations_probed": probed,
-            "get_operations_not_probed": not_probed,
-            "get_operations_with_unresolved_probe_state": unresolved,
-            "write_requests_made": 0,
-            "ro_app_data_mutated": False,
-        },
-    }
+    report = {"version": "20.22", "readonly": True, "write_requests_made": 0, "ro_app_data_mutated": False, "method_policy": {"allowed": ["GET"], "forbidden": ["POST", "PUT", "PATCH", "DELETE"]}, "documentation": {"index": DOCS_INDEX, "index_http": status, "reference_links": len(links)}, "openapi": {"candidates": len(openapi_candidates), "documents": openapi_documents, "operations_extracted": sum(x["operations"] for x in openapi_documents)}, "operations": operations, "summary": {"reference_links": len(links), "documented_operations": len(operations), "documented_get_operations": len(get_ops), "documented_non_get_operations": len(non_get_ops), "operations_with_extracted_paths": extracted_paths, "operations_without_extracted_paths": len(operations) - extracted_paths, "get_operations_probed": probed, "get_operations_not_probed": not_probed, "get_operations_with_unresolved_probe_state": unresolved, "write_requests_made": 0, "ro_app_data_mutated": False}}
     report["summary"]["inventory_sha256"] = sha256_json(report["operations"])
-    report["completeness"] = {
-        "status": "COMPLETE" if report["summary"]["operations_without_extracted_paths"] == 0 else "INCOMPLETE",
-        "reason": "Some reference pages did not expose machine-readable endpoint paths and no OpenAPI document was available for them." if report["summary"]["operations_without_extracted_paths"] else None,
-        "never_guess_identifiers": True,
-    }
-
+    report["completeness"] = {"status": "COMPLETE" if report["summary"]["operations_without_extracted_paths"] == 0 else "INCOMPLETE", "reason": "Some reference pages did not expose machine-readable endpoint paths and no OpenAPI document was available for them." if report["summary"]["operations_without_extracted_paths"] else None, "never_guess_identifiers": True}
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump(report, f, ensure_ascii=False, indent=2)
-    print("=== MARSEL V20.22 / OFFICIAL API INVENTORY / READ ONLY ===")
-    for k, v in [("DOCS_INDEX_HTTP", status), ("REFERENCE_LINKS", len(links)), ("DOCUMENTED_OPERATIONS", len(operations)), ("DOCUMENTED_GET_OPERATIONS", len(get_ops)), ("OPERATIONS_WITH_EXTRACTED_PATHS", extracted_paths), ("OPERATIONS_WITHOUT_EXTRACTED_PATHS", len(operations) - extracted_paths), ("GET_OPERATIONS_PROBED", probed), ("GET_OPERATIONS_NOT_PROBED", not_probed), ("GET_OPERATIONS_WITH_UNRESOLVED_PROBE_STATE", unresolved)]:
-        print(f"{k}={v}")
-    print(f"OPENAPI_CANDIDATES={len(openapi_candidates)}")
-    print("WRITE_REQUESTS_MADE=0")
-    print(f"INVENTORY_SHA256={report['summary']['inventory_sha256']}")
     print(f"COMPLETENESS={report['completeness']['status']}")
-    print(f"REPORT={OUT}")
     return 0
 
 
