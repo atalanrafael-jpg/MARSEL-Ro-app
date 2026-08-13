@@ -5,6 +5,7 @@ anthropic
 python-dotenv
 requests
 pydantic
+pydantic-settings
 pytest>=7.4.0
 pytest-asyncio>=0.21.0
 pyspellchecker>=0.7.0
