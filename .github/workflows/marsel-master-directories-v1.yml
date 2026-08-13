@@ -1,15 +1,19 @@
-name: MARSEL Master Directories V1 Quality Gate
+name: MARSEL Master Data V1 Quality Gate
 
 on:
   push:
     paths:
       - 'config/marsel_master_directories_v1.json'
+      - 'config/marsel_product_fixture_v1.json'
       - 'scripts/marsel_master_directories_v1_validate.py'
+      - 'scripts/marsel_product_fixture_v1_validate.py'
       - '.github/workflows/marsel-master-directories-v1.yml'
   pull_request:
     paths:
       - 'config/marsel_master_directories_v1.json'
+      - 'config/marsel_product_fixture_v1.json'
       - 'scripts/marsel_master_directories_v1_validate.py'
+      - 'scripts/marsel_product_fixture_v1_validate.py'
       - '.github/workflows/marsel-master-directories-v1.yml'
   workflow_dispatch:
 
@@ -22,5 +26,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Validate offline master directories
+      - name: Validate master directories
         run: python scripts/marsel_master_directories_v1_validate.py
+      - name: Validate canonical product fixture
+        run: python scripts/marsel_product_fixture_v1_validate.py
