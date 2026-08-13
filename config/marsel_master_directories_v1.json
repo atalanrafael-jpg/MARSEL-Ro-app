@@ -1,50 +1,97 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "status": "OFFLINE_MASTER_DATA_ONLY",
   "production_import_allowed": false,
   "source_of_truth": "MARSEL project configuration; live RO App mapping required before import",
   "directories": {
     "warehouses": [
-      {"id": "WH001", "name_ru": "Основной склад", "status": "planned"},
-      {"id": "WH002", "name_ru": "Производство", "status": "planned"},
-      {"id": "WH003", "name_ru": "Готовые изделия", "status": "planned"}
+      {"id":"WH001","name_ru":"Основной склад","status":"planned"},
+      {"id":"WH002","name_ru":"Производство","status":"planned"},
+      {"id":"WH003","name_ru":"Готовые изделия","status":"planned"}
     ],
     "zones": [
-      {"id": "Z01", "name_ru": "Драгоценные металлы", "status": "planned"},
-      {"id": "Z02", "name_ru": "Камни", "status": "planned"},
-      {"id": "Z03", "name_ru": "Часовые детали и запчасти", "status": "planned"},
-      {"id": "Z04", "name_ru": "Расходные материалы", "status": "planned"},
-      {"id": "Z05", "name_ru": "Незавершённое производство", "status": "planned"},
-      {"id": "Z06", "name_ru": "Готовые изделия", "status": "planned"}
-    ],
-    "metals": [
-      {"id": "MET-AU-375", "name_ru": "Золото 375", "metal_type": "gold", "fineness": 375, "status": "reference"},
-      {"id": "MET-AU-585", "name_ru": "Золото 585", "metal_type": "gold", "fineness": 585, "status": "reference"},
-      {"id": "MET-AU-750", "name_ru": "Золото 750", "metal_type": "gold", "fineness": 750, "status": "reference"},
-      {"id": "MET-AG-925", "name_ru": "Серебро 925", "metal_type": "silver", "fineness": 925, "status": "reference"},
-      {"id": "MET-PT-950", "name_ru": "Платина 950", "metal_type": "platinum", "fineness": 950, "status": "reference"}
+      {"id":"Z01","name_ru":"Драгоценные металлы","status":"planned"},
+      {"id":"Z02","name_ru":"Камни","status":"planned"},
+      {"id":"Z03","name_ru":"Часовые детали и запчасти","status":"planned"},
+      {"id":"Z04","name_ru":"Расходные материалы","status":"planned"},
+      {"id":"Z05","name_ru":"Незавершённое производство","status":"planned"},
+      {"id":"Z06","name_ru":"Готовые изделия","status":"planned"}
     ],
     "product_types": [
-      {"id": "PT-JEWELRY", "name_ru": "Ювелирное изделие"},
-      {"id": "PT-WATCH", "name_ru": "Часы"},
-      {"id": "PT-MATERIAL", "name_ru": "Материал"},
-      {"id": "PT-CONSUMABLE", "name_ru": "Расходный материал"},
-      {"id": "PT-PART", "name_ru": "Деталь"},
-      {"id": "PT-SPARE", "name_ru": "Запчасть"},
-      {"id": "PT-TOOL", "name_ru": "Инструмент"},
-      {"id": "PT-EQUIPMENT", "name_ru": "Оборудование"}
+      {"id":"PT-JEWELRY","name_ru":"Ювелирное изделие"},
+      {"id":"PT-WATCH","name_ru":"Часы"},
+      {"id":"PT-MATERIAL","name_ru":"Материал"},
+      {"id":"PT-CONSUMABLE","name_ru":"Расходный материал"},
+      {"id":"PT-PART","name_ru":"Деталь"},
+      {"id":"PT-SPARE","name_ru":"Запчасть"},
+      {"id":"PT-TOOL","name_ru":"Инструмент"},
+      {"id":"PT-EQUIPMENT","name_ru":"Оборудование"}
+    ],
+    "categories": [
+      {"id":"CAT-RINGS","name_ru":"Кольца"},
+      {"id":"CAT-EARRINGS","name_ru":"Серьги"},
+      {"id":"CAT-CHAINS","name_ru":"Цепи"},
+      {"id":"CAT-BRACELETS","name_ru":"Браслеты"},
+      {"id":"CAT-PENDANTS","name_ru":"Подвески и кулоны"},
+      {"id":"CAT-CROSSES","name_ru":"Кресты"},
+      {"id":"CAT-NECKLACES","name_ru":"Колье"},
+      {"id":"CAT-BROOCHES","name_ru":"Броши"},
+      {"id":"CAT-CUFFLINKS","name_ru":"Запонки и аксессуары"},
+      {"id":"CAT-CUSTOM","name_ru":"Индивидуальные изделия"},
+      {"id":"CAT-WATCHES","name_ru":"Часы"},
+      {"id":"CAT-METALS","name_ru":"Драгоценные металлы"},
+      {"id":"CAT-STONES","name_ru":"Камни"},
+      {"id":"CAT-PARTS","name_ru":"Детали и фурнитура"},
+      {"id":"CAT-SPARES","name_ru":"Часовые запчасти"},
+      {"id":"CAT-CONSUMABLES","name_ru":"Расходные материалы"}
+    ],
+    "collections": [
+      {"id":"COL-WEDDING","name_ru":"Wedding"},
+      {"id":"COL-DIAMONDS","name_ru":"Diamonds"},
+      {"id":"COL-GOLD","name_ru":"Gold"},
+      {"id":"COL-CUSTOM","name_ru":"Custom"},
+      {"id":"COL-REPAIR","name_ru":"Repair"},
+      {"id":"COL-WATCH","name_ru":"Watch"}
+    ],
+    "metals": [
+      {"id":"MET-AU-375","name_ru":"Золото 375","metal_type":"gold","fineness":375,"status":"reference"},
+      {"id":"MET-AU-585","name_ru":"Золото 585","metal_type":"gold","fineness":585,"status":"reference"},
+      {"id":"MET-AU-750","name_ru":"Золото 750","metal_type":"gold","fineness":750,"status":"reference"},
+      {"id":"MET-AG-925","name_ru":"Серебро 925","metal_type":"silver","fineness":925,"status":"reference"},
+      {"id":"MET-PT-950","name_ru":"Платина 950","metal_type":"platinum","fineness":950,"status":"reference"}
+    ],
+    "stones": [
+      {"id":"STONE-DIAMOND","name_ru":"Бриллиант"},
+      {"id":"STONE-RUBY","name_ru":"Рубин"},
+      {"id":"STONE-SAPPHIRE","name_ru":"Сапфир"},
+      {"id":"STONE-EMERALD","name_ru":"Изумруд"},
+      {"id":"STONE-CZ","name_ru":"Фианит"},
+      {"id":"STONE-MOISSANITE","name_ru":"Муассанит"}
+    ],
+    "document_types": [
+      {"id":"DOC-CUSTOMER-RECEIPT","name_ru":"Квитанция приёма"},
+      {"id":"DOC-ESTIMATE","name_ru":"Смета/расчёт"},
+      {"id":"DOC-WARRANTY","name_ru":"Гарантийный документ"},
+      {"id":"DOC-CERTIFICATE","name_ru":"Сертификат"},
+      {"id":"DOC-TECHNICAL","name_ru":"Технический документ"},
+      {"id":"DOC-ACT","name_ru":"Акт"}
+    ],
+    "employees": [
+      {"id":"EMP001","name_ru":"Сотрудник 1","status":"placeholder"},
+      {"id":"EMP002","name_ru":"Сотрудник 2","status":"placeholder"},
+      {"id":"EMP003","name_ru":"Сотрудник 3","status":"placeholder"}
     ],
     "payment_methods": [
-      {"id": "PAY-CASH-RUB", "name_ru": "Наличные RUB", "currency": "RUB", "status": "planned"},
-      {"id": "PAY-CARD-RUB", "name_ru": "Банковская карта RUB", "currency": "RUB", "status": "planned"},
-      {"id": "PAY-TRANSFER-RUB", "name_ru": "Безналичный перевод RUB", "currency": "RUB", "status": "planned"}
+      {"id":"PAY-CASH-RUB","name_ru":"Наличные RUB","currency":"RUB","status":"planned"},
+      {"id":"PAY-CARD-RUB","name_ru":"Банковская карта RUB","currency":"RUB","status":"planned"},
+      {"id":"PAY-TRANSFER-RUB","name_ru":"Безналичный перевод RUB","currency":"RUB","status":"planned"}
     ],
     "channels": [
-      {"id": "CH-INTERNAL", "name_ru": "Внутренний каталог"},
-      {"id": "CH-WIX", "name_ru": "Wix"},
-      {"id": "CH-SOCIAL", "name_ru": "Социальные сети"},
-      {"id": "CH-PRINT", "name_ru": "Печать"},
-      {"id": "CH-CUSTOMER", "name_ru": "Выбор клиента"}
+      {"id":"CH-INTERNAL","name_ru":"Внутренний каталог"},
+      {"id":"CH-WIX","name_ru":"Wix"},
+      {"id":"CH-SOCIAL","name_ru":"Социальные сети"},
+      {"id":"CH-PRINT","name_ru":"Печать"},
+      {"id":"CH-CUSTOMER","name_ru":"Выбор клиента"}
     ]
   }
 }
