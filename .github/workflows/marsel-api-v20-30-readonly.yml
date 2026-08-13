@@ -1,31 +1,31 @@
-name: MARSEL V20.30 Corrected API Inventory + Read-Only Probe
+name: MARSEL V20.31 Corrected API Inventory — READ ONLY
 
 on:
   push:
     branches: [main]
     paths:
-      - 'scripts/marsel_api_inventory_v20_30.py'
+      - 'scripts/marsel_api_inventory_v20_31.py'
+      - 'scripts/marsel_api_inventory_v20_29.py'
       - '.github/workflows/marsel-api-v20-30-readonly.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
-  actions: read
 
 concurrency:
-  group: marsel-readonly-api-audit-v20-30
+  group: marsel-readonly-api-audit-v20-31
   cancel-in-progress: true
 
 jobs:
   readonly-audit:
-    name: V20.30 corrected inventory + GET-only probe
+    name: V20.31 strict inventory — GET only
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - name: Verify API configuration
@@ -34,73 +34,40 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$ROAPP_API_KEY"
-      - name: Run corrected V20.30 inventory
-        id: inventory
-        continue-on-error: true
+      - name: Run V20.31 strict inventory
         env:
           ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
           ROAPP_API_BASE: https://api.roapp.io/v2
           ROAPP_DOCS_INDEXES: https://roapp.readme.io/llms.txt,https://roappua.readme.io/llms.txt
-          MARSEL_API_INVENTORY_OUTPUT: marsel-api-inventory-v20-30.json
+          MARSEL_API_INVENTORY_OUTPUT: marsel-api-inventory-v20-31.json
           ROAPP_MIN_REQUEST_INTERVAL: '0.34'
-        run: python scripts/marsel_api_inventory_v20_30.py
-      - name: Record inventory step outcome
-        if: always()
-        shell: bash
-        run: |
-          set -u
-          printf 'inventory_outcome=%s\n' '${{ steps.inventory.outcome }}' > marsel-v20-30-run-status.txt
-          if [ -f marsel-api-inventory-v20-30.json ]; then
-            printf 'inventory_file=present\n' >> marsel-v20-30-run-status.txt
-          else
-            printf 'inventory_file=missing\n' >> marsel-v20-30-run-status.txt
-          fi
-      - name: Enforce read-only and placeholder safety
-        if: steps.inventory.outcome == 'success'
+          MARSEL_INVENTORY_BUDGET_SECONDS: '150'
+        run: python scripts/marsel_api_inventory_v20_31.py
+      - name: Enforce strict read-only contract
         shell: bash
         run: |
           set -euo pipefail
           python - <<'PY'
           import json
-          d=json.load(open('marsel-api-inventory-v20-30.json',encoding='utf-8'))
+          d=json.load(open('marsel-api-inventory-v20-31.json',encoding='utf-8'))
           assert d['readonly'] is True
           assert d['method_policy']['allowed'] == ['GET']
           assert d['write_requests_made'] == 0
           assert d['ro_app_data_mutated'] is False
-          assert d['safety']['write_requests_made'] == 0
-          assert d['safety']['ro_app_data_mutated'] is False
-          assert d['summary']['parameterized_not_probed'] >= 1
-          assert all(x.get('status') == 'NOT_PROBED' for x in d['get_probes'] if '{' in x.get('path','') or ':' in x.get('path','') or '<' in x.get('path',''))
-          print('V20_30_READ_ONLY=PASS')
-          print('V20_30_PARAMETERIZED_NOT_PROBED=', d['summary']['parameterized_not_probed'])
-          print('V20_30_GET_PROBES_200=', d['summary']['get_probes_http_200'])
+          print('V20_31_READ_ONLY=PASS')
+          print('V20_31_CONFIRMED_OPERATIONS=', len(d['operations']))
           print('WRITE_REQUESTS_MADE=0')
           print('RO_APP_DATA_MUTATED=false')
           PY
       - name: Write SHA-256 evidence
-        if: always()
         shell: bash
-        run: |
-          set -euo pipefail
-          if [ -f marsel-api-inventory-v20-30.json ]; then
-            sha256sum marsel-api-inventory-v20-30.json > marsel-v20-30-sha256.txt
-          else
-            printf 'NO_INVENTORY_FILE\n' > marsel-v20-30-sha256.txt
-          fi
-      - name: Upload V20.30 evidence
-        if: always()
-        uses: actions/upload-artifact@v4
+        run: sha256sum marsel-api-inventory-v20-31.json > marsel-v20-31-sha256.txt
+      - name: Upload V20.31 evidence
+        uses: actions/upload-artifact@v7
         with:
-          name: marsel-v20-30-readonly-evidence
+          name: marsel-v20-31-readonly-evidence
           path: |
-            marsel-api-inventory-v20-30.json
-            marsel-v20-30-sha256.txt
-            marsel-v20-30-run-status.txt
-          if-no-files-found: warn
+            marsel-api-inventory-v20-31.json
+            marsel-v20-31-sha256.txt
+          if-no-files-found: error
           retention-days: 90
-      - name: Fail workflow if inventory itself failed
-        if: steps.inventory.outcome != 'success'
-        shell: bash
-        run: |
-          echo "V20.30 inventory execution failed; diagnostic evidence was preserved when available."
-          exit 1
