@@ -1,6 +1,5 @@
-name: MARSEL V20.19 Entity Inventory (READ ONLY)
+name: MARSEL V20.36 Entity Inventory (READ ONLY)
 
-# V20.36 CI refresh: force execution from the corrected workflow definition.
 on:
   workflow_dispatch:
   pull_request:
@@ -8,25 +7,18 @@ on:
       - 'scripts/marsel_entity_inventory_v20_19.py'
       - '.github/workflows/marsel-entity-inventory-v20-19.yml'
       - 'scripts/marsel_api_inventory_v20_31.py'
-      - 'scripts/marsel_live_probe_v20_27.py'
   push:
     branches: [main]
     paths:
       - 'scripts/marsel_entity_inventory_v20_19.py'
       - '.github/workflows/marsel-entity-inventory-v20-19.yml'
       - 'scripts/marsel_api_inventory_v20_31.py'
-      - 'scripts/marsel_live_probe_v20_27.py'
-  workflow_run:
-    workflows: ["MARSEL V20.29 API Inventory + Live Read-Only Probe"]
-    types: [completed]
 
 permissions:
   contents: read
-  actions: read
 
 jobs:
   inventory:
-    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -41,7 +33,6 @@ jobs:
       MARSEL_MAX_PAGES_PER_COLLECTION: 50
       MARSEL_MAX_RECORDS_PER_COLLECTION: 5000
       MARSEL_PAGE_LIMIT: 50
-
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -71,10 +62,6 @@ jobs:
           assert ((d.get('safety') or {}).get('write_methods_used') or []) == []
           assert d.get('contract_state',{}).get('parameterized_identifiers_guessed') is False
           print('INVENTORY_SAFETY=PASS')
-          print('CONFIRMED_OPERATIONS=',len(d.get('operations') or []))
-          print('GET_PROBES=',(d.get('summary') or {}).get('get_probes_attempted'))
-          print('PARAMETERIZED_NOT_PROBED=',(d.get('summary') or {}).get('parameterized_not_probed'))
-          print('REPORT_SHA256=',d.get('report_sha256'))
           PY
       - name: Run V20.36 bounded paginated read-only entity + detail inventory
         run: python scripts/marsel_entity_inventory_v20_19.py
@@ -91,14 +78,10 @@ jobs:
           assert d['parameterized_identifiers_guessed'] is False
           assert d['audit_status']=='PASS'
           print('SAFETY_VALIDATION=PASS')
-          print('COLLECTION_PATHS_CONSIDERED=',d['collection_paths_considered'])
-          print('COLLECTION_PAGES_FETCHED=',sum(x['pages_fetched'] for x in d['collection_stats'].values()))
           print('COLLECTION_RECORDS_FETCHED=',sum(x['records_fetched'] for x in d['collection_stats'].values()))
           print('REAL_IDENTIFIERS_EXTRACTED=',d['real_identifiers_extracted'])
           print('DETAIL_PROBES=',len(d['detail_results']))
           print('DUPLICATE_CANDIDATE_GROUPS=',d['duplicate_candidate_groups'])
-          print('CLASSIFICATIONS=',d['classifications'])
-          print('DETAIL_CLASSIFICATIONS=',d['detail_classifications'])
           PY
       - name: Upload V20.36 report
         uses: actions/upload-artifact@v7
