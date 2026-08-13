@@ -1,0 +1,26 @@
+name: MARSEL Master Directories V1 Quality Gate
+
+on:
+  push:
+    paths:
+      - 'config/marsel_master_directories_v1.json'
+      - 'scripts/marsel_master_directories_v1_validate.py'
+      - '.github/workflows/marsel-master-directories-v1.yml'
+  pull_request:
+    paths:
+      - 'config/marsel_master_directories_v1.json'
+      - 'scripts/marsel_master_directories_v1_validate.py'
+      - '.github/workflows/marsel-master-directories-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Validate offline master directories
+        run: python scripts/marsel_master_directories_v1_validate.py
