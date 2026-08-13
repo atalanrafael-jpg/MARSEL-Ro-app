@@ -2,26 +2,20 @@
 
 ## Purpose
 
-Add a read-only evidence layer for relationship, duplicate, orphan, costing and stock analysis.
+Provide a read-only evidence layer for relationship, duplicate, orphan, costing and stock analysis.
 
 ## Safety
 
 - Only documented GET endpoints may be used.
 - No identifiers may be guessed.
-- No POST, PUT, PATCH or DELETE requests are permitted.
-- Raw responses must be retained only as controlled CI artifacts.
-- The report must explicitly state that it is not a database backup unless completeness is independently established.
-
-## Required evidence
-
-1. Endpoint and HTTP status.
-2. Raw JSON response or a controlled redacted equivalent.
-3. Stable identifier extraction.
-4. Duplicate identifier detection.
-5. Candidate foreign-key fields.
-6. Cross-collection orphan detection only when both source and target identifiers are actually present in evidence.
-7. Separate costing and stock checks; absence of required fields must be reported as `NOT_ESTABLISHED`, never inferred as zero or consistent.
+- No POST, PUT, PATCH or DELETE requests are permitted by the audit runtime.
+- Raw responses are controlled CI artifacts only.
+- The report must not be described as a database backup unless completeness is independently established.
 
 ## Exit criteria
 
-The V22 audit may report PASS only for checks supported by retained evidence. Missing evidence remains `NOT_ESTABLISHED`. Production writes remain locked until API write contracts, backup, dry-run and change approval are independently verified.
+A check may report PASS only when retained evidence supports it. Missing evidence is `NOT_ESTABLISHED`. Production writes remain locked until API write contracts, backup, dry-run and change approval are independently verified.
+
+## CI
+
+The audit should run on pull requests and pushes affecting the audit code. Manual dispatch is optional; GitHub documents that `workflow_dispatch` requires the workflow file to exist on the default branch.
