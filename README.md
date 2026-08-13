@@ -1,42 +1,53 @@
-# Ro-app — AI PoC (branch: ai/poc)
+# MARSEL / Ro-app
 
-## Цель PoC
-- Быстрая модерация и генерация драфтов публикаций с помощью LLM.
-- Создание ежедневных draft issues с вариантами постов.
+Репозиторий содержит инструменты аудита, диагностики и безопасной интеграции с RO App для проекта MARSEL.
 
-## Как запустить локально
-1) Склонировать и перейти в ветку ai/poc
-2) Создать виртуальное окружение:
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate
-   ```
-3) Скопировать .env.example в .env и заполнить ключи
-4) Установить зависимости:
-   ```bash
-   pip install -r requirements.txt
-   ```
-5) Запустить сервис (опционально):
-   ```bash
-   uvicorn ai_service.ai_service:app --reload --port 8000
-   ```
-6) Тестировать endpoint:
-   ```bash
-   curl -X POST "http://localhost:8000/generate-post" -H "Content-Type: application/json" -d '{"topic":"community growth","tone":"friendly","length":"short","count":3}'
-   ```
+## Текущее состояние
 
-## GitHub Actions
-- Workflow `.github/workflows/generate-drafts.yml` запускается по расписанию и создаёт draft Issue с вариантами публикаций.
-- Перед запуском добавьте секреты в Settings → Secrets:
-  - OPENAI_API_KEY
-  - GH_PAT (или GITHUB_TOKEN with repo permissions)
-  - OPTIONAL: ANTHROPIC_API_KEY
+- Основная ветка: `main`.
+- Последний подтверждённый CI-прогон V20.28/V20.27 завершился успешно.
+- Live-проверка выполняется в режиме **только GET**.
+- В последнем успешном прогоне: `WRITE_REQUESTS_MADE=0`, `RO_APP_DATA_MUTATED=false`.
+- Документация RO App обнаружена в объёме 148 reference pages, но подтверждена только 1 операция с явным API path evidence. Полнота каталога API пока **не установлена**.
+- Производственные WRITE-операции не должны включаться до выполнения production go-live gates.
 
-## Security & Cost notes
-- PoC использует inexpensive model by default (gpt-4o-mini). Adjust model selection in .env or Actions.
-- Redact PII before sending to LLMs. Do not put secrets in code.
+## Основные компоненты
 
-## TODO / next steps
-- Add embeddings indexing (Pinecone/Qdrant) and recommendation endpoint
-- Add moderation webhook for on‑post submissions
-- Add Sentry for error tracking
+### API-аудит
+
+`marsel_api_inventory_v20_28.py` получает официальную документацию RO App и принимает к live-проверке только явно подтверждённые API paths. Названия операций сами по себе не используются для угадывания URL.
+
+`marsel_live_probe_v20_27.py` выполняет только разрешённые GET-запросы и не подставляет неизвестные идентификаторы в параметризованные пути.
+
+### Контроль качества
+
+В `.github/workflows/` находятся проверки API, целостности, качества данных, справочников, product integrity, naming quality и другие read-only проверки.
+
+## Безопасность
+
+- API-ключи хранятся в GitHub Actions Secrets и не должны попадать в репозиторий.
+- Отчёты аудита не должны содержать PII.
+- До подтверждения резервной копии, восстановления, схемы соответствия, reconciliation, dry-run, idempotency, rollback и post-write verification production WRITE остаётся отключённым.
+
+## Конфигурация
+
+Для live read-only API audit используются:
+
+```text
+ROAPP_API_KEY
+ROAPP_API_BASE=https://api.roapp.io/v2
+ROAPP_DOCS_INDEX=https://roapp.readme.io/llms.txt
+ROAPP_TIMEOUT=30
+ROAPP_MIN_REQUEST_INTERVAL=0.34
+ROAPP_MAX_RETRIES=3
+```
+
+Legacy AI PoC-файлы могут оставаться в репозитории, но они не являются текущим механизмом аудита RO App.
+
+## CI
+
+Основной принцип CI: сначала доказательство API-контракта и read-only безопасности, затем диагностика. Нельзя превращать название операции в предполагаемый endpoint и нельзя выполнять WRITE только потому, что endpoint кажется логичным.
+
+## Production go-live
+
+Production mutation flows должны оставаться заблокированными до закрытия соответствующих контрольных требований из issue #19 и получения проверяемых доказательств каждого обязательного шага.
