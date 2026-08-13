@@ -1,0 +1,50 @@
+{
+  "schema_version": "1.0",
+  "status": "OFFLINE_MASTER_DATA_ONLY",
+  "production_import_allowed": false,
+  "source_of_truth": "MARSEL project configuration; live RO App mapping required before import",
+  "directories": {
+    "warehouses": [
+      {"id": "WH001", "name_ru": "Основной склад", "status": "planned"},
+      {"id": "WH002", "name_ru": "Производство", "status": "planned"},
+      {"id": "WH003", "name_ru": "Готовые изделия", "status": "planned"}
+    ],
+    "zones": [
+      {"id": "Z01", "name_ru": "Драгоценные металлы", "status": "planned"},
+      {"id": "Z02", "name_ru": "Камни", "status": "planned"},
+      {"id": "Z03", "name_ru": "Часовые детали и запчасти", "status": "planned"},
+      {"id": "Z04", "name_ru": "Расходные материалы", "status": "planned"},
+      {"id": "Z05", "name_ru": "Незавершённое производство", "status": "planned"},
+      {"id": "Z06", "name_ru": "Готовые изделия", "status": "planned"}
+    ],
+    "metals": [
+      {"id": "MET-AU-375", "name_ru": "Золото 375", "metal_type": "gold", "fineness": 375, "status": "reference"},
+      {"id": "MET-AU-585", "name_ru": "Золото 585", "metal_type": "gold", "fineness": 585, "status": "reference"},
+      {"id": "MET-AU-750", "name_ru": "Золото 750", "metal_type": "gold", "fineness": 750, "status": "reference"},
+      {"id": "MET-AG-925", "name_ru": "Серебро 925", "metal_type": "silver", "fineness": 925, "status": "reference"},
+      {"id": "MET-PT-950", "name_ru": "Платина 950", "metal_type": "platinum", "fineness": 950, "status": "reference"}
+    ],
+    "product_types": [
+      {"id": "PT-JEWELRY", "name_ru": "Ювелирное изделие"},
+      {"id": "PT-WATCH", "name_ru": "Часы"},
+      {"id": "PT-MATERIAL", "name_ru": "Материал"},
+      {"id": "PT-CONSUMABLE", "name_ru": "Расходный материал"},
+      {"id": "PT-PART", "name_ru": "Деталь"},
+      {"id": "PT-SPARE", "name_ru": "Запчасть"},
+      {"id": "PT-TOOL", "name_ru": "Инструмент"},
+      {"id": "PT-EQUIPMENT", "name_ru": "Оборудование"}
+    ],
+    "payment_methods": [
+      {"id": "PAY-CASH-RUB", "name_ru": "Наличные RUB", "currency": "RUB", "status": "planned"},
+      {"id": "PAY-CARD-RUB", "name_ru": "Банковская карта RUB", "currency": "RUB", "status": "planned"},
+      {"id": "PAY-TRANSFER-RUB", "name_ru": "Безналичный перевод RUB", "currency": "RUB", "status": "planned"}
+    ],
+    "channels": [
+      {"id": "CH-INTERNAL", "name_ru": "Внутренний каталог"},
+      {"id": "CH-WIX", "name_ru": "Wix"},
+      {"id": "CH-SOCIAL", "name_ru": "Социальные сети"},
+      {"id": "CH-PRINT", "name_ru": "Печать"},
+      {"id": "CH-CUSTOMER", "name_ru": "Выбор клиента"}
+    ]
+  }
+}
