@@ -2,8 +2,6 @@
 """MARSEL offline master-directory quality gate.
 
 This validator never calls RO App and never writes production data.
-It validates stable IDs, Russian names, uniqueness, and reference integrity
-inside config/marsel_master_directories_v1.json.
 """
 from __future__ import annotations
 
@@ -13,6 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "config" / "marsel_master_directories_v1.json"
 REQUIRED_KEYS = {"id", "name_ru"}
+SUPPORTED_SCHEMA_VERSIONS = {"1.0", "1.1"}
 
 
 def fail(errors: list[str], message: str) -> None:
@@ -32,8 +31,8 @@ def main() -> int:
         print(f"ERROR|invalid_json|line={exc.lineno}|column={exc.colno}")
         return 2
 
-    if payload.get("schema_version") != "1.0":
-        fail(errors, "invalid_schema_version")
+    if payload.get("schema_version") not in SUPPORTED_SCHEMA_VERSIONS:
+        fail(errors, f"invalid_schema_version|{payload.get('schema_version')}")
     if payload.get("status") != "OFFLINE_MASTER_DATA_ONLY":
         fail(errors, "invalid_status")
     if payload.get("production_import_allowed") is not False:
@@ -55,8 +54,7 @@ def main() -> int:
             if not isinstance(record, dict):
                 fail(errors, f"record_not_object|{prefix}")
                 continue
-            missing = REQUIRED_KEYS - record.keys()
-            for key in sorted(missing):
+            for key in sorted(REQUIRED_KEYS - record.keys()):
                 fail(errors, f"missing_key|{prefix}|{key}")
             record_id = record.get("id")
             name_ru = record.get("name_ru")
@@ -73,13 +71,7 @@ def main() -> int:
             if not isinstance(name_ru, str) or not name_ru.strip():
                 fail(errors, f"invalid_name_ru|{prefix}")
 
-    # Cross-check the fixed warehouse-zone reference namespace used by the
-    # current MARSEL catalog design. This does not assert that RO App supports
-    # zones; it only guarantees internal consistency of the offline model.
-    for zone in directories.get("zones", []):
-        if isinstance(zone, dict) and zone.get("id", "").startswith("Z"):
-            continue
-
+    print(f"SCHEMA_VERSION={payload.get('schema_version')}")
     print(f"DIRECTORIES={len(directories)} RECORDS={sum(len(v) for v in directories.values() if isinstance(v, list))}")
     print(f"UNIQUE_IDS={len(all_ids)}")
     print(f"ERRORS={len(errors)}")
