@@ -27,10 +27,12 @@ def ready():
 async def orders(page: int = Query(1, ge=1)):
     try:
         return await RoAppClient().get_orders(page)
-    except RuntimeError as e:
-        raise HTTPException(status_code=503, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"RO App API error: {e}")
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail="RO App API temporarily unavailable") from exc
+    except Exception as exc:
+        # Do not expose upstream URLs, exception text, or configuration details
+        # through the public API response.
+        raise HTTPException(status_code=502, detail="RO App API request failed") from exc
 
 
 @app.get("/roapp/audit/orders")
@@ -39,7 +41,7 @@ async def audit_orders(max_pages: int = Query(10, ge=1, le=100)):
     try:
         pages = await RoAppClient().get_orders_pages(max_pages)
         return audit_order_pages(pages)
-    except RuntimeError as e:
-        raise HTTPException(status_code=503, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"RO App API audit error: {e}")
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail="RO App API temporarily unavailable") from exc
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail="RO App API audit failed") from exc
