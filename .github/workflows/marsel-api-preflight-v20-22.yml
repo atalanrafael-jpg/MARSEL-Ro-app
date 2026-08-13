@@ -1,0 +1,68 @@
+name: MARSEL API v2 Preflight V20.22 — Read Only
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/marsel_api_preflight_v20_22.py'
+      - '.github/workflows/marsel-api-preflight-v20-22.yml'
+      - 'app/roapp_contract.py'
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    name: RO App API v2 Read-Only Preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      ROAPP_API_BASE: https://api.roapp.io/v2
+      ROAPP_TIMEOUT: 30
+      MARSEL_PREFLIGHT_OUTPUT: marsel-api-preflight-v20-22.json
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Validate API secret
+        env:
+          ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$ROAPP_API_KEY"
+
+      - name: Run read-only preflight
+        env:
+          ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+        run: |
+          set -euo pipefail
+          python scripts/marsel_api_preflight_v20_22.py
+
+      - name: Verify read-only invariants
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          with open('marsel-api-preflight-v20-22.json', encoding='utf-8') as f:
+              d = json.load(f)
+          assert d['readonly'] is True
+          assert d['write_requests_made'] == 0
+          assert d['ro_app_data_mutated'] is False
+          assert d['method_policy']['allowed'] == ['GET']
+          assert d['method_policy']['forbidden'] == ['POST', 'PUT', 'PATCH', 'DELETE']
+          print('READ_ONLY_INVARIANTS=PASS')
+          PY
+
+      - name: Upload preflight report
+        uses: actions/upload-artifact@v6
+        with:
+          name: marsel-api-preflight-v20-22
+          path: marsel-api-preflight-v20-22.json
+          if-no-files-found: error
+          retention-days: 30
