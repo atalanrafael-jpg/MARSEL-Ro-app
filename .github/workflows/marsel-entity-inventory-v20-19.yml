@@ -1,5 +1,6 @@
 name: MARSEL V20.19 Entity Inventory (READ ONLY)
 
+# V20.36 CI refresh: force execution from the corrected workflow definition.
 on:
   workflow_dispatch:
   pull_request:
