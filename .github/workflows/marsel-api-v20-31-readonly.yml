@@ -1,0 +1,66 @@
+name: MARSEL V20.31 API Inventory — strict READ-ONLY
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  v20_31:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+      ROAPP_API_BASE: https://api.roapp.io/v2
+      MARSEL_API_INVENTORY_OUTPUT: marsel-api-inventory-v20-31.json
+      MARSEL_MAX_DOCS: "40"
+      MARSEL_INVENTORY_BUDGET_SECONDS: "150"
+      ROAPP_TIMEOUT: "8"
+      ROAPP_MAX_RETRIES: "0"
+      ROAPP_MIN_REQUEST_INTERVAL: "0.34"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify API configuration
+        shell: bash
+        run: |
+          test -n "$ROAPP_API_KEY" || { echo 'ROAPP_API_KEY GitHub Secret is not configured.'; exit 1; }
+
+      - name: Run strict V20.31 inventory
+        run: |
+          python scripts/marsel_api_inventory_v20_31.py
+
+      - name: Enforce READ-ONLY safety
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          p='marsel-api-inventory-v20-31.json'
+          d=json.load(open(p,encoding='utf-8'))
+          assert d.get('readonly') is True
+          assert d.get('write_requests_made') == 0
+          assert d.get('ro_app_data_mutated') is False
+          s=d.get('safety',{})
+          assert s.get('write_requests_made') == 0
+          assert s.get('ro_app_data_mutated') is False
+          print('READ_ONLY_SAFETY=PASS')
+          print('WRITE_REQUESTS_MADE=0')
+          print('RO_APP_DATA_MUTATED=false')
+          PY
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: marsel-v20-31-readonly-evidence
+          path: marsel-api-inventory-v20-31.json
+          if-no-files-found: error
+          retention-days: 90
