@@ -4,6 +4,8 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '45 2 * * *'
+  push:
+    branches: [main]
 
 permissions:
   contents: read
@@ -15,13 +17,15 @@ concurrency:
 jobs:
   backup:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     env:
       ROAPP_API_BASE: https://api.roapp.io/v2
       ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
       MARSEL_MAX_DOCS: '40'
       MARSEL_INVENTORY_BUDGET_SECONDS: '150'
       ROAPP_MIN_REQUEST_INTERVAL: '0.34'
+      ROAPP_PAGE_SIZE: '50'
+      MARSEL_MAX_PAGES_PER_ENDPOINT: '10000'
       MARSEL_INVENTORY_OUTPUT: marsel-api-inventory-v20-31.json
       MARSEL_INVENTORY_INPUT: marsel-api-inventory-v20-31.json
       MARSEL_FULL_BACKUP_OUTPUT: marsel-full-readonly-backup-v1.json
@@ -35,8 +39,7 @@ jobs:
       - name: Validate secret
         run: test -n "$ROAPP_API_KEY"
       - name: Build canonical V20.31 inventory
-        working-directory: scripts
-        run: python marsel_api_inventory_v20_31.py
+        run: python scripts/marsel_api_inventory_v20_31.py
       - name: Run fail-closed full read-only backup
         run: python scripts/marsel_full_readonly_backup_v1.py
       - name: Verify zero-write invariant
@@ -48,6 +51,7 @@ jobs:
           assert p['write_requests_made'] == 0
           assert p['ro_app_data_mutated'] is False
           assert p['complete'] is True
+          assert p['failed_endpoints'] == 0
           print('FULL_BACKUP_READ_ONLY_INVARIANTS=PASS')
           PY
       - name: Upload evidence
