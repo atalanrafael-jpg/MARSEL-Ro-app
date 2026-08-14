@@ -38,3 +38,6 @@ The duplicate `.github/workflows/marsel-api-v20-30-readonly.yml` workflow was re
 
 ## Verified evidence
 Integrity Consolidation run `31821582025` completed SUCCESS with artifact `marsel-v20-24-integrity-evidence` and SHA-256 `3354d975b8b6bd0e4d093fbcdae5e60009c776cf48209aafef2d6191d01fad1d`.
+
+## Backup controller
+Full read-only backup controller `.github/workflows/marsel-full-readonly-backup-v1.yml` is configured for push, manual dispatch, and daily schedule. A successful run with `complete=true`, `failed_endpoints=0`, and zero-write invariants is required before the backup stage can be marked PASS.
