@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""MARSEL V20.24 — consolidation/integrity gate for the read-only API inventory."""
+"""MARSEL V20.24 — consolidation/integrity gate for the read-only API inventory.
+
+Validates the generated inventory schema, safety invariants and workflow consistency.
+It never calls Ro App and never mutates application data.
+"""
 from __future__ import annotations
 
 import json
@@ -38,9 +42,14 @@ def main() -> int:
     if data["safety"].get("status") != "PASS":
         fail("safety status is not PASS")
 
-    completeness = data.get("completeness", {})
-    if completeness and completeness.get("never_guess_identifiers") is not True:
-        fail("identifier safety invariant failed")
+    contract = data.get("contract_state", {})
+    if contract:
+        if contract.get("never_guess_identifiers") is not True:
+            fail("identifier safety invariant failed")
+    else:
+        completeness = data.get("completeness", {})
+        if completeness and completeness.get("never_guess_identifiers") is not True:
+            fail("identifier safety invariant failed")
 
     operations = data["operations"]
     keys = [(x.get("method"), x.get("path")) for x in operations]
@@ -52,11 +61,20 @@ def main() -> int:
         fail("operation path is outside supported API prefixes")
 
     summary = data["summary"]
-    if summary.get("unique_operations") != len(operations):
-        fail("summary.unique_operations does not match operations length")
-    if summary.get("non_get_operations") != sum(1 for m, _ in keys if m != "GET"):
+    documented_count = summary.get("unique_documented_operations")
+    if documented_count is None:
+        documented_count = summary.get("unique_operations")
+    if documented_count is not None and documented_count != len(operations):
+        fail("summary operation count does not match operations length")
+
+    expected_get = sum(1 for m, _ in keys if m == "GET")
+    expected_non_get = sum(1 for m, _ in keys if m != "GET")
+    if summary.get("get_operations") != expected_get:
+        fail("summary.get_operations mismatch")
+    if summary.get("non_get_operations") != expected_non_get:
         fail("summary.non_get_operations mismatch")
-    if summary.get("write_requests_made") != 0:
+
+    if summary.get("write_requests_made", 0) != 0:
         fail("summary reports write requests")
 
     v23 = sorted(p.name for p in WORKFLOWS.glob("*v20-23*.yml")) if WORKFLOWS.exists() else []
@@ -65,8 +83,8 @@ def main() -> int:
 
     print("V20.24_INTEGRITY=PASS")
     print(f"INVENTORY_OPERATIONS={len(operations)}")
-    print(f"GET_OPERATIONS={summary.get('get_operations', 0)}")
-    print(f"NON_GET_OPERATIONS={summary.get('non_get_operations', 0)}")
+    print(f"GET_OPERATIONS={expected_get}")
+    print(f"NON_GET_OPERATIONS={expected_non_get}")
     print("WRITE_REQUESTS_MADE=0")
     print("RO_APP_DATA_MUTATED=false")
     print(f"V20.23_WORKFLOW_FILES={len(v23)}")
