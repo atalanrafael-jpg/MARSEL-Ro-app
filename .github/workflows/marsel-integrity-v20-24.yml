@@ -1,6 +1,9 @@
 name: MARSEL V20.24 Integrity Consolidation — READ ONLY
 
 on:
+  schedule:
+    - cron: '30 6 * * *'
+    - cron: '30 18 * * *'
   workflow_dispatch:
   push:
     branches: [main]
@@ -34,29 +37,23 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-
       - name: Setup Python
         uses: actions/setup-python@v6
         with:
           python-version: '3.12'
-
       - name: Verify API configuration
         run: |
           set -euo pipefail
           test -n "$ROAPP_API_KEY"
-
       - name: Verify official documentation
         run: |
           set -euo pipefail
           status="$(curl -L -sS -o /tmp/roapp-llms.txt -w '%{http_code}' --max-time 30 -A 'MARSEL-Audit-V20.24' "$ROAPP_DOCS_INDEX" || true)"
           test "$status" = "200"
-
       - name: Generate V20.23 read-only inventory
         run: python scripts/marsel_api_inventory_v20_23.py
-
       - name: Run V20.24 consolidation gate
         run: python scripts/marsel_integrity_v20_24.py
-
       - name: Enforce zero-write safety
         run: |
           set -euo pipefail
@@ -71,12 +68,10 @@ jobs:
           assert d['safety']['status'] == 'PASS'
           print('SAFETY_GATE=PASS')
           PY
-
       - name: Write SHA-256 sidecar
         run: |
           set -euo pipefail
           sha256sum marsel-api-inventory-v20-23.json | tee marsel-api-inventory-v20-23.sha256
-
       - name: Upload consolidated evidence
         uses: actions/upload-artifact@v7
         with:
