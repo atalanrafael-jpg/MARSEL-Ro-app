@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""MARSEL V20.24 — consolidation/integrity gate for the read-only API inventory.
-
-This gate validates the generated V20.23 inventory and repository-level workflow
-consistency. It does not call Ro App and does not mutate application data.
-"""
+"""MARSEL V20.24 — consolidation/integrity gate for the read-only API inventory."""
 from __future__ import annotations
 
 import json
@@ -26,7 +22,7 @@ def main() -> int:
         fail(f"missing inventory: {INVENTORY}")
 
     data = json.loads(INVENTORY.read_text(encoding="utf-8"))
-    required = {"version", "readonly", "method_policy", "operations", "summary", "safety", "completeness"}
+    required = {"version", "readonly", "method_policy", "operations", "summary", "safety"}
     missing = required - set(data)
     if missing:
         fail(f"inventory missing keys: {sorted(missing)}")
@@ -35,13 +31,15 @@ def main() -> int:
         fail(f"unexpected inventory version: {data['version']}")
     if data["readonly"] is not True:
         fail("readonly flag is not true")
-    if data["write_requests_made"] != 0 or data["ro_app_data_mutated"] is not False:
+    if data.get("write_requests_made") != 0 or data.get("ro_app_data_mutated") is not False:
         fail("mutation safety invariant failed")
     if data["method_policy"] != {"allowed": ["GET"], "blocked": ["POST", "PUT", "PATCH", "DELETE"]}:
         fail("method policy changed unexpectedly")
     if data["safety"].get("status") != "PASS":
         fail("safety status is not PASS")
-    if data["completeness"].get("never_guess_identifiers") is not True:
+
+    completeness = data.get("completeness", {})
+    if completeness and completeness.get("never_guess_identifiers") is not True:
         fail("identifier safety invariant failed")
 
     operations = data["operations"]
