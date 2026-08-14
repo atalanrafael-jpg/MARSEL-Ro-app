@@ -1,0 +1,52 @@
+name: MARSEL Automation Health Registry
+
+on:
+  schedule:
+    - cron: '45 6 * * *'
+    - cron: '45 18 * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/marsel-automation-health-registry.yml'
+      - 'docs/MARSEL-AUTOMATION-HEALTH-REGISTRY.md'
+
+permissions:
+  contents: read
+  actions: read
+  issues: write
+
+concurrency:
+  group: marsel-automation-health-registry
+  cancel-in-progress: true
+
+jobs:
+  health:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate registry
+        run: test -s docs/MARSEL-AUTOMATION-HEALTH-REGISTRY.md
+
+      - name: Write health snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p health
+          cat > health/marsel-automation-health.txt <<'EOF'
+          MARSEL AUTOMATION HEALTH REGISTRY
+          This scheduled job validates that the autonomous health registry exists.
+          Latest gate execution status must be verified from GitHub Actions run evidence.
+          No RO APP write operations are performed by this workflow.
+          EOF
+          cat health/marsel-automation-health.txt
+
+      - name: Upload health snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: marsel-automation-health-registry
+          path: health/marsel-automation-health.txt
+          retention-days: 30
