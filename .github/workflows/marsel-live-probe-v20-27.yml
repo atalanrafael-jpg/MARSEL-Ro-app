@@ -1,6 +1,9 @@
 name: MARSEL V20.27 Live Read-Only API Probe
 
 on:
+  schedule:
+    - cron: '0 6 * * *'
+    - cron: '0 18 * * *'
   push:
     branches: [main]
     paths:
@@ -8,6 +11,10 @@ on:
       - 'scripts/marsel_api_inventory_v20_23.py'
       - '.github/workflows/marsel-live-probe-v20-27.yml'
   workflow_dispatch:
+
+concurrency:
+  group: marsel-live-probe
+  cancel-in-progress: true
 
 permissions:
   contents: read
