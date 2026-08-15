@@ -21,6 +21,7 @@ jobs:
       ROAPP_API_BASE: https://api.roapp.io/v2
       MARSEL_API_INVENTORY_OUTPUT: marsel-unified-api-inventory.json
       MARSEL_DATA_QUALITY_OUTPUT: marsel-unified-data-quality.json
+      MARSEL_ENTITY_AUDIT_OUTPUT: marsel-unified-entity-audit.json
       MARSEL_MAX_DOCS: "200"
       MARSEL_INVENTORY_BUDGET_SECONDS: "300"
       MARSEL_MAX_PAGES: "10000"
@@ -50,6 +51,9 @@ jobs:
       - name: Run canonical READ-ONLY data quality
         run: python scripts/marsel_data_quality_v22_readonly.py
 
+      - name: Run canonical READ-ONLY entity audit
+        run: python scripts/marsel_entity_audit_v20_32.py
+
       - name: Enforce unified READ-ONLY safety gates
         shell: bash
         run: |
@@ -57,6 +61,7 @@ jobs:
           import json
           inv=json.load(open('marsel-unified-api-inventory.json',encoding='utf-8'))
           dq=json.load(open('marsel-unified-data-quality.json',encoding='utf-8'))
+          ent=json.load(open('marsel-unified-entity-audit.json',encoding='utf-8'))
           assert inv.get('readonly') is True
           assert inv.get('write_requests_made') == 0
           assert inv.get('ro_app_data_mutated') is False
@@ -66,11 +71,19 @@ jobs:
           assert dq.get('mode') == 'READ_ONLY'
           assert dq.get('write_requests_made') == 0
           assert dq.get('ro_app_data_mutated') is False
+          assert ent.get('readonly') is True
+          assert ent.get('write_requests_made') == 0
+          assert ent.get('ro_app_data_mutated') is False
+          assert ent.get('safety',{}).get('identifiers_guessed') is False
           quality = 'PASS' if not dq.get('access_failures') and not dq.get('hard_issues') else 'REVIEW_REQUIRED'
+          entity_review = 'REVIEW_REQUIRED' if ent.get('blocked_entities') else 'PASS'
+          final_quality = 'PASS' if quality == 'PASS' and entity_review == 'PASS' else 'REVIEW_REQUIRED'
           print('UNIFIED_READ_ONLY=PASS')
           print('WRITE_REQUESTS_MADE=0')
           print('RO_APP_DATA_MUTATED=false')
           print(f'DATA_QUALITY_RESULT={quality}')
+          print(f'ENTITY_AUDIT_RESULT={entity_review}')
+          print(f'UNIFIED_RESULT={final_quality}')
           PY
 
       - name: Build unified evidence
@@ -80,8 +93,11 @@ jobs:
           import json
           inv=json.load(open('marsel-unified-api-inventory.json',encoding='utf-8'))
           dq=json.load(open('marsel-unified-data-quality.json',encoding='utf-8'))
+          ent=json.load(open('marsel-unified-entity-audit.json',encoding='utf-8'))
           quality = 'PASS' if not dq.get('access_failures') and not dq.get('hard_issues') else 'REVIEW_REQUIRED'
-          status = 'VERIFIED' if quality == 'PASS' else 'REVIEW_REQUIRED'
+          entity_review = 'REVIEW_REQUIRED' if ent.get('blocked_entities') else 'PASS'
+          final_quality = 'PASS' if quality == 'PASS' and entity_review == 'PASS' else 'REVIEW_REQUIRED'
+          status = 'VERIFIED' if final_quality == 'PASS' else 'REVIEW_REQUIRED'
           out={
             'system':'MARSEL Unified Control Plane',
             'status':status,
@@ -100,6 +116,13 @@ jobs:
               'hard_issues':dq.get('hard_issues',[]),
               'report_sha256':dq.get('report_sha256'),
             },
+            'entity_audit':{
+              'result':entity_review,
+              'confirmed_collection_audits':ent.get('confirmed_collection_audits',[]),
+              'blocked_entities':ent.get('blocked_entities',[]),
+              'completeness':ent.get('completeness'),
+              'safety':ent.get('safety',{}),
+            },
           }
           json.dump(out,open('marsel-unified-evidence.json','w',encoding='utf-8'),ensure_ascii=False,indent=2)
           PY
@@ -112,5 +135,6 @@ jobs:
             marsel-unified-evidence.json
             marsel-unified-api-inventory.json
             marsel-unified-data-quality.json
+            marsel-unified-entity-audit.json
           if-no-files-found: error
           retention-days: 90
