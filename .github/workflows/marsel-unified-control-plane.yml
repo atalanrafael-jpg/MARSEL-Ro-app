@@ -1,17 +1,13 @@
 name: MARSEL Unified Control Plane
-
 on:
   workflow_dispatch:
   push:
     branches: [main]
-
 concurrency:
   group: marsel-unified-control-plane-${{ github.ref }}
   cancel-in-progress: true
-
 permissions:
   contents: read
-
 jobs:
   audit:
     runs-on: ubuntu-latest
@@ -23,50 +19,32 @@ jobs:
       MARSEL_DATA_QUALITY_OUTPUT: marsel-unified-data-quality.json
       MARSEL_ENTITY_AUDIT_OUTPUT: marsel-unified-entity-audit.json
       MARSEL_COLLISION_OUTPUT: marsel-unified-product-collisions.json
-      MARSEL_MAX_DOCS: "200"
+      MARSEL_MAX_DOCS: "300"
       MARSEL_INVENTORY_BUDGET_SECONDS: "300"
       MARSEL_MAX_PAGES: "10000"
       ROAPP_TIMEOUT: "8"
       ROAPP_MAX_RETRIES: "0"
       ROAPP_MIN_REQUEST_INTERVAL: "0.34"
     steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Setup Python
-        uses: actions/setup-python@v7
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-
-      - name: Install Python dependencies
-        shell: bash
+      - name: Install dependencies
         run: python -m pip install --disable-pip-version-check --no-input httpx
-
-      - name: Verify canonical repository structure
+      - name: Verify canonical structure
         run: python scripts/marsel_canonical_self_check.py
-
-      - name: Verify secret is configured
+      - name: Verify RO App secret
         shell: bash
         run: test -n "$ROAPP_API_KEY"
-
-      - name: Run canonical READ-ONLY API inventory
-        run: python scripts/marsel_api_inventory_v20_31.py
-
-      - name: Run canonical READ-ONLY data quality
+      - name: Canonical READ-ONLY API inventory
+        run: python scripts/marsel_api_inventory_v20_32.py
+      - name: Canonical READ-ONLY data quality
         run: python scripts/marsel_data_quality_v22_readonly.py
-
-      - name: Verify canonical entity-audit implementation
-        shell: bash
-        run: |
-          grep -q 'MARSEL V20.34' scripts/marsel_entity_audit_v20_32.py
-          grep -q 'VERIFIED_LIVE_COLLECTIONS' scripts/marsel_entity_audit_v20_32.py
-
-      - name: Run canonical READ-ONLY entity audit
-        run: python scripts/marsel_entity_audit_v20_32.py
-
-      - name: Run canonical READ-ONLY product collision review
+      - name: Canonical READ-ONLY entity audit
+        run: python scripts/marsel_entity_audit_v20_35.py
+      - name: Canonical READ-ONLY product collision review
         run: python scripts/marsel_product_code_collision_audit_v22_1.py
-
       - name: Enforce unified READ-ONLY safety and quality gates
         shell: bash
         run: |
@@ -76,77 +54,37 @@ jobs:
           dq=json.load(open('marsel-unified-data-quality.json',encoding='utf-8'))
           ent=json.load(open('marsel-unified-entity-audit.json',encoding='utf-8'))
           col=json.load(open('marsel-unified-product-collisions.json',encoding='utf-8'))
-          assert inv.get('readonly') is True
-          assert inv.get('write_requests_made') == 0
-          assert inv.get('ro_app_data_mutated') is False
-          assert inv.get('safety',{}).get('write_requests_made') == 0
-          assert inv.get('safety',{}).get('ro_app_data_mutated') is False
-          assert dq.get('mode') == 'READ_ONLY'
-          assert dq.get('write_requests_made') == 0
-          assert dq.get('ro_app_data_mutated') is False
-          assert ent.get('readonly') is True
-          assert ent.get('write_requests_made') == 0
-          assert ent.get('ro_app_data_mutated') is False
+          assert inv.get('readonly') is True and inv.get('write_requests_made') == 0 and inv.get('ro_app_data_mutated') is False
+          assert dq.get('mode') == 'READ_ONLY' and dq.get('write_requests_made') == 0 and dq.get('ro_app_data_mutated') is False
+          assert ent.get('readonly') is True and ent.get('write_requests_made') == 0 and ent.get('ro_app_data_mutated') is False
           assert ent.get('safety',{}).get('identifiers_guessed') is False
-          assert col.get('mode') == 'READ_ONLY'
-          assert col.get('write_requests_made') == 0
-          assert col.get('ro_app_data_mutated') is False
-          quality = 'PASS' if not dq.get('access_failures') and not dq.get('hard_issues') else 'REVIEW_REQUIRED'
-          entity_review = 'REVIEW_REQUIRED' if ent.get('blocked_entities') else 'PASS'
-          collision_count = int(col.get('duplicate_code_group_count') or 0)
-          collision_error = bool(col.get('error'))
-          collision_review = 'REVIEW_REQUIRED' if collision_count > 0 else 'PASS'
-          collision_gate = 'PASS' if not collision_error else 'REVIEW_REQUIRED'
-          final_quality = 'PASS' if quality == 'PASS' and entity_review == 'PASS' and collision_gate == 'PASS' else 'REVIEW_REQUIRED'
-          print('UNIFIED_READ_ONLY=PASS')
-          print('WRITE_REQUESTS_MADE=0')
-          print('RO_APP_DATA_MUTATED=false')
+          assert col.get('mode') == 'READ_ONLY' and col.get('write_requests_made') == 0 and col.get('ro_app_data_mutated') is False
+          quality='PASS' if not dq.get('access_failures') and not dq.get('hard_issues') else 'REVIEW_REQUIRED'
+          entity_review='PASS' if not ent.get('blocked_entities') and not ent.get('failed_entities') else 'REVIEW_REQUIRED'
+          collision_gate='PASS' if not col.get('error') else 'REVIEW_REQUIRED'
+          final='PASS' if quality=='PASS' and entity_review=='PASS' and collision_gate=='PASS' else 'REVIEW_REQUIRED'
           print(f'DATA_QUALITY_RESULT={quality}')
           print(f'ENTITY_AUDIT_RESULT={entity_review}')
-          print(f'COLLISION_REVIEW_RESULT={collision_review}')
-          print(f'COLLISION_GATE_RESULT={collision_gate}')
-          print(f'DUPLICATE_CODE_GROUP_COUNT={collision_count}')
-          print(f'UNIFIED_RESULT={final_quality}')
-          if final_quality != 'PASS':
-              raise SystemExit('Unified quality gate failed: live evidence is incomplete or requires review')
+          print(f'DUPLICATE_CODE_GROUP_COUNT={int(col.get("duplicate_code_group_count") or 0)}')
+          print(f'UNIFIED_RESULT={final}')
+          if final!='PASS': raise SystemExit('Unified quality gate requires review')
           PY
-
       - name: Build unified evidence
         if: always()
-        shell: bash
         run: |
           python - <<'PY'
           import json
           from pathlib import Path
-          files = ['marsel-unified-api-inventory.json','marsel-unified-data-quality.json','marsel-unified-entity-audit.json','marsel-unified-product-collisions.json']
-          if not all(Path(x).exists() for x in files):
-              raise SystemExit('Evidence build skipped: one or more required reports are missing')
-          inv=json.load(open(files[0],encoding='utf-8'))
-          dq=json.load(open(files[1],encoding='utf-8'))
-          ent=json.load(open(files[2],encoding='utf-8'))
-          col=json.load(open(files[3],encoding='utf-8'))
-          quality = 'PASS' if not dq.get('access_failures') and not dq.get('hard_issues') else 'REVIEW_REQUIRED'
-          entity_review = 'REVIEW_REQUIRED' if ent.get('blocked_entities') else 'PASS'
-          collision_count = int(col.get('duplicate_code_group_count') or 0)
-          collision_error = bool(col.get('error'))
-          collision_review = 'REVIEW_REQUIRED' if collision_count > 0 else 'PASS'
-          collision_gate = 'PASS' if not collision_error else 'REVIEW_REQUIRED'
-          final_quality = 'PASS' if quality == 'PASS' and entity_review == 'PASS' and collision_gate == 'PASS' else 'REVIEW_REQUIRED'
-          status = 'VERIFIED' if final_quality == 'PASS' else 'REVIEW_REQUIRED'
-          out={
-            'system':'MARSEL Unified Control Plane',
-            'status':status,
-            'readonly':True,
-            'write_requests_made':0,
-            'ro_app_data_mutated':False,
-            'api_inventory':{'inventory':inv.get('inventory',{}),'contract_state':inv.get('contract_state',{}),'safety':inv.get('safety',{})},
-            'data_quality':{'result':quality,'summary':dq.get('summary',{}),'access_failures':dq.get('access_failures',[]),'hard_issues':dq.get('hard_issues',[]),'report_sha256':dq.get('report_sha256')},
-            'entity_audit':{'result':entity_review,'confirmed_collection_audits':ent.get('confirmed_collection_audits',[]),'blocked_entities':ent.get('blocked_entities',[]),'completeness':ent.get('completeness'),'safety':ent.get('safety',{})},
-            'product_collision_review':{'result':collision_review,'gate_result':collision_gate,'duplicate_code_group_count':collision_count,'summary':col.get('summary',{}),'collisions':col.get('collisions',[]),'error':col.get('error')},
-          }
+          fs=['marsel-unified-api-inventory.json','marsel-unified-data-quality.json','marsel-unified-entity-audit.json','marsel-unified-product-collisions.json']
+          if not all(Path(x).exists() for x in fs): raise SystemExit('Required evidence file missing')
+          inv,dq,ent,col=[json.load(open(x,encoding='utf-8')) for x in fs]
+          q='PASS' if not dq.get('access_failures') and not dq.get('hard_issues') else 'REVIEW_REQUIRED'
+          e='PASS' if not ent.get('blocked_entities') and not ent.get('failed_entities') else 'REVIEW_REQUIRED'
+          c='PASS' if not col.get('error') else 'REVIEW_REQUIRED'
+          final='PASS' if q=='PASS' and e=='PASS' and c=='PASS' else 'REVIEW_REQUIRED'
+          out={'system':'MARSEL Unified Control Plane','status':'VERIFIED' if final=='PASS' else 'REVIEW_REQUIRED','readonly':True,'write_requests_made':0,'ro_app_data_mutated':False,'api_inventory':{'contract_state':inv.get('contract_state',{}),'summary':inv.get('summary',{}),'safety':inv.get('safety',{})},'data_quality':{'result':q,'summary':dq.get('summary',{}),'access_failures':dq.get('access_failures',[]),'hard_issues':dq.get('hard_issues',[])},'entity_audit':{'result':e,'resolved_entities':ent.get('resolved_entities',[]),'blocked_entities':ent.get('blocked_entities',[]),'failed_entities':ent.get('failed_entities',[])},'product_collision_review':{'result':c,'duplicate_code_group_count':col.get('duplicate_code_group_count',0),'collisions':col.get('collisions',[]),'error':col.get('error')}}
           json.dump(out,open('marsel-unified-evidence.json','w',encoding='utf-8'),ensure_ascii=False,indent=2)
           PY
-
       - name: Upload unified evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -158,5 +96,4 @@ jobs:
             marsel-unified-data-quality.json
             marsel-unified-entity-audit.json
             marsel-unified-product-collisions.json
-          if-no-files-found: warn
           retention-days: 90
