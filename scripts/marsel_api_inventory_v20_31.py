@@ -1,17 +1,14 @@
 #!/usr/bin/env python3
 """MARSEL V20.31 — bounded, evidence-first, read-only API inventory.
 
-The underlying V20.29 discovery engine is retained, but endpoint extraction is
-made safety-strict: an HTTP method is accepted only when the documentation
-explicitly binds that method to the same endpoint expression. An endpoint URL
-or path without an explicit method is unresolved and is never silently treated
-as GET. No write method is ever called.
+The inventory is safety-strict: an HTTP method is accepted only when the
+official documentation explicitly binds that method to the endpoint. No write
+method is ever called and parameterized identifiers are never guessed.
 """
 from __future__ import annotations
 
 import html
 import os
-import re
 import time
 import marsel_api_inventory_v20_29 as base
 
@@ -29,39 +26,25 @@ base.clean = clean_preserve_parameters
 base.TIMEOUT = min(int(os.environ.get("ROAPP_TIMEOUT", "8")), 8)
 base.MAX_RETRIES = 0
 base.RETRY_BASE = 0.0
-base.MAX_DOCS = min(int(os.environ.get("MARSEL_MAX_DOCS", "40")), 40)
-base.MAX_BUDGET = min(float(os.environ.get("MARSEL_INVENTORY_BUDGET_SECONDS", "240")), 150.0)
+# The official llms indexes currently expose substantially more than 40
+# reference pages. Do not truncate the evidence set before inventorying it.
+base.MAX_DOCS = min(int(os.environ.get("MARSEL_MAX_DOCS", "200")), 200)
+base.MAX_BUDGET = min(float(os.environ.get("MARSEL_INVENTORY_BUDGET_SECONDS", "300")), 300.0)
 base.MIN_INTERVAL = max(float(os.environ.get("ROAPP_MIN_REQUEST_INTERVAL", "0.34")), 0.34)
 
 
-# V20.29 previously promoted an endpoint with no explicit HTTP method to GET.
-# That violates the V13 evidence rule. Keep only method/path pairs explicitly
-# documented in the same local evidence window. Undeclared methods remain
-# unresolved and therefore cannot be probed.
 def strict_extract_paths(text, source, store):
+    """Accept only method/path pairs explicitly evidenced in the same text."""
     t = html.unescape(text).replace("\\/", "/")
 
     for m in base.METHOD_PATH_RE.finditer(t):
-        base.add(
-            store,
-            m.group(1),
-            m.group(2),
-            "DOCUMENTATION_CONFIRMED",
-            source,
-            "explicit method/path",
-        )
+        base.add(store, m.group(1), m.group(2), "DOCUMENTATION_CONFIRMED", source, "explicit method/path")
 
     for m in base.API_URL_RE.finditer(t):
         method = base.nearby_method(t, m.start(), m.end())
         if method:
-            base.add(
-                store,
-                method,
-                m.group(0),
-                "DOCUMENTATION_CONFIRMED",
-                source,
-                "explicit API URL with nearby documented method",
-            )
+            base.add(store, method, m.group(0), "DOCUMENTATION_CONFIRMED", source,
+                     "explicit API URL with nearby documented method")
 
     for m in base.PATH_RE.finditer(t):
         path = base.normalize_path(m.group(0))
@@ -69,19 +52,12 @@ def strict_extract_paths(text, source, store):
             continue
         method = base.nearby_method(t, m.start(), m.end())
         if method:
-            base.add(
-                store,
-                method,
-                path,
-                "DOCUMENTATION_CONFIRMED",
-                source,
-                "explicit path expression with nearby documented method",
-            )
+            base.add(store, method, path, "DOCUMENTATION_CONFIRMED", source,
+                     "explicit path expression with nearby documented method")
 
 
 base.extract_paths = strict_extract_paths
 
-# Bound every source of latency before delegating to the read-only engine.
 _deadline = time.monotonic() + base.MAX_BUDGET
 _original_fetch = base.fetch
 
