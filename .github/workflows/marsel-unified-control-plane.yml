@@ -15,13 +15,15 @@ permissions:
 jobs:
   audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
       ROAPP_API_BASE: https://api.roapp.io/v2
       MARSEL_API_INVENTORY_OUTPUT: marsel-unified-api-inventory.json
+      MARSEL_DATA_QUALITY_OUTPUT: marsel-unified-data-quality.json
       MARSEL_MAX_DOCS: "200"
       MARSEL_INVENTORY_BUDGET_SECONDS: "300"
+      MARSEL_MAX_PAGES: "10000"
       ROAPP_TIMEOUT: "8"
       ROAPP_MAX_RETRIES: "0"
       ROAPP_MIN_REQUEST_INTERVAL: "0.34"
@@ -41,22 +43,29 @@ jobs:
       - name: Run canonical READ-ONLY API inventory
         run: python scripts/marsel_api_inventory_v20_31.py
 
-      - name: Enforce READ-ONLY safety gates
+      - name: Run canonical READ-ONLY data quality
+        run: python scripts/marsel_data_quality_v22_readonly.py
+
+      - name: Enforce unified READ-ONLY safety gates
         shell: bash
         run: |
           python - <<'PY'
           import json
-          p='marsel-api-inventory-v20-31.json'
-          d=json.load(open(p,encoding='utf-8'))
-          assert d.get('readonly') is True
-          assert d.get('write_requests_made') == 0
-          assert d.get('ro_app_data_mutated') is False
-          s=d.get('safety',{})
-          assert s.get('write_requests_made') == 0
-          assert s.get('ro_app_data_mutated') is False
+          inv=json.load(open('marsel-unified-api-inventory.json',encoding='utf-8'))
+          dq=json.load(open('marsel-unified-data-quality.json',encoding='utf-8'))
+          assert inv.get('readonly') is True
+          assert inv.get('write_requests_made') == 0
+          assert inv.get('ro_app_data_mutated') is False
+          safety=inv.get('safety',{})
+          assert safety.get('write_requests_made') == 0
+          assert safety.get('ro_app_data_mutated') is False
+          assert dq.get('mode') == 'READ_ONLY'
+          assert dq.get('write_requests_made') == 0
+          assert dq.get('ro_app_data_mutated') is False
           print('UNIFIED_READ_ONLY=PASS')
           print('WRITE_REQUESTS_MADE=0')
           print('RO_APP_DATA_MUTATED=false')
+          print(f"DATA_QUALITY_RESULT={'PASS' if not dq.get('access_failures') and not dq.get('hard_issues') else 'REVIEW_REQUIRED'}")
           PY
 
       - name: Build unified evidence
@@ -64,16 +73,25 @@ jobs:
         run: |
           python - <<'PY'
           import json
-          src=json.load(open('marsel-api-inventory-v20-31.json',encoding='utf-8'))
+          inv=json.load(open('marsel-unified-api-inventory.json',encoding='utf-8'))
+          dq=json.load(open('marsel-unified-data-quality.json',encoding='utf-8'))
           out={
             'system':'MARSEL Unified Control Plane',
             'status':'VERIFIED',
-            'readonly':src.get('readonly'),
-            'write_requests_made':src.get('write_requests_made'),
-            'ro_app_data_mutated':src.get('ro_app_data_mutated'),
-            'inventory':src.get('inventory',{}),
-            'contract_state':src.get('contract_state',{}),
-            'safety':src.get('safety',{}),
+            'readonly':True,
+            'write_requests_made':0,
+            'ro_app_data_mutated':False,
+            'api_inventory':{
+              'inventory':inv.get('inventory',{}),
+              'contract_state':inv.get('contract_state',{}),
+              'safety':inv.get('safety',{}),
+            },
+            'data_quality':{
+              'summary':dq.get('summary',{}),
+              'access_failures':dq.get('access_failures',[]),
+              'hard_issues':dq.get('hard_issues',[]),
+              'report_sha256':dq.get('report_sha256'),
+            },
           }
           json.dump(out,open('marsel-unified-evidence.json','w',encoding='utf-8'),ensure_ascii=False,indent=2)
           PY
@@ -84,6 +102,7 @@ jobs:
           name: marsel-unified-evidence
           path: |
             marsel-unified-evidence.json
-            marsel-api-inventory-v20-31.json
+            marsel-unified-api-inventory.json
+            marsel-unified-data-quality.json
           if-no-files-found: error
           retention-days: 90
