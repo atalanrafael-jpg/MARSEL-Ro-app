@@ -55,6 +55,12 @@ jobs:
       - name: Run canonical READ-ONLY data quality
         run: python scripts/marsel_data_quality_v22_readonly.py
 
+      - name: Verify canonical entity-audit implementation
+        shell: bash
+        run: |
+          grep -q 'MARSEL V20.34' scripts/marsel_entity_audit_v20_32.py
+          grep -q 'VERIFIED_LIVE_COLLECTIONS' scripts/marsel_entity_audit_v20_32.py
+
       - name: Run canonical READ-ONLY entity audit
         run: python scripts/marsel_entity_audit_v20_32.py
 
