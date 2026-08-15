@@ -2,7 +2,8 @@
 """Static self-check for the canonical MARSEL/Ro App structure.
 
 This check does not call Ro App. It prevents the repository from silently
-reintroducing duplicate live-audit pipelines or stale workflow references.
+reintroducing duplicate live-audit pipelines, stale workflow references, or
+an empty canonical API registry.
 """
 from __future__ import annotations
 
@@ -12,6 +13,8 @@ import re
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github" / "workflows" / "marsel-unified-control-plane.yml"
 GENERIC_TEST = ROOT / ".github" / "workflows" / "test.yml"
+API_REGISTRY = ROOT / "scripts" / "marsel_api_v2_canonical_registry_v1.py"
+API_REGISTRY_DOC = ROOT / "docs" / "MARSEL-API-REGISTRY.md"
 
 CANONICAL_SCRIPTS = {
     "scripts/marsel_api_inventory_v20_31.py",
@@ -34,6 +37,10 @@ LIVE_MARKERS = (
     "api.roapp.io/v2",
     "MARSEL read-only orders audit",
 )
+STALE_API_REGISTRY_MARKERS = (
+    "marsel-live-probe-v20-27.yml",
+    "marsel-readonly-integrity-v21.yml",
+)
 
 
 def fail(message: str) -> None:
@@ -44,9 +51,15 @@ if not WORKFLOW.exists():
     fail("canonical workflow is missing")
 if not GENERIC_TEST.exists():
     fail("generic test workflow is missing")
+if not API_REGISTRY.exists():
+    fail("canonical API registry script is missing")
+if not API_REGISTRY_DOC.exists():
+    fail("canonical API registry documentation is missing")
 
 workflow_text = WORKFLOW.read_text(encoding="utf-8")
 test_text = GENERIC_TEST.read_text(encoding="utf-8")
+registry_text = API_REGISTRY.read_text(encoding="utf-8")
+registry_doc_text = API_REGISTRY_DOC.read_text(encoding="utf-8")
 
 for rel in CANONICAL_SCRIPTS:
     if not (ROOT / rel).exists():
@@ -61,6 +74,15 @@ for name in FORBIDDEN_LIVE_WORKFLOW_NAMES:
 if any(marker in test_text for marker in LIVE_MARKERS):
     fail("generic test workflow contains a live Ro App audit")
 
+if any(marker in registry_doc_text for marker in STALE_API_REGISTRY_MARKERS):
+    fail("API registry documentation still advertises a removed workflow as active")
+
+if "REGISTRY: tuple[Endpoint, ...] = ()" in registry_text:
+    fail("canonical API registry is empty")
+
+if "POST" in registry_text or "PATCH" in registry_text or "DELETE" in registry_text:
+    fail("canonical READ-ONLY API registry contains a write method")
+
 # Prevent the common URL-normalization regression that produced /v2/v2/... .
 if re.search(r"api\.roapp\.io/v2/v2", workflow_text):
     fail("duplicated /v2/v2 API base detected in workflow")
@@ -68,4 +90,5 @@ if re.search(r"api\.roapp\.io/v2/v2", workflow_text):
 print("CANONICAL_SELF_CHECK=PASS")
 print("CANONICAL_LIVE_AUDIT=ONE")
 print("GENERIC_TEST_LIVE_AUDIT=NONE")
+print("API_REGISTRY=NON_EMPTY_READ_ONLY")
 print("RO_APP_DATA_MUTATION=NOT_PERFORMED")
