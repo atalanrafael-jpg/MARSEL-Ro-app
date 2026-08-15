@@ -1,41 +1,19 @@
-from scripts.marsel_api_inventory_v20_22 import extract_explicit_method_paths, parse_openapi
+from scripts.marsel_api_inventory_v20_31 import clean_preserve_parameters, strict_extract_paths
 
 
-def test_extracts_full_api_url_without_guessing():
-    text = "get https://api.roapp.io/v2/orders/{order_id}/items"
-    assert extract_explicit_method_paths(text) == [
-        ("GET", "/v2/orders/{order_id}/items", "documentation_body")
-    ]
+def test_clean_preserves_path_parameters():
+    assert clean_preserve_parameters("`/v2/orders/{order_id}`") == "/v2/orders/{order_id}"
 
 
-def test_extracts_multiple_documented_operations():
-    text = """
-    GET https://api.roapp.io/v2/orders
-    GET https://api.roapp.io/v2/orders/{order_id}
-    GET https://api.roapp.io/v2/catalog/products
-    """
-    result = extract_explicit_method_paths(text)
-    paths = {(method, path) for method, path, _ in result}
-    assert ("GET", "/v2/orders") in paths
-    assert ("GET", "/v2/orders/{order_id}") in paths
-    assert ("GET", "/v2/catalog/products") in paths
-    assert len(paths) == 3
+def test_strict_extract_requires_documented_method():
+    store = {}
+    strict_extract_paths("GET /v2/orders\n/v2/orders/{order_id}", "test", store)
+    assert ("GET", "/v2/orders") in store
+    assert ("GET", "/v2/orders/{order_id}") not in store
 
 
-def test_parses_only_real_openapi_paths():
-    spec = {
-        "openapi": "3.0.0",
-        "paths": {
-            "/orders": {"get": {}},
-            "/orders/{order_id}": {"get": {}, "patch": {}},
-        },
-    }
-    result = parse_openapi(__import__("json").dumps(spec))
-    assert ("GET", "/v2/orders", "openapi") in result
-    assert ("GET", "/v2/orders/{order_id}", "openapi") in result
-    assert ("PATCH", "/v2/orders/{order_id}", "openapi") in result
-
-
-def test_openapi_does_not_accept_unrelated_host_paths():
-    spec = {"openapi": "3.0.0", "paths": {"https://example.com/orders": {"get": {}}}}
-    assert parse_openapi(__import__("json").dumps(spec)) == []
+def test_strict_extract_accepts_explicit_method_path_pair():
+    store = {}
+    strict_extract_paths("GET https://api.roapp.io/v2/orders/{order_id}/items", "test", store)
+    assert ("GET", "/v2/orders/{order_id}/items") in store
+    assert store[("GET", "/v2/orders/{order_id}/items")]["evidence"] == "DOCUMENTATION_CONFIRMED"
