@@ -1,0 +1,50 @@
+version: "1.0"
+system: MARSEL
+architecture: unified-control-plane
+policy:
+  default_mode: READ_ONLY
+  production_write: blocked_until_gates_pass
+  verification: mandatory_after_every_change
+  secret_handling: github-secrets-only
+  minimum_permissions: true
+  workflow_status_must_be_verified: true
+  success_requires_evidence: true
+priorities:
+  P0: [security, secrets, production-protection, backup-restore]
+  P1: [canonical-control-plane, api-audit, data-quality, reconciliation]
+  P2: [automation, observability, evidence-registry, performance]
+  P3: [ux, documentation, non-critical-optimization]
+components:
+  canonical:
+    - marsel-unified-control-plane.yml
+    - marsel-canonical-audit.yml
+    - marsel-automation-health-registry.yml
+  specialized:
+    - marsel-api-v20-31-readonly.yml
+    - marsel-data-quality-v22-readonly.yml
+    - marsel-contract-v20-26.yml
+    - marsel-coverage-v20-25.yml
+    - marsel-catalog-v21-1.yml
+  supporting:
+    - language-quality.yml
+    - generate-drafts.yml
+migration:
+  rule: classify_before_delete
+  classes: [CANONICAL, REQUIRED, DUPLICATE, OBSOLETE, HISTORICAL]
+  delete_only_after_replacement_verified: true
+  preserve_business_capability: true
+gates:
+  read_only:
+    - readonly_true
+    - write_requests_made_zero
+    - ro_app_data_mutated_false
+  production:
+    - security_clear
+    - backup_verified
+    - restore_test_verified
+    - reconciliation_verified
+    - dry_run_verified
+    - idempotency_verified
+    - rollback_ready
+    - controlled_write_approved
+    - post_write_verification
