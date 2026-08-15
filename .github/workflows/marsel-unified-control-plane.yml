@@ -36,6 +36,10 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install Python dependencies
+        shell: bash
+        run: python -m pip install --disable-pip-version-check --no-input httpx
+
       - name: Verify secret is configured
         shell: bash
         run: test -n "$ROAPP_API_KEY"
