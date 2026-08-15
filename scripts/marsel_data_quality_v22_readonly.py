@@ -1,15 +1,10 @@
 #!/usr/bin/env python3
-"""MARSEL V22.2 — comprehensive read-only data-quality audit.
+"""MARSEL V22.3 — comprehensive read-only data-quality audit.
 
-Audits the verified read collections exposed by the RO App v2 API.
-GET only: no POST/PUT/PATCH/DELETE requests are made.
-The audit is diagnostic; it never changes RO App data.
-
-V22.2 changes:
-- does not assume an unverified /company response schema;
-- records access failures (401/403/404/405/429/5xx) as diagnostics;
-- does not abort before producing a machine-readable report;
-- keeps production mutation invariants explicit.
+Only GET requests are used. Product-code/SKU/number duplicates are review
+findings unless uniqueness is explicitly established by the API contract.
+Missing/duplicate IDs, count mismatches, access failures and incomplete
+pagination remain hard failures.
 """
 from __future__ import annotations
 
@@ -35,26 +30,15 @@ if not KEY:
     print("ROAPP_API_KEY is required", file=sys.stderr)
     raise SystemExit(1)
 
-HEADERS = {
-    "Authorization": f"Bearer {KEY}",
-    "Accept": "application/json",
-    "User-Agent": "MARSEL-Data-Quality-V22-READONLY",
-}
-
-COLLECTIONS = {
-    "products": "/catalog/products",
-    "services": "/catalog/services",
-    "orders": "/orders",
-}
+HEADERS = {"Authorization": f"Bearer {KEY}", "Accept": "application/json", "User-Agent": "MARSEL-Data-Quality-V23-READONLY"}
+COLLECTIONS = {"products": "/catalog/products", "services": "/catalog/services", "orders": "/orders"}
 
 
 def extract_rows(payload: object) -> list[dict]:
     if isinstance(payload, list):
         return [x for x in payload if isinstance(x, dict)]
-    if isinstance(payload, dict):
-        value = payload.get("data")
-        if isinstance(value, list):
-            return [x for x in value if isinstance(x, dict)]
+    if isinstance(payload, dict) and isinstance(payload.get("data"), list):
+        return [x for x in payload["data"] if isinstance(x, dict)]
     return []
 
 
@@ -66,69 +50,35 @@ def page_info(payload: object) -> dict:
 
 
 def duplicate_groups(rows: list[dict], field: str) -> dict[str, int]:
-    vals = [r.get(field) for r in rows]
-    counts = Counter(v for v in vals if v not in (None, ""))
+    counts = Counter(r.get(field) for r in rows if r.get(field) not in (None, ""))
     return {str(k): v for k, v in counts.items() if v > 1}
 
 
 def safe_error(response: httpx.Response) -> dict:
-    """Return status and a bounded diagnostic body without leaking auth headers."""
-    body = response.text[:1000]
-    return {"http": response.status_code, "body": body}
+    return {"http": response.status_code, "body": response.text[:1000]}
 
 
 def audit_collection(client: httpx.Client, name: str, path: str) -> dict:
-    rows: list[dict] = []
-    pages: list[dict] = []
-    page = 1
-    expected_total_pages = None
-    expected_count = None
-    last_request = 0.0
-
+    rows, pages = [], []
+    page, expected_total_pages, expected_count, last_request = 1, None, None, 0.0
     while True:
         wait = MIN_INTERVAL - (time.monotonic() - last_request)
         if wait > 0:
             time.sleep(wait)
         started = time.monotonic()
-        response = client.get(
-            BASE + path,
-            params={"page": page, "pageSize": PAGE_SIZE},
-            headers=HEADERS,
-        )
+        response = client.get(BASE + path, params={"page": page, "pageSize": PAGE_SIZE}, headers=HEADERS)
         last_request = time.monotonic()
-        elapsed = round(time.monotonic() - started, 3)
-
         if response.status_code != 200:
-            return {
-                "path": path,
-                "rows_read": len(rows),
-                "expected_count": expected_count,
-                "count_matches_rows": False,
-                "expected_total_pages": expected_total_pages,
-                "pages_read": len(pages),
-                "pagination_complete": False,
-                "missing_id": 0,
-                "duplicate_id_groups": {},
-                "duplicate_id_group_count": 0,
-                "pages": pages,
-                "access_error": safe_error(response),
-            }
-
+            return {"path": path, "rows_read": len(rows), "expected_count": expected_count, "count_matches_rows": False,
+                    "expected_total_pages": expected_total_pages, "pages_read": len(pages), "pagination_complete": False,
+                    "missing_id": 0, "duplicate_id_groups": {}, "duplicate_id_group_count": 0, "pages": pages,
+                    "access_error": safe_error(response)}
         payload = response.json()
-        batch = extract_rows(payload)
-        pi = page_info(payload)
+        batch, pi = extract_rows(payload), page_info(payload)
         if expected_total_pages is None:
-            expected_total_pages = pi.get("total_pages")
-            expected_count = pi.get("count")
-        pages.append({
-            "page": page,
-            "http": response.status_code,
-            "elapsed_s": elapsed,
-            "batch_size": len(batch),
-            "paging": pi,
-        })
+            expected_total_pages, expected_count = pi.get("total_pages"), pi.get("count")
+        pages.append({"page": page, "http": 200, "elapsed_s": round(time.monotonic() - started, 3), "batch_size": len(batch), "paging": pi})
         rows.extend(batch)
-
         if expected_total_pages is not None and page >= int(expected_total_pages):
             break
         if len(batch) < PAGE_SIZE:
@@ -138,26 +88,14 @@ def audit_collection(client: httpx.Client, name: str, path: str) -> dict:
             raise RuntimeError(f"pagination safety limit exceeded for {name}")
 
     ids = [r.get("id") for r in rows]
-    missing_id = sum(v in (None, "") for v in ids)
     duplicate_id = duplicate_groups(rows, "id")
-    result = {
-        "path": path,
-        "rows_read": len(rows),
-        "expected_count": expected_count,
-        "count_matches_rows": expected_count is None or int(expected_count) == len(rows),
-        "expected_total_pages": expected_total_pages,
-        "pages_read": len(pages),
-        "pagination_complete": (
-            expected_total_pages is not None and len(pages) == int(expected_total_pages)
-        ) or (
-            expected_total_pages is None and bool(pages) and pages[-1]["batch_size"] < PAGE_SIZE
-        ),
-        "missing_id": missing_id,
-        "duplicate_id_groups": duplicate_id,
-        "duplicate_id_group_count": len(duplicate_id),
-        "pages": pages,
-    }
-
+    result = {"path": path, "rows_read": len(rows), "expected_count": expected_count,
+              "count_matches_rows": expected_count is None or int(expected_count) == len(rows),
+              "expected_total_pages": expected_total_pages, "pages_read": len(pages),
+              "pagination_complete": (expected_total_pages is not None and len(pages) == int(expected_total_pages)) or
+                                     (expected_total_pages is None and bool(pages) and pages[-1]["batch_size"] < PAGE_SIZE),
+              "missing_id": sum(v in (None, "") for v in ids), "duplicate_id_groups": duplicate_id,
+              "duplicate_id_group_count": len(duplicate_id), "pages": pages}
     if name in ("products", "services"):
         for field in ("code", "sku"):
             dups = duplicate_groups(rows, field)
@@ -173,7 +111,6 @@ def audit_collection(client: httpx.Client, name: str, path: str) -> dict:
 
 
 def probe_company(client: httpx.Client) -> dict:
-    """Probe /company without interpreting undocumented response fields."""
     try:
         response = client.get(BASE + "/company", headers=HEADERS)
         result = {"http": response.status_code}
@@ -186,14 +123,11 @@ def probe_company(client: httpx.Client) -> dict:
 
 def main() -> int:
     started = time.monotonic()
-    results = {}
     with httpx.Client(timeout=TIMEOUT, follow_redirects=True) as client:
         company_probe = probe_company(client)
-        for name, path in COLLECTIONS.items():
-            results[name] = audit_collection(client, name, path)
+        results = {name: audit_collection(client, name, path) for name, path in COLLECTIONS.items()}
 
-    hard_issues = []
-    access_failures = []
+    hard_issues, review_issues, access_failures = [], [], []
     for name, r in results.items():
         if r.get("access_error"):
             access_failures.append({"collection": name, **r["access_error"]})
@@ -205,45 +139,32 @@ def main() -> int:
             hard_issues.append(f"{name}.count_mismatch={r['expected_count']}!={r['rows_read']}")
         for key in ("duplicate_code_group_count", "duplicate_sku_group_count", "duplicate_number_group_count"):
             if r.get(key):
-                hard_issues.append(f"{name}.{key}={r[key]}")
+                review_issues.append(f"{name}.{key}={r[key]}")
+        if not r.get("pagination_complete"):
+            hard_issues.append(f"{name}.pagination_incomplete=true")
 
-    report = {
-        "version": "22.2",
-        "mode": "READ_ONLY",
-        "generated_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "api_base": BASE,
-        "company_probe": company_probe,
-        "method_policy": {"allowed": ["GET"], "blocked": ["POST", "PUT", "PATCH", "DELETE"]},
-        "write_requests_made": 0,
-        "ro_app_data_mutated": False,
-        "collections": results,
-        "access_failures": access_failures,
-        "hard_issues": hard_issues,
-        "elapsed_s": round(time.monotonic() - started, 3),
-    }
-    report["summary"] = {
-        "collections_audited": len(results),
-        "products_rows": results["products"]["rows_read"],
-        "services_rows": results["services"]["rows_read"],
-        "orders_rows": results["orders"]["rows_read"],
-        "access_failure_count": len(access_failures),
-        "hard_issue_count": len(hard_issues),
-        "write_requests_made": 0,
-        "ro_app_data_mutated": False,
-    }
-    report["report_sha256"] = hashlib.sha256(
-        json.dumps(report, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    ).hexdigest()
+    report = {"version": "22.3", "mode": "READ_ONLY", "generated_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+              "api_base": BASE, "company_probe": company_probe,
+              "method_policy": {"allowed": ["GET"], "blocked": ["POST", "PUT", "PATCH", "DELETE"]},
+              "write_requests_made": 0, "ro_app_data_mutated": False, "collections": results,
+              "access_failures": access_failures, "hard_issues": hard_issues, "review_issues": review_issues,
+              "policy": {"code_uniqueness_established": False, "duplicate_codes_are_hard_failures": False},
+              "elapsed_s": round(time.monotonic() - started, 3)}
+    report["summary"] = {"collections_audited": len(results), "products_rows": results["products"]["rows_read"],
+                          "services_rows": results["services"]["rows_read"], "orders_rows": results["orders"]["rows_read"],
+                          "access_failure_count": len(access_failures), "hard_issue_count": len(hard_issues),
+                          "review_issue_count": len(review_issues), "write_requests_made": 0, "ro_app_data_mutated": False}
+    report["report_sha256"] = hashlib.sha256(json.dumps(report, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
     OUT.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
-
-    print("=== MARSEL V22.2 / COMPREHENSIVE DATA QUALITY / READ ONLY ===")
+    print("=== MARSEL V22.3 / COMPREHENSIVE DATA QUALITY / READ ONLY ===")
     for k, v in report["summary"].items():
         print(f"{k.upper()}={v}")
     print(f"ACCESS_FAILURES={access_failures}")
     print(f"HARD_ISSUES={hard_issues}")
+    print(f"REVIEW_ISSUES={review_issues}")
     print(f"REPORT={OUT}")
     print(f"REPORT_SHA256={report['report_sha256']}")
-    ok = not access_failures and not hard_issues and all(r["pagination_complete"] for r in results.values())
+    ok = not access_failures and not hard_issues
     print("RESULT=PASS" if ok else "RESULT=REVIEW_REQUIRED")
     return 0
 
