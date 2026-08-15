@@ -42,6 +42,9 @@ jobs:
         shell: bash
         run: python -m pip install --disable-pip-version-check --no-input httpx
 
+      - name: Verify canonical repository structure
+        run: python scripts/marsel_canonical_self_check.py
+
       - name: Verify secret is configured
         shell: bash
         run: test -n "$ROAPP_API_KEY"
