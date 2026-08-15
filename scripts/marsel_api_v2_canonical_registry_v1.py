@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-"""Canonical RO APP API v2 registry scaffold.
-READ-ONLY: this file only defines and validates endpoint metadata.
-No network calls and no write methods are executed.
+"""Canonical RO App API v2 registry, READ-ONLY.
+
+Only routes with explicit documentary evidence are marked CONFIRMED.
+Unknown routes are deliberately not guessed or promoted to the contract.
+No network calls and no write methods are executed here.
 """
 from __future__ import annotations
 
@@ -9,6 +11,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 Status = Literal["CONFIRMED", "UNRESOLVED", "NOT_ACCESSIBLE"]
+
 
 @dataclass(frozen=True)
 class Endpoint:
@@ -18,21 +21,36 @@ class Endpoint:
     source: str
     status: Status
 
-# Only explicitly documented GET collection routes may enter this registry.
-# Unknown routes are intentionally excluded rather than guessed.
-REGISTRY: tuple[Endpoint, ...] = ()
+
+REGISTRY: tuple[Endpoint, ...] = (
+    Endpoint(
+        name="orders_collection",
+        method="GET",
+        path="/orders",
+        source="RO App API documentation / Getting Started",
+        status="CONFIRMED",
+    ),
+)
 
 
 def validate_registry() -> None:
-    for e in REGISTRY:
-        if e.method != "GET":
-            raise ValueError(f"Non-GET endpoint in READ-ONLY registry: {e}")
-        if "{id}" in e.path or "{" in e.path:
-            raise ValueError(f"Parameterized route requires a concrete documented ID: {e.path}")
-        if e.status not in {"CONFIRMED", "UNRESOLVED", "NOT_ACCESSIBLE"}:
-            raise ValueError(f"Invalid status: {e.status}")
+    seen: set[tuple[str, str]] = set()
+    for endpoint in REGISTRY:
+        if endpoint.method != "GET":
+            raise ValueError(f"Non-GET endpoint in READ-ONLY registry: {endpoint}")
+        if "{" in endpoint.path or "}" in endpoint.path:
+            raise ValueError(f"Parameterized route is not allowed in collection registry: {endpoint.path}")
+        if not endpoint.path.startswith("/"):
+            raise ValueError(f"Endpoint path must start with '/': {endpoint.path}")
+        if endpoint.status not in {"CONFIRMED", "UNRESOLVED", "NOT_ACCESSIBLE"}:
+            raise ValueError(f"Invalid status: {endpoint.status}")
+        key = (endpoint.method, endpoint.path)
+        if key in seen:
+            raise ValueError(f"Duplicate canonical endpoint: {key}")
+        seen.add(key)
 
 
 if __name__ == "__main__":
     validate_registry()
-    print(f"CANONICAL_V2_REGISTRY entries={len(REGISTRY)} write_methods=0")
+    confirmed = sum(item.status == "CONFIRMED" for item in REGISTRY)
+    print(f"CANONICAL_V2_REGISTRY entries={len(REGISTRY)} confirmed={confirmed} write_methods=0")
