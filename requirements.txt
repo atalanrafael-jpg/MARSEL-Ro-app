@@ -10,3 +10,6 @@ pytest>=7.4.0
 pytest-asyncio>=0.21.0
 pyspellchecker>=0.7.0
 httpx>=0.24.0
+google-api-python-client>=2.180.0
+google-auth>=2.40.0
+google-auth-oauthlib>=1.2.2
