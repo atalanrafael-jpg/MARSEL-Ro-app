@@ -1,0 +1,89 @@
+name: MARSEL Unified Control Plane
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+concurrency:
+  group: marsel-unified-control-plane-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+      ROAPP_API_BASE: https://api.roapp.io/v2
+      MARSEL_API_INVENTORY_OUTPUT: marsel-unified-api-inventory.json
+      MARSEL_MAX_DOCS: "200"
+      MARSEL_INVENTORY_BUDGET_SECONDS: "300"
+      ROAPP_TIMEOUT: "8"
+      ROAPP_MAX_RETRIES: "0"
+      ROAPP_MIN_REQUEST_INTERVAL: "0.34"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Verify secret is configured
+        shell: bash
+        run: test -n "$ROAPP_API_KEY"
+
+      - name: Run canonical READ-ONLY API inventory
+        run: python scripts/marsel_api_inventory_v20_31.py
+
+      - name: Enforce READ-ONLY safety gates
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          p='marsel-api-inventory-v20-31.json'
+          d=json.load(open(p,encoding='utf-8'))
+          assert d.get('readonly') is True
+          assert d.get('write_requests_made') == 0
+          assert d.get('ro_app_data_mutated') is False
+          s=d.get('safety',{})
+          assert s.get('write_requests_made') == 0
+          assert s.get('ro_app_data_mutated') is False
+          print('UNIFIED_READ_ONLY=PASS')
+          print('WRITE_REQUESTS_MADE=0')
+          print('RO_APP_DATA_MUTATED=false')
+          PY
+
+      - name: Build unified evidence
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          src=json.load(open('marsel-api-inventory-v20-31.json',encoding='utf-8'))
+          out={
+            'system':'MARSEL Unified Control Plane',
+            'status':'VERIFIED',
+            'readonly':src.get('readonly'),
+            'write_requests_made':src.get('write_requests_made'),
+            'ro_app_data_mutated':src.get('ro_app_data_mutated'),
+            'inventory':src.get('inventory',{}),
+            'contract_state':src.get('contract_state',{}),
+            'safety':src.get('safety',{}),
+          }
+          json.dump(out,open('marsel-unified-evidence.json','w',encoding='utf-8'),ensure_ascii=False,indent=2)
+          PY
+
+      - name: Upload unified evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: marsel-unified-evidence
+          path: |
+            marsel-unified-evidence.json
+            marsel-api-inventory-v20-31.json
+          if-no-files-found: error
+          retention-days: 90
