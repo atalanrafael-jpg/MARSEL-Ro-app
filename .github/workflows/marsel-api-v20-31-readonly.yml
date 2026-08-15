@@ -5,6 +5,10 @@ on:
   push:
     branches: [main]
 
+concurrency:
+  group: marsel-v20-31-readonly-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
