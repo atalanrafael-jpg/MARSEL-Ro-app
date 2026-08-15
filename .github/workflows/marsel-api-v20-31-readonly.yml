@@ -11,22 +11,22 @@ permissions:
 jobs:
   v20_31:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 15
     env:
       ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
       ROAPP_API_BASE: https://api.roapp.io/v2
       MARSEL_API_INVENTORY_OUTPUT: marsel-api-inventory-v20-31.json
-      MARSEL_MAX_DOCS: "40"
-      MARSEL_INVENTORY_BUDGET_SECONDS: "150"
+      MARSEL_MAX_DOCS: "200"
+      MARSEL_INVENTORY_BUDGET_SECONDS: "300"
       ROAPP_TIMEOUT: "8"
       ROAPP_MAX_RETRIES: "0"
       ROAPP_MIN_REQUEST_INTERVAL: "0.34"
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
