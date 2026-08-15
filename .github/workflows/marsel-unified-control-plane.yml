@@ -62,10 +62,11 @@ jobs:
           assert dq.get('mode') == 'READ_ONLY'
           assert dq.get('write_requests_made') == 0
           assert dq.get('ro_app_data_mutated') is False
+          quality = 'PASS' if not dq.get('access_failures') and not dq.get('hard_issues') else 'REVIEW_REQUIRED'
           print('UNIFIED_READ_ONLY=PASS')
           print('WRITE_REQUESTS_MADE=0')
           print('RO_APP_DATA_MUTATED=false')
-          print(f"DATA_QUALITY_RESULT={'PASS' if not dq.get('access_failures') and not dq.get('hard_issues') else 'REVIEW_REQUIRED'}")
+          print(f'DATA_QUALITY_RESULT={quality}')
           PY
 
       - name: Build unified evidence
@@ -75,9 +76,11 @@ jobs:
           import json
           inv=json.load(open('marsel-unified-api-inventory.json',encoding='utf-8'))
           dq=json.load(open('marsel-unified-data-quality.json',encoding='utf-8'))
+          quality = 'PASS' if not dq.get('access_failures') and not dq.get('hard_issues') else 'REVIEW_REQUIRED'
+          status = 'VERIFIED' if quality == 'PASS' else 'REVIEW_REQUIRED'
           out={
             'system':'MARSEL Unified Control Plane',
-            'status':'VERIFIED',
+            'status':status,
             'readonly':True,
             'write_requests_made':0,
             'ro_app_data_mutated':False,
@@ -87,6 +90,7 @@ jobs:
               'safety':inv.get('safety',{}),
             },
             'data_quality':{
+              'result':quality,
               'summary':dq.get('summary',{}),
               'access_failures':dq.get('access_failures',[]),
               'hard_issues':dq.get('hard_issues',[]),
