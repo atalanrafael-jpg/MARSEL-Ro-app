@@ -1,64 +1,56 @@
-# MARSEL / Ro App — API blocker and parallel work plan
+# MARSEL / Ro App — API blocker and next tasks
 
-Date: 2026-08-12
+> Historical filename retained for continuity; content is maintained as the current status record.
 
-## Verified blocker
+## Current verified state
 
-The latest read-only API quality run reached the Ro App API but received HTTP 403 for the audited collections. The API response reported an expired subscription/licence. No write operation was performed.
+The previous HTTP 403/subscription blocker is no longer the current state. The canonical MARSEL Unified Control Plane has successfully reached the Ro App API and completed the READ-ONLY inventory, data-quality, entity-audit and product-code review stages on the latest completed run.
 
-Status: `BLOCKED_BY_API_ACCESS`
+The latest completed live run remains `REVIEW_REQUIRED`, not because the API is inaccessible, but because API/entity completeness is not yet established and product-code duplicates remain advisory review findings.
 
-This document does not infer the state of production data while API access is blocked.
+## What is verified
 
-## Work that can continue safely without production API access
+- `ROAPP_API_KEY` is configured for the canonical workflow.
+- The API inventory executes against `https://api.roapp.io/v2`.
+- READ-ONLY inventory completes against live data.
+- Data-quality audit completes.
+- Entity audit completes without guessing identifiers.
+- Product-code collision review completes.
+- Unified evidence is generated and uploaded.
+- Production write invariants remain zero-write.
 
-1. Maintain read-only enforcement in all existing audit workflows.
-2. Consolidate duplicate/legacy workflow generations into a documented migration plan before deleting or disabling anything.
-3. Keep endpoint capabilities classified as `CONFIRMED`, `UNVERIFIED`, `BLOCKED`, or `FAILED`.
-4. Keep data-changing operations disabled until endpoint contracts and backup coverage are verified.
-5. Maintain deterministic audit artifacts and SHA-256 integrity metadata where already implemented.
-6. Prepare the post-access verification sequence:
-   - API access probe
-   - company identity verification
-   - pagination verification
-   - products/services/orders read audit
-   - duplicate and referential-integrity checks
-   - backup validation
-   - dry-run write tests only if write endpoints are explicitly confirmed
+## Remaining blockers
 
-## Workflow governance
+1. **API completeness — NOT_ESTABLISHED**
+   - The canonical registry must be expanded only from explicit official documentation evidence.
+   - Unknown routes must remain unresolved rather than guessed.
+2. **Entity completeness — NOT_ESTABLISHED**
+   - Collection endpoints for currently blocked/unconfirmed entities require documentary evidence before live probing.
+3. **Production readiness — NOT_READY**
+   - Backup/restore verification, reconciliation, dry-run write validation and rollback evidence remain prerequisites.
 
-The repository currently contains multiple generations of MARSEL API inventory/diagnostic/read-only workflows. Examples visible in the repository include:
+## Canonical workflow governance
 
-- `marsel-api-inventory-v20-14.yml`
-- `marsel-api-inventory-v20-19.yml`
-- `marsel-api-inventory-v20-22.yml`
-- `marsel-api-inventory-v20-23.yml`
-- `marsel-api-endpoint-diagnostics-v20-18.yml`
-- `marsel-api-endpoint-diagnostics-v20-22.yml`
-- `marsel-api-v20-28-readonly.yml`
-- `marsel-api-v20-29-readonly.yml`
-- `marsel-api-v20-30-readonly.yml`
-- `marsel-live-probe-v20-27.yml`
-- `marsel-contract-v20-26.yml`
-- `marsel-coverage-v20-25.yml`
-- `marsel-entity-mapping-v21-3.yml`
+The active MARSEL live audit is:
 
-No workflow should be deleted solely because it appears older. Before cleanup, compare its implementation and recent run history against the newest workflow and record the replacement relationship.
+`.github/workflows/marsel-unified-control-plane.yml`
 
-## Release gate
+Historical workflow generations are not active and must not be reintroduced as parallel live pipelines.
 
-A future production write release must not proceed unless all of the following are true:
+## Safety rules
 
-- API access is no longer blocked.
-- Company identity matches the intended MARSEL company.
-- Read-only audit completes successfully.
-- Backup completeness is verified.
-- Endpoint write capability is directly confirmed from the current API contract or successful controlled test.
-- Dry-run produces the expected diff.
-- No unexpected destructive operation is present.
-- Post-write verification is defined before enabling writes.
+1. Production audit remains READ-ONLY.
+2. No endpoint is guessed from naming conventions.
+3. `WRITE_REQUESTS_MADE=0` is mandatory for the audit pipeline.
+4. `RO_APP_DATA_MUTATED=false` is mandatory.
+5. Product-code duplicate findings are advisory unless the API contract establishes a uniqueness invariant.
+6. Production WRITE remains disabled until endpoint contracts, backup coverage, dry-run and rollback verification are complete.
 
-## Current decision
+## Next verification sequence
 
-Keep production writes disabled. Continue repository-level quality, documentation, workflow-governance, and offline validation work while Ro App API access is unavailable.
+1. Complete the official-documentation API registry.
+2. Re-run live inventory and entity coverage.
+3. Reconcile API registry vs implementation vs live evidence.
+4. Verify backup completeness and restore procedure.
+5. Verify production-readiness gates.
+6. Perform a final independent self-check before any release decision.
