@@ -88,14 +88,17 @@ jobs:
           quality = 'PASS' if not dq.get('access_failures') and not dq.get('hard_issues') else 'REVIEW_REQUIRED'
           entity_review = 'REVIEW_REQUIRED' if ent.get('blocked_entities') else 'PASS'
           collision_count = int(col.get('duplicate_code_group_count') or 0)
-          collision_review = 'PASS' if not col.get('error') and collision_count == 0 else 'REVIEW_REQUIRED'
-          final_quality = 'PASS' if quality == 'PASS' and entity_review == 'PASS' and collision_review == 'PASS' else 'REVIEW_REQUIRED'
+          collision_error = bool(col.get('error'))
+          collision_review = 'REVIEW_REQUIRED' if collision_count > 0 else 'PASS'
+          collision_gate = 'PASS' if not collision_error else 'REVIEW_REQUIRED'
+          final_quality = 'PASS' if quality == 'PASS' and entity_review == 'PASS' and collision_gate == 'PASS' else 'REVIEW_REQUIRED'
           print('UNIFIED_READ_ONLY=PASS')
           print('WRITE_REQUESTS_MADE=0')
           print('RO_APP_DATA_MUTATED=false')
           print(f'DATA_QUALITY_RESULT={quality}')
           print(f'ENTITY_AUDIT_RESULT={entity_review}')
           print(f'COLLISION_REVIEW_RESULT={collision_review}')
+          print(f'COLLISION_GATE_RESULT={collision_gate}')
           print(f'DUPLICATE_CODE_GROUP_COUNT={collision_count}')
           print(f'UNIFIED_RESULT={final_quality}')
           if final_quality != 'PASS':
@@ -119,8 +122,10 @@ jobs:
           quality = 'PASS' if not dq.get('access_failures') and not dq.get('hard_issues') else 'REVIEW_REQUIRED'
           entity_review = 'REVIEW_REQUIRED' if ent.get('blocked_entities') else 'PASS'
           collision_count = int(col.get('duplicate_code_group_count') or 0)
-          collision_review = 'PASS' if not col.get('error') and collision_count == 0 else 'REVIEW_REQUIRED'
-          final_quality = 'PASS' if quality == 'PASS' and entity_review == 'PASS' and collision_review == 'PASS' else 'REVIEW_REQUIRED'
+          collision_error = bool(col.get('error'))
+          collision_review = 'REVIEW_REQUIRED' if collision_count > 0 else 'PASS'
+          collision_gate = 'PASS' if not collision_error else 'REVIEW_REQUIRED'
+          final_quality = 'PASS' if quality == 'PASS' and entity_review == 'PASS' and collision_gate == 'PASS' else 'REVIEW_REQUIRED'
           status = 'VERIFIED' if final_quality == 'PASS' else 'REVIEW_REQUIRED'
           out={
             'system':'MARSEL Unified Control Plane',
@@ -131,7 +136,7 @@ jobs:
             'api_inventory':{'inventory':inv.get('inventory',{}),'contract_state':inv.get('contract_state',{}),'safety':inv.get('safety',{})},
             'data_quality':{'result':quality,'summary':dq.get('summary',{}),'access_failures':dq.get('access_failures',[]),'hard_issues':dq.get('hard_issues',[]),'report_sha256':dq.get('report_sha256')},
             'entity_audit':{'result':entity_review,'confirmed_collection_audits':ent.get('confirmed_collection_audits',[]),'blocked_entities':ent.get('blocked_entities',[]),'completeness':ent.get('completeness'),'safety':ent.get('safety',{})},
-            'product_collision_review':{'result':collision_review,'duplicate_code_group_count':collision_count,'summary':col.get('summary',{}),'collisions':col.get('collisions',[]),'error':col.get('error')},
+            'product_collision_review':{'result':collision_review,'gate_result':collision_gate,'duplicate_code_group_count':collision_count,'summary':col.get('summary',{}),'collisions':col.get('collisions',[]),'error':col.get('error')},
           }
           json.dump(out,open('marsel-unified-evidence.json','w',encoding='utf-8'),ensure_ascii=False,indent=2)
           PY
