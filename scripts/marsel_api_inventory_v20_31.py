@@ -10,7 +10,8 @@ from __future__ import annotations
 import html
 import os
 import time
-import marsel_api_inventory_v20_29 as base
+
+from scripts import marsel_api_inventory_v20_29 as base
 
 VERSION = "20.31"
 
