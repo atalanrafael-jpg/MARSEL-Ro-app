@@ -9,7 +9,15 @@ INV=os.getenv("MARSEL_API_INVENTORY_OUTPUT","marsel-unified-api-inventory.json")
 OUT=os.getenv("MARSEL_ENTITY_AUDIT_OUTPUT","marsel-entity-audit-v20-35.json")
 TIMEOUT=min(int(os.getenv("ROAPP_TIMEOUT","8")),8)
 PARAM=re.compile(r"\{[^}]+\}|:[A-Za-z_][A-Za-z0-9_]*|<[^>]+>")
-TARGETS={"people":"/v2/contacts/people","employees":"/v2/company/employees","locations":"/v2/company/locations","legal_entities":"/v2/company/legal-entities","warehouse":None,"custom_directories":None,"resources":None}
+CLASSIFIERS={
+ "people":lambda p:"/contacts/people" in p,
+ "employees":lambda p:"/company/employees" in p,
+ "locations":lambda p:"/company/locations" in p,
+ "legal_entities":lambda p:"/company/legal-entities" in p,
+ "warehouse":lambda p:"warehouse" in p.lower() or "warehouses" in p.lower(),
+ "custom_directories":lambda p:"/company/directories" in p,
+ "resources":lambda p:"/resources" in p,
+}
 def norm(p): return "/"+p.lstrip("/")[3:] if p.startswith("/v2/") else "/"+p.lstrip("/")
 def get(path):
  r=Request(BASE+norm(path),headers={"Authorization":f"Bearer {KEY}","Accept":"application/json","User-Agent":"MARSEL-Audit-V20.35"},method="GET"); t=time.time()
@@ -19,8 +27,8 @@ def main():
  inv=json.load(open(INV,encoding="utf-8")); ops=inv.get("operations",[])
  confirmed=[o.get("path") for o in ops if str(o.get("method")).upper()=="GET" and o.get("evidence") in {"DOCUMENTATION_CONFIRMED","OPENAPI_CONFIRMED"} and o.get("path") and not PARAM.search(o.get("path"))]
  results=[]; resolved=[]
- for entity,expected in TARGETS.items():
-  candidates=[p for p in confirmed if expected and norm(p)==norm(expected)]
+ for entity,match in CLASSIFIERS.items():
+  candidates=[p for p in confirmed if match(norm(p))]
   if not candidates:
    results.append({"entity":entity,"status":"BLOCKED","reason":"No non-parameterized contract-confirmed GET collection route; endpoint will not be guessed."}); continue
   path=candidates[0]
