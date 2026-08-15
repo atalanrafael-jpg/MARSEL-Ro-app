@@ -46,13 +46,21 @@ for x in items:
     p = x.get("path") or x.get("endpoint") or x.get("url")
     if isinstance(p, str) and "{" not in p and "}" not in p:
         p = p.split("?")[0]
+        # Inventory evidence may contain absolute API paths (/v2/...), while
+        # ROAPP_API_BASE already includes /v2. Normalize once to avoid /v2/v2/.
+        if p.startswith("/v2/"):
+            p = p[3:]
+        elif p == "/v2":
+            p = "/"
+        if not p.startswith("/"):
+            p = "/" + p
         if p not in paths:
             paths.append(p)
 
 headers = {
     "Authorization": f"Bearer {KEY}",
     "Accept": "application/json",
-    "User-Agent": "MARSEL-Full-Readonly-Backup-v3",
+    "User-Agent": "MARSEL-Full-Readonly-Backup-v4",
 }
 results = []
 write_requests = 0
@@ -80,10 +88,6 @@ with httpx.Client(timeout=20) as c:
                     if isinstance(data, list):
                         response_kind = "collection"
                     else:
-                        # Documented GET endpoints may legitimately return a
-                        # singleton object (company/license/etc.). Capture it
-                        # instead of incorrectly classifying it as a failed
-                        # collection response.
                         data = [payload]
                         response_kind = "singleton"
                 elif isinstance(payload, list):
@@ -126,7 +130,7 @@ with httpx.Client(timeout=20) as c:
 failed = [x for x in results if not x["ok"]]
 complete = bool(paths) and not failed
 report = {
-    "version": "3",
+    "version": "4",
     "generated_at_utc": datetime.now(timezone.utc).isoformat(),
     "readonly": True,
     "inventory": str(INVENTORY),
