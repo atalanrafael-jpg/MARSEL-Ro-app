@@ -1,43 +1,47 @@
-# MARSEL API / Audit Registry
+# MARSEL / RO App API — Canonical Registry
 
-## Purpose
-Единый реестр текущих диагностических и audit-скриптов RO APP. Реестр предотвращает размножение параллельных MASTER-версий.
+## Назначение
+Единый реестр API-контуров проекта. Этот документ отражает только текущую архитектуру `main` и не перечисляет удалённые workflow как активные.
 
-## Canonical architecture
-| Layer | Canonical implementation | Reason |
+## Канонический live-контур
+
+| Layer | Current implementation | Status |
 |---|---|---|
-| API inventory | `marsel_api_inventory_v20_31.py` | strict GET-only contract, multi-index discovery, explicit safety gate and SHA-256 evidence workflow |
-| Live probe | `marsel_live_probe_v20_27.py` | GET-only probe against a generated inventory with zero-write and HTTP integrity checks |
-| Integrity consolidation | `marsel-readonly-integrity-v21.yml` / Integrity workflow | independent consolidation and zero-write safety gate |
-| Health registry | `marsel-automation-health-registry.yml` | collects automation state and evidence without changing RO APP |
+| API inventory | `scripts/marsel_api_inventory_v20_31.py` | CANONICAL |
+| Data quality | `scripts/marsel_data_quality_v22_readonly.py` | CANONICAL |
+| Entity audit | `scripts/marsel_entity_audit_v20_32.py` | CANONICAL |
+| Product-code review | `scripts/marsel_product_code_collision_audit_v22_1.py` | CANONICAL / ADVISORY |
+| Structural self-check | `scripts/marsel_canonical_self_check.py` | CANONICAL |
+| Orchestration | `.github/workflows/marsel-unified-control-plane.yml` | CANONICAL |
 
-## Script families
-| Script | Role | Status |
-|---|---|---|
-| `marsel_api_access_diagnostics_v20_21.py` | API access diagnostics | ACTIVE / diagnostic |
-| `marsel_api_endpoint_diagnostics_v20_17.py` | endpoint diagnostics | LEGACY |
-| `marsel_api_endpoint_diagnostics_v20_18.py` | expanded endpoint diagnostics | LEGACY |
-| `marsel_api_inventory_v20_14.py` | initial inventory | LEGACY |
-| `marsel_api_inventory_v20_22.py` | inventory generation | LEGACY |
-| `marsel_api_inventory_v20_23.py` | inventory used by older Integrity path | LEGACY / retained for compatibility |
-| `marsel_api_inventory_v20_28.py` | intermediate inventory | LEGACY / retained for comparison |
-| `marsel_api_inventory_v20_29.py` | multi-index inventory + live-probe input | RETAINED: live-probe compatibility |
-| `marsel_api_inventory_v20_30.py` | intermediate inventory | LEGACY |
-| `marsel_api_inventory_v20_31.py` | strict inventory | CANONICAL |
-| `marsel_audit_v20_10.py` | data audit | ACTIVE / VERIFY BY RUN |
+## API contract state
 
-## Workflow cleanup
-The duplicate `.github/workflows/marsel-api-v20-30-readonly.yml` workflow was removed because it duplicated the V20.31 implementation. Commit: `f23f223016fb5b1385fa1b07844509f9792eb9aa`.
+`https://api.roapp.io/v2` is the configured base URL. The repository is intentionally READ-ONLY for production audit operations: no POST/PATCH/DELETE operation is executed by the canonical audit workflow.
 
-## Safety rules
-1. Version number alone does not establish correctness.
-2. Canonical status requires workflow usage plus Evidence.
-3. Automated production audits remain READ-ONLY.
-4. Do not delete scripts still referenced by an active workflow.
-5. Future write operations require backup, dry-run, explicit authorization and a separate safety gate.
+The canonical registry accepts an endpoint as `CONFIRMED` only when the official RO App documentation explicitly binds the HTTP method to that endpoint. Unknown or insufficiently evidenced routes remain unresolved rather than being guessed.
 
-## Verified evidence
-Integrity Consolidation run `31821582025` completed SUCCESS with artifact `marsel-v20-24-integrity-evidence` and SHA-256 `3354d975b8b6bd0e4d093fbcdae5e60009c776cf48209aafef2d6191d01fad1d`.
+### Confirmed
 
-## Backup controller
-Full read-only backup controller `.github/workflows/marsel-full-readonly-backup-v1.yml` is configured for push, manual dispatch, and daily schedule. A successful run with `complete=true`, `failed_endpoints=0`, and zero-write invariants is required before the backup stage can be marked PASS.
+| Method | Path | Source | Status |
+|---|---|---|---|
+| GET | `/orders` | RO App API documentation / Getting Started | CONFIRMED |
+
+### Not yet established
+
+The live inventory has discovered additional documented/API-reference material, but this repository does **not** yet mark every discovered route as contract-confirmed. API completeness therefore remains `NOT_ESTABLISHED` until each route has explicit documentary evidence and, where safe, a matching READ-ONLY verification.
+
+## Pagination and safety
+
+- Pagination is handled by the canonical inventory and entity auditors.
+- Parameterized identifiers are never guessed.
+- Production audit mode is READ-ONLY.
+- `WRITE_REQUESTS_MADE=0` and `RO_APP_DATA_MUTATED=false` are mandatory invariants.
+- A review finding is not automatically a hard failure unless the contract establishes that the finding violates a required invariant.
+
+## Historical scripts
+
+Older versioned scripts may remain in the repository as source history or compatibility material. They are **not canonical** and must not be wired into the live Unified Control Plane. New audit functionality must extend the canonical implementations rather than creating another parallel `v20.xx` workflow.
+
+## Current truth
+
+The canonical workflow has successfully executed the API inventory, data-quality, entity and product-code checks on the latest run. The latest run remains `REVIEW_REQUIRED` because API/entity completeness is not yet established. This is an intentional safety state, not a successful production-readiness claim.
