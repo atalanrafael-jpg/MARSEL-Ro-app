@@ -84,6 +84,8 @@ jobs:
           print(f'DATA_QUALITY_RESULT={quality}')
           print(f'ENTITY_AUDIT_RESULT={entity_review}')
           print(f'UNIFIED_RESULT={final_quality}')
+          if final_quality != 'PASS':
+              raise SystemExit('Unified quality gate failed: live evidence is incomplete or requires review')
           PY
 
       - name: Build unified evidence
