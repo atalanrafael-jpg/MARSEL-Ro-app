@@ -11,10 +11,12 @@ import html
 import os
 import time
 
-# This file is executed directly by GitHub Actions from the scripts directory.
-# Import the sibling module directly so execution does not depend on the
-# repository root being present on sys.path as a Python package.
-import marsel_api_inventory_v20_29 as base
+try:
+    # Normal package import (pytest / repository-root execution).
+    from . import marsel_api_inventory_v20_29 as base
+except ImportError:
+    # Direct script execution from GitHub Actions' scripts/ directory.
+    import marsel_api_inventory_v20_29 as base
 
 VERSION = "20.31"
 
