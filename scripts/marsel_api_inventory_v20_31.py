@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import html
 import os
+import re
 import time
 
 try:
@@ -37,27 +38,40 @@ base.MAX_BUDGET = min(float(os.environ.get("MARSEL_INVENTORY_BUDGET_SECONDS", "3
 base.MIN_INTERVAL = max(float(os.environ.get("ROAPP_MIN_REQUEST_INTERVAL", "0.34")), 0.34)
 
 
+def _same_line_method(text, start, end):
+    """Return a method only when it is explicitly tied to the path on its line."""
+    line_start = text.rfind("\n", 0, start) + 1
+    line_end = text.find("\n", end)
+    if line_end < 0:
+        line_end = len(text)
+    line = text[line_start:line_end]
+    path_offset = start - line_start
+    prefix = line[:path_offset]
+    match = re.search(r"\b(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\b\s*$", prefix, re.IGNORECASE)
+    return match.group(1).upper() if match else None
+
+
 def strict_extract_paths(text, source, store):
-    """Accept only method/path pairs explicitly evidenced in the same text."""
+    """Accept only method/path pairs explicitly evidenced on the same line."""
     t = html.unescape(text).replace("\\/", "/")
 
     for m in base.METHOD_PATH_RE.finditer(t):
         base.add(store, m.group(1), m.group(2), "DOCUMENTATION_CONFIRMED", source, "explicit method/path")
 
     for m in base.API_URL_RE.finditer(t):
-        method = base.nearby_method(t, m.start(), m.end())
+        method = _same_line_method(t, m.start(), m.end())
         if method:
             base.add(store, method, m.group(0), "DOCUMENTATION_CONFIRMED", source,
-                     "explicit API URL with nearby documented method")
+                     "explicit API URL with same-line documented method")
 
     for m in base.PATH_RE.finditer(t):
         path = base.normalize_path(m.group(0))
         if not path:
             continue
-        method = base.nearby_method(t, m.start(), m.end())
+        method = _same_line_method(t, m.start(), m.end())
         if method:
             base.add(store, method, path, "DOCUMENTATION_CONFIRMED", source,
-                     "explicit path expression with nearby documented method")
+                     "explicit path expression with same-line documented method")
 
 
 base.extract_paths = strict_extract_paths
