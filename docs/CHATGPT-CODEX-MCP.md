@@ -1,15 +1,27 @@
 # ChatGPT / Codex MCP Integration
 
-The repository now exposes the MARSEL RO App connector through MCP. The integration has two modes:
+The repository now exposes the MARSEL RO App connector through MCP. The integration has three supported paths:
 
 - **Codex/local:** stdio via `python mcp_server.py`.
+- **Codex plugin:** `plugins/marsel-roapp/.codex-plugin/plugin.json` bundles the skill and MCP configuration.
 - **ChatGPT/remote:** Streamable HTTP at `/mcp`, protected by OAuth 2.1/OIDC JWT validation.
 
 The current MCP tool surface is read-only.
 
-## Why MCP instead of the legacy plugin format
+## Plugin structure
 
-The modern integration path for ChatGPT and Codex is MCP. A legacy `ai-plugin.json` is not added here because the production integration is implemented as an MCP server with optional UI rather than the retired plugin manifest model.
+```text
+plugins/marsel-roapp/
+├── .codex-plugin/plugin.json
+├── .mcp.json
+└── skills/roapp-mcp/SKILL.md
+```
+
+The plugin manifest follows the current Codex plugin schema. Its bundled `.mcp.json` launches the repository's root `mcp_server.py`, so it is intended for this repository checkout rather than as a standalone copy detached from the application source.
+
+## Why MCP
+
+The current OpenAI developer stack uses MCP servers, skills, and optional UI as the extension mechanism for ChatGPT and Codex. This repository therefore does not add the retired `ai-plugin.json` format. The Codex plugin manifest is separate from the MCP protocol itself: the plugin packages the local MCP server and skill, while ChatGPT can consume the authenticated remote MCP endpoint.
 
 ## Local Codex
 
@@ -20,10 +32,12 @@ python -m pip install -r requirements.txt
 python mcp_server.py
 ```
 
-Register the stdio server with an MCP-compatible Codex configuration using the repository root as the working directory and:
+For direct Codex MCP configuration, the server is stdio-based:
 
-```text
-python mcp_server.py
+```toml
+[mcp_servers.marsel-roapp]
+command = "python"
+args = ["mcp_server.py"]
 ```
 
 Do not put RO App or OAuth secrets into a checked-in Codex configuration.
@@ -50,6 +64,7 @@ The MCP SDK publishes protected-resource metadata when authentication is configu
 4. Keep RO App credentials server-side only.
 5. Keep the MCP tool surface read-only until a separately reviewed write capability is required.
 6. Run the full test suite and an MCP Inspector/compatible-client smoke test before release.
+7. Validate the plugin manifest with the current Codex plugin validator before publishing.
 
 ## Current tools
 
