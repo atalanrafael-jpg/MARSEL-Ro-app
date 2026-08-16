@@ -18,7 +18,9 @@
 
 Base URL: `https://api.roapp.io/v2`.
 
-RO App documents the public API as a REST API with Bearer authentication and a limit of up to 3 requests/second. The official documentation also states that the previous API version remains supported until September 1, 2026, which is relevant to the current audit date. citehttps://help.roapp.io/en/articles/3393227-api-general-information
+Official source: https://help.roapp.io/en/articles/3393227-api-general-information
+
+RO App documents the public API as a REST API with Bearer authentication and a limit of up to 3 requests/second. The official documentation also states that the previous API version remains supported until September 1, 2026, which is relevant to the current audit date.
 
 The canonical production audit remains READ-ONLY. No POST/PATCH/DELETE operation is executed by the canonical audit workflow.
 
@@ -29,9 +31,9 @@ An endpoint is `CONFIRMED` only when official RO App documentation explicitly bi
 | Method | Path | Official evidence | Status |
 |---|---|---|---|
 | GET | `/orders` | RO App API documentation | CONFIRMED |
-| GET | `/contacts/people` | RO App API Reference, “Get People” | CONFIRMED |
+| GET | `/contacts/people` | RO App API Reference: Get People | CONFIRMED |
 
-The `/contacts/people` route is explicitly documented by RO App as `GET https://api.roapp.io/v2/contacts/people`. citehttps://roappua.readme.io/reference/get-people
+Official source for `/contacts/people`: https://roappua.readme.io/reference/get-people
 
 ### Not yet established
 
