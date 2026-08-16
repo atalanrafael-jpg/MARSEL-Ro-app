@@ -1,14 +1,66 @@
+from __future__ import annotations
+
+from contextlib import asynccontextmanager
+from typing import AsyncIterator
+
 from fastapi import FastAPI, HTTPException, Query
+
 from .audit import audit_order_pages
 from .config import settings
+from .mcp_auth import JWTTokenVerifier
+from .mcp_server import create_mcp_server
 from .roapp_client import RoAppClient
 
-app = FastAPI(title="MARSEL RO App Connector", version="0.3.0")
+
+mcp_http = None
+
+if settings.mcp_http_enabled:
+    missing = [
+        name
+        for name, value in (
+            ("MCP_RESOURCE_SERVER_URL", settings.mcp_resource_server_url),
+            ("MCP_AUTH_ISSUER", settings.mcp_auth_issuer),
+            ("MCP_AUTH_JWKS_URL", settings.mcp_auth_jwks_url),
+        )
+        if not value
+    ]
+    if missing:
+        raise RuntimeError(
+            "MCP HTTP mode requires: " + ", ".join(missing)
+        )
+
+    verifier = JWTTokenVerifier(
+        jwks_url=settings.mcp_auth_jwks_url,
+        issuer=settings.mcp_auth_issuer,
+        audience=settings.mcp_resource_server_url,
+    )
+    mcp_http = create_mcp_server(verifier)
+    mcp_http.settings.streamable_http_path = "/"
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    if mcp_http is None:
+        yield
+        return
+
+    async with mcp_http.session_manager.run():
+        yield
+
+
+app = FastAPI(
+    title="MARSEL RO App Connector",
+    version="0.4.0",
+    lifespan=lifespan,
+)
+
+if mcp_http is not None:
+    app.mount("/mcp", mcp_http.streamable_http_app())
 
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "service": "marsel-roapp-connector", "version": "0.3.0"}
+    return {"status": "ok", "service": "marsel-roapp-connector", "version": "0.4.0"}
 
 
 @app.get("/ready")
@@ -20,6 +72,10 @@ def ready():
         "api_key_configured": bool(settings.roapp_api_key),
         "timeout_seconds": settings.roapp_timeout_seconds,
         "max_retries": settings.roapp_max_retries,
+        "mcp_http_enabled": settings.mcp_http_enabled,
+        "mcp_auth_configured": bool(
+            settings.mcp_auth_issuer and settings.mcp_resource_server_url
+        ),
     }
 
 

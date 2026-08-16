@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -19,7 +22,20 @@ class Settings(BaseSettings):
     openai_ads_source_url: str = ""
     openai_ads_timeout_seconds: float = 15
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    # MCP / ChatGPT / Codex integration.
+    # HTTP mode is disabled by default so existing deployments remain unchanged.
+    # Enable HTTP mode only with a real OAuth 2.1/OIDC issuer and HTTPS resource URL.
+    mcp_http_enabled: bool = False
+    mcp_resource_server_url: str = ""
+    mcp_auth_issuer: str = ""
+    mcp_auth_jwks_url: str = ""
+    mcp_required_scopes: list[str] = Field(default_factory=list)
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
 
 settings = Settings()
