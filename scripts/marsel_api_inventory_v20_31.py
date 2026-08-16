@@ -9,14 +9,11 @@ from __future__ import annotations
 
 import html
 import os
-import re
 import time
 
 try:
-    # Normal package import (pytest / repository-root execution).
     from . import marsel_api_inventory_v20_29 as base
 except ImportError:
-    # Direct script execution from GitHub Actions' scripts/ directory.
     import marsel_api_inventory_v20_29 as base
 
 VERSION = "20.31"
@@ -39,16 +36,19 @@ base.MIN_INTERVAL = max(float(os.environ.get("ROAPP_MIN_REQUEST_INTERVAL", "0.34
 
 
 def _same_line_method(text, start, end):
-    """Return a method only when it is explicitly tied to the path on its line."""
+    """Return a method only when it appears on the same documentation line."""
     line_start = text.rfind("\n", 0, start) + 1
     line_end = text.find("\n", end)
     if line_end < 0:
         line_end = len(text)
     line = text[line_start:line_end]
-    path_offset = start - line_start
-    prefix = line[:path_offset]
-    match = re.search(r"\b(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\b\s*$", prefix, re.IGNORECASE)
-    return match.group(1).upper() if match else None
+    rel_start = start - line_start
+    rel_end = end - line_start
+    matches = list(__import__("re").finditer(r"\b(GET|POST|PUT|PATCH|DELETE)\b", line, __import__("re").I))
+    if not matches:
+        return None
+    candidate = min(matches, key=lambda m: min(abs(m.end() - rel_start), abs(m.start() - rel_end)))
+    return candidate.group(1).upper()
 
 
 def strict_extract_paths(text, source, store):
@@ -93,7 +93,6 @@ def bounded_fetch(url, headers=None):
 
 
 base.fetch = bounded_fetch
-# Re-export the canonical runner so wrapper versions can delegate safely.
 main = base.main
 
 if __name__ == "__main__":
