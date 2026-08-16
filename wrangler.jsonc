@@ -14,6 +14,7 @@
     "OPENAI_ADS_BASE_URL": "https://bzr.openai.com",
     "OPENAI_ADS_VALIDATE_ONLY": "true",
     "OPENAI_ADS_DEFAULT_CURRENCY": "RUB",
+    "OPENAI_ADS_SOURCE_URL": "",
     "OPENAI_ADS_TIMEOUT_SECONDS": "15"
   },
   "secrets": {
@@ -38,10 +39,11 @@
       }
     ]
   },
-  "migrations": [
-    {
-      "tag": "v1",
-      "new_sqlite_classes": ["MarselRoAppContainer"]
+  "exports": {
+    "MarselRoAppContainer": {
+      "type": "durable-object",
+      "storage": "sqlite",
+      "container": "MarselRoAppContainer"
     }
-  ]
+  }
 }
