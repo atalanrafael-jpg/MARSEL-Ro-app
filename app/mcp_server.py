@@ -26,6 +26,7 @@ def create_mcp_server(token_verifier: TokenVerifier | None = None) -> FastMCP:
         "name": MCP_NAME,
         "instructions": MCP_INSTRUCTIONS,
         "json_response": True,
+        "stateless_http": True,
     }
 
     if token_verifier is not None:
