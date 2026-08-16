@@ -1,3 +1,5 @@
+import asyncio
+
 import pytest
 
 from app.mcp_auth import JWTTokenVerifier
@@ -12,6 +14,12 @@ def test_local_mcp_registers_only_read_tools():
         assert tool.annotations is not None
         assert tool.annotations.readOnlyHint is True
         assert tool.annotations.openWorldHint is False
+
+
+def test_mcp_http_defaults_to_stateless_mode():
+    server = create_local_mcp_server()
+    assert server.settings.stateless_http is True
+    assert server.settings.json_response is True
 
 
 def test_jwt_verifier_requires_https():
@@ -29,7 +37,5 @@ def test_jwt_verifier_rejects_non_jwt_without_network_call():
         issuer="https://issuer.example.com/",
         audience="https://example.com/mcp",
     )
-
-    import asyncio
 
     assert asyncio.run(verifier.verify_token("not-a-jwt")) is None
