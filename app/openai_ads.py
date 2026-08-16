@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from typing import Any
+from urllib.parse import urlsplit, urlunsplit
 
 import httpx
 from pydantic import BaseModel, Field
@@ -29,7 +30,7 @@ class OpenAIAdsEvent(BaseModel):
 
 
 class OpenAIAdsEventsRequest(BaseModel):
-    validate_only: bool = True
+    validate_only: bool = False
     events: list[OpenAIAdsEvent] = Field(min_length=1, max_length=1000)
 
 
@@ -61,6 +62,17 @@ class OpenAIAdsClient:
             raise ValueError("timestamp события не может быть старше 7 дней")
         if event_time > now + timedelta(minutes=10):
             raise ValueError("timestamp события не может быть более чем на 10 минут в будущем")
+
+    @staticmethod
+    def _sanitize_source_url(source_url: str | None) -> str | None:
+        """Return origin + pathname only, as required for web CAPI events."""
+        if not source_url:
+            return None
+        parsed = urlsplit(source_url.strip())
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            raise ValueError("source_url должен быть абсолютным HTTP(S) URL")
+        path = parsed.path or "/"
+        return urlunsplit((parsed.scheme, parsed.netloc, path, "", ""))
 
     async def send_events(
         self,
@@ -119,7 +131,9 @@ class OpenAIAdsClient:
         event_time = timestamp or datetime.now(timezone.utc)
         self._validate_timestamp(event_time)
         timestamp_ms = int(event_time.timestamp() * 1000)
-        event_source_url = source_url or settings.openai_ads_source_url
+        event_source_url = self._sanitize_source_url(
+            source_url or settings.openai_ads_source_url
+        )
 
         event_data: dict[str, Any] = {
             "type": "contents",
