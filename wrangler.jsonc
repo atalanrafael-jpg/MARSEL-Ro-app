@@ -1,0 +1,47 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "marsel-roapp-connector",
+  "main": "src/cloudflare-worker.ts",
+  "compatibility_date": "2026-08-16",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "vars": {
+    "ROAPP_BASE_URL": "https://api.roapp.io/v2",
+    "ROAPP_TIMEOUT_SECONDS": "30",
+    "ROAPP_MAX_REQUESTS_PER_SECOND": "3",
+    "ROAPP_MAX_RETRIES": "3",
+    "ROAPP_RETRY_BASE_SECONDS": "0.75",
+    "OPENAI_ADS_BASE_URL": "https://bzr.openai.com",
+    "OPENAI_ADS_VALIDATE_ONLY": "true",
+    "OPENAI_ADS_DEFAULT_CURRENCY": "RUB",
+    "OPENAI_ADS_TIMEOUT_SECONDS": "15"
+  },
+  "secrets": {
+    "required": [
+      "ROAPP_API_KEY",
+      "OPENAI_ADS_PIXEL_ID",
+      "OPENAI_ADS_CONVERSIONS_API_KEY"
+    ]
+  },
+  "containers": [
+    {
+      "class_name": "MarselRoAppContainer",
+      "image": "./Dockerfile",
+      "max_instances": 2
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "MARSEL_ROAPP_CONTAINER",
+        "class_name": "MarselRoAppContainer"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["MarselRoAppContainer"]
+    }
+  ]
+}
