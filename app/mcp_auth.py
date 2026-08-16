@@ -61,7 +61,9 @@ class JWTTokenVerifier(TokenVerifier):
                     "verify_aud": True,
                 },
             )
-        except (jwt.PyJWTError, Exception) as exc:
+        except Exception as exc:  # noqa: BLE001
+            # Do not log token contents or exception messages because JWT libraries
+            # and HTTP clients can include sensitive request material in errors.
             logger.info("MCP bearer token rejected: %s", type(exc).__name__)
             return None
 
