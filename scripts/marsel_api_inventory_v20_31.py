@@ -11,7 +11,10 @@ import html
 import os
 import time
 
-from scripts import marsel_api_inventory_v20_29 as base
+# This file is executed directly by GitHub Actions from the scripts directory.
+# Import the sibling module directly so execution does not depend on the
+# repository root being present on sys.path as a Python package.
+import marsel_api_inventory_v20_29 as base
 
 VERSION = "20.31"
 
@@ -27,8 +30,6 @@ base.clean = clean_preserve_parameters
 base.TIMEOUT = min(int(os.environ.get("ROAPP_TIMEOUT", "8")), 8)
 base.MAX_RETRIES = 0
 base.RETRY_BASE = 0.0
-# The official llms indexes currently expose substantially more than 40
-# reference pages. Do not truncate the evidence set before inventorying it.
 base.MAX_DOCS = min(int(os.environ.get("MARSEL_MAX_DOCS", "200")), 200)
 base.MAX_BUDGET = min(float(os.environ.get("MARSEL_INVENTORY_BUDGET_SECONDS", "300")), 300.0)
 base.MIN_INTERVAL = max(float(os.environ.get("ROAPP_MIN_REQUEST_INTERVAL", "0.34")), 0.34)
