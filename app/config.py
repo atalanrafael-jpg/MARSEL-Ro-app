@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -28,7 +29,7 @@ class Settings(BaseSettings):
     mcp_resource_server_url: str = ""
     mcp_auth_issuer: str = ""
     mcp_auth_jwks_url: str = ""
-    mcp_required_scopes: list[str] = []
+    mcp_required_scopes: list[str] = Field(default_factory=list)
 
     model_config = SettingsConfigDict(
         env_file=".env",
