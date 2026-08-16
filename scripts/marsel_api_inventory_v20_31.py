@@ -79,6 +79,8 @@ def bounded_fetch(url, headers=None):
 
 
 base.fetch = bounded_fetch
+# Re-export the canonical runner so wrapper versions can delegate safely.
+main = base.main
 
 if __name__ == "__main__":
-    raise SystemExit(base.main())
+    raise SystemExit(main())
