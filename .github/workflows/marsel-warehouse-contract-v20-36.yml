@@ -1,0 +1,29 @@
+name: MARSEL Warehouse Contract V20.36
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    env:
+      ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+      ROAPP_API_BASE: https://api.roapp.io/v2
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check --no-input httpx
+      - name: Verify secret
+        run: test -n "$ROAPP_API_KEY"
+      - name: Run warehouse contract audit (READ ONLY)
+        run: python scripts/marsel_warehouse_contract_v20_36.py
+      - name: Upload evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: marsel-warehouse-contract-v20-36
+          path: marsel-warehouse-contract-v20-36.json
+          retention-days: 90
