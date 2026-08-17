@@ -1,7 +1,5 @@
 name: MARSEL Warehouse Contract V20.36
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
@@ -21,7 +19,21 @@ jobs:
         run: test -n "$ROAPP_API_KEY"
       - name: Run warehouse contract audit (READ ONLY)
         run: python scripts/marsel_warehouse_contract_v20_36.py
+      - name: Enforce warehouse contract result
+        run: |
+          python - <<'PY'
+          import json
+          report=json.load(open('marsel-warehouse-contract-v20-36.json',encoding='utf-8'))
+          assert report.get('mode') == 'READ_ONLY'
+          assert report.get('readonly') is True
+          assert report.get('write_requests_made') == 0
+          assert report.get('ro_app_data_mutated') is False
+          assert report.get('result') == 'PASS'
+          assert report.get('confirmed_live_gets')
+          print('WAREHOUSE_CONTRACT_FINAL=PASS')
+          PY
       - name: Upload evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: marsel-warehouse-contract-v20-36
