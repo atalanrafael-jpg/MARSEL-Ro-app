@@ -3,17 +3,25 @@
 ## Purpose
 Единая контрольная точка проекта: техническое состояние RO App integration, качество данных, безопасность, бизнес-автоматизация и коммерческий контур MARSEL.
 
-## Canonical repository
+## Canonical state
 - Repository: `atalanrafael-jpg/Ro-app`
 - Branch: `main`
-- Production writes: DISABLED until all write-safety gates pass.
+- Current verified HEAD: `85ee71598c1f2c93ac4d1a0ab09c6ca547a6ac3a` (`ci: run warehouse contract audit v20.36`).
 - Current integration mode: READ-ONLY.
+- Production WRITE: DISABLED.
+- Current warehouse audit: V20.36, explicit-contract-only, no guessed identifiers.
+- Latest repository review confirms the warehouse contract workflow and script exist on `main`.
+
+## Verified facts
+- RO App documents API v2 and states that API requests are performed on behalf of the employee whose API key is used; warehouse/location access depends on that employee's permissions.
+- RO App states that if an endpoint is not available in the latest API documentation, the previous API version may be used until September 1, 2026.
+- Current repository policy correctly keeps production writes disabled until the production gate is closed.
 
 ## 100% completion gates
 
 ### Engineering
-- [ ] Unit tests GREEN
-- [ ] All required CI workflows GREEN
+- [ ] Unit tests GREEN on current `main` HEAD
+- [ ] All required CI workflows GREEN on current `main` HEAD
 - [ ] No known import/runtime failures
 - [ ] Canonical structure check PASS
 - [ ] Dependency/security review PASS
@@ -24,6 +32,7 @@
 - [ ] No guessed endpoints
 - [ ] Live GET verification complete where safe
 - [ ] Parameterized identifiers never guessed
+- [ ] Warehouse/stock contract closed with direct evidence
 
 ### Data
 - [ ] Orders inventory complete
@@ -35,7 +44,7 @@
 - [ ] Reconciliation complete
 
 ### Recovery
-- [ ] Full backup created
+- [ ] Full permitted backup created
 - [ ] Backup manifest/checksums verified
 - [ ] Restore tested safely
 - [ ] Recovery procedure documented
@@ -58,8 +67,18 @@
 - [ ] 30-day content system prepared
 - [ ] Lead attribution and conversion tracking prepared
 
-## Status rule
-A gate is `PASS` only when evidence exists. `PLANNED`, `CODED`, `NOT_TESTED`, or `ASSUMED` are not PASS.
+## Current blockers
+1. Current CI/live results for the latest `main` HEAD must be directly verified; older successful runs do not prove current state.
+2. Warehouse/stock contract requires direct evidence and safe verification with real permitted identifiers; identifiers must never be guessed.
+3. Duplicate/anomaly and reconciliation gates remain open until current evidence is attached.
+4. Backup/restore evidence is not yet proven by this control record.
+5. Production WRITE remains prohibited by issue #19 until all required gates are evidenced.
 
-## Current known blocker policy
-If CI, API evidence, backup/restore, reconciliation, security, or write-safety is not proven, project status remains `NOT_READY`.
+## Status rule
+A gate is `PASS` only when current evidence exists. `PLANNED`, `CODED`, `NOT_TESTED`, `ASSUMED`, `OLD_PASS`, or `UNVERIFIED` are not PASS.
+
+## Safety rule
+Never claim backup, restore, reconciliation, security, rotation, or WRITE readiness without direct evidence. Never guess an API endpoint or identifier. Never execute a production mutation merely to make a test green.
+
+## Continuation rule
+Every future execution starts from this file and the current `main` HEAD, verifies the current CI/live evidence, closes the next open gate, records the result, and repeats until either all gates are PASS or a technically unresolvable external blocker is documented.
