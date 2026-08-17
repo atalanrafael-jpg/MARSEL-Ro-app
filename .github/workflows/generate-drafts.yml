@@ -4,6 +4,10 @@ on:
     - cron: "0 9 * * *" # daily at 09:00 UTC
   workflow_dispatch: {}
 
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   generate:
     runs-on: ubuntu-latest
@@ -26,15 +30,11 @@ jobs:
       - name: Run generate drafts
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          GH_PAT: ${{ secrets.GH_PAT }}
+          GITHUB_TOKEN: ${{ github.token }}
           AI_TOPIC: "Daily post ideas for Ro-app"
         run: |
           if [ -z "$OPENAI_API_KEY" ]; then
             echo "OPENAI_API_KEY is not configured; scheduled AI draft generation is skipped safely."
-            exit 0
-          fi
-          if [ -z "$GH_PAT" ]; then
-            echo "GH_PAT is not configured; scheduled AI draft generation is skipped safely."
             exit 0
           fi
           python scripts/generate_drafts.py
