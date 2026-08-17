@@ -16,7 +16,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: "3.12"
 
       - name: Install deps
         run: |
@@ -28,4 +28,13 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GH_PAT: ${{ secrets.GH_PAT }}
           AI_TOPIC: "Daily post ideas for Ro-app"
-        run: python scripts/generate_drafts.py
+        run: |
+          if [ -z "$OPENAI_API_KEY" ]; then
+            echo "OPENAI_API_KEY is not configured; scheduled AI draft generation is skipped safely."
+            exit 0
+          fi
+          if [ -z "$GH_PAT" ]; then
+            echo "GH_PAT is not configured; scheduled AI draft generation is skipped safely."
+            exit 0
+          fi
+          python scripts/generate_drafts.py
