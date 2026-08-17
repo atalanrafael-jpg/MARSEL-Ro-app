@@ -8,7 +8,7 @@ on:
     - cron: '17 */6 * * *'
 concurrency:
   group: marsel-unified-control-plane-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 permissions:
   contents: read
 jobs:
@@ -88,7 +88,11 @@ jobs:
           import json
           from pathlib import Path
           fs=['marsel-unified-api-inventory.json','marsel-unified-data-quality.json','marsel-unified-entity-audit.json','marsel-unified-product-collisions.json','marsel-unified-warehouse-contract.json']
-          if not all(Path(x).exists() for x in fs): raise SystemExit('Required evidence file missing')
+          missing=[x for x in fs if not Path(x).exists()]
+          if missing:
+              out={'system':'MARSEL Unified Control Plane','status':'INCOMPLETE','readonly':True,'write_requests_made':0,'ro_app_data_mutated':False,'missing_evidence':missing,'reason':'One or more canonical audit steps did not complete; no PASS is asserted.'}
+              json.dump(out,open('marsel-unified-evidence.json','w',encoding='utf-8'),ensure_ascii=False,indent=2)
+              raise SystemExit(f'Incomplete audit evidence: missing {missing}')
           inv,dq,ent,col,wh=[json.load(open(x,encoding='utf-8')) for x in fs]
           q='PASS' if not dq.get('access_failures') and not dq.get('hard_issues') else 'REVIEW_REQUIRED'
           e='PASS' if not ent.get('blocked_entities') and not ent.get('failed_entities') else 'REVIEW_REQUIRED'
