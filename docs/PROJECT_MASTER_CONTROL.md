@@ -6,16 +6,18 @@
 ## Canonical state
 - Repository: `atalanrafael-jpg/Ro-app`
 - Branch: `main`
-- Current verified HEAD: `85ee71598c1f2c93ac4d1a0ab09c6ca547a6ac3a` (`ci: run warehouse contract audit v20.36`).
+- Current HEAD before this control update: `85ee71598c1f2c93ac4d1a0ab09c6ca547a6ac3a` (`ci: run warehouse contract audit v20.36`).
 - Current integration mode: READ-ONLY.
 - Production WRITE: DISABLED.
 - Current warehouse audit: V20.36, explicit-contract-only, no guessed identifiers.
 - Latest repository review confirms the warehouse contract workflow and script exist on `main`.
 
-## Verified facts
-- RO App documents API v2 and states that API requests are performed on behalf of the employee whose API key is used; warehouse/location access depends on that employee's permissions.
+## Verified external facts
+- RO App documents Public API v2 and states that API requests are performed on behalf of the employee whose API key is used; access to a warehouse/location depends on that employee's permissions.
 - RO App states that if an endpoint is not available in the latest API documentation, the previous API version may be used until September 1, 2026.
-- Current repository policy correctly keeps production writes disabled until the production gate is closed.
+- RO App's current API update adds additional v2 endpoints/events for calls, orders, estimates, employees and webhooks; this means the API registry must be refreshed against current documentation rather than treated as static.
+- RO App documents stock/product-price synchronization with websites, but explicitly notes that a website sale does not automatically write off RO App inventory or automatically create a sale in RO App. This must be accounted for in any MARSEL ecommerce synchronization design.
+- RO App documents warehouse stock operations and requires a real warehouse selection for stock-related operations; parameterized identifiers must therefore be obtained from verified data and never guessed.
 
 ## 100% completion gates
 
