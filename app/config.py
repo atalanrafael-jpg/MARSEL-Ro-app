@@ -17,7 +17,8 @@ class Settings(BaseSettings):
     openai_ads_pixel_id: str = ""
     openai_ads_conversions_api_key: str = ""
     openai_ads_base_url: str = "https://bzr.openai.com"
-    openai_ads_validate_only: bool = True
+    openai_ads_validate_only: bool = False
+    openai_ads_integration_source: str = "marsel_roapp"
     openai_ads_default_currency: str = "RUB"
     openai_ads_source_url: str = ""
     openai_ads_timeout_seconds: float = 15
