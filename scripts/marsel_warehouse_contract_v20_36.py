@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """MARSEL warehouse contract audit — READ ONLY.
 
-Uses explicit official RO App documentation evidence. No endpoint or identifier is
-invented. Warehouse IDs are obtained only from the documented GET /v2/warehouse/
-response, then used to verify the documented GET /warehouse/goods/{warehouse_id}.
+Uses only explicitly documented RO App GET contracts. The warehouse list endpoint
+supports the documented `type` query parameter; we request `type=product` explicitly
+because the contract being verified is the product-stock contract. Warehouse IDs are
+never invented: they are extracted only from the live warehouse-list response.
 """
 from __future__ import annotations
 import hashlib, json, os, time
+from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 KEY = os.getenv("ROAPP_API_KEY", "")
@@ -23,7 +25,7 @@ def get(url: str):
     req = Request(url, headers={
         "Authorization": f"Bearer {KEY}",
         "Accept": "application/json",
-        "User-Agent": "MARSEL-Warehouse-Contract-V20.37",
+        "User-Agent": "MARSEL-Warehouse-Contract-V20.38",
     }, method="GET")
     started = time.time()
     try:
@@ -46,10 +48,16 @@ def extract_rows(payload):
         return payload
     if not isinstance(payload, dict):
         return []
-    for key in ("data", "warehouses", "items", "results"):
+    # Known/common collection envelopes; no endpoint-specific identifier is invented.
+    for key in ("data", "warehouses", "warehouse", "items", "results"):
         value = payload.get(key)
         if isinstance(value, list):
             return value
+        if isinstance(value, dict):
+            for nested_key in ("data", "items", "results", "warehouses"):
+                nested = value.get(nested_key)
+                if isinstance(nested, list):
+                    return nested
     return []
 
 
@@ -67,13 +75,19 @@ def main():
     if not KEY:
         raise SystemExit("ROAPP_API_KEY is required")
 
-    # Both routes are explicitly documented by RO App.
     contract = {
-        "warehouse_list": {"method": "GET", "path": "/v2/warehouse/", "source": WAREHOUSE_DOC},
+        "warehouse_list": {
+            "method": "GET", "path": "/v2/warehouse/", "source": WAREHOUSE_DOC,
+            "query": {"type": "product"},
+        },
         "stock": {"method": "GET", "path": "/warehouse/goods/{warehouse_id}", "source": STOCK_DOC},
     }
 
-    list_url = f"{API_BASE}/warehouse/"
+    query = {"type": "product"}
+    branch_id = os.getenv("ROAPP_BRANCH_ID", "").strip()
+    if branch_id:
+        query["branch_id"] = branch_id
+    list_url = f"{API_BASE}/warehouse/?{urlencode(query)}"
     status, body, elapsed, error = get(list_url)
     warehouses_payload, valid_json = parse_json(body) if status == 200 else (None, False)
     rows = extract_rows(warehouses_payload) if valid_json else []
@@ -83,15 +97,18 @@ def main():
         if wid and wid not in ids:
             ids.append(wid)
 
-    probes = [{
+    probe = {
         "method": "GET", "path": "/v2/warehouse/", "url": list_url,
-        "source": WAREHOUSE_DOC, "http": status, "elapsed_s": elapsed,
-        "json_valid": valid_json, "error": error,
-    }]
-
+        "source": WAREHOUSE_DOC, "query": query, "http": status,
+        "elapsed_s": elapsed, "json_valid": valid_json, "error": error,
+        "response_top_level_type": type(warehouses_payload).__name__ if valid_json else None,
+        "response_keys": sorted(warehouses_payload.keys()) if isinstance(warehouses_payload, dict) else None,
+        "rows_discovered": len(rows),
+    }
+    probes = [probe]
     confirmed_live_gets = []
-    if status == 200 and valid_json:
-        confirmed_live_gets.append(probes[-1])
+    if status == 200 and valid_json and len(rows) > 0:
+        confirmed_live_gets.append(probe)
 
     for wid in ids:
         url = f"{API_ROOT}/warehouse/goods/{wid}"
@@ -101,14 +118,16 @@ def main():
             "method": "GET", "path": "/warehouse/goods/{warehouse_id}",
             "warehouse_id": wid, "url": url, "source": STOCK_DOC,
             "http": s, "elapsed_s": e, "json_valid": ok, "error": er,
+            "response_top_level_type": type(parsed).__name__ if ok else None,
+            "response_keys": sorted(parsed.keys()) if isinstance(parsed, dict) else None,
         }
         probes.append(row)
         if s == 200 and ok:
             confirmed_live_gets.append(row)
 
-    result = "PASS" if status == 200 and valid_json and bool(confirmed_live_gets) and len(ids) > 0 else "NOT_VERIFIED"
+    result = "PASS" if status == 200 and valid_json and len(ids) > 0 and len(confirmed_live_gets) >= 2 else "NOT_VERIFIED"
     report = {
-        "version": "20.37",
+        "version": "20.38",
         "mode": "READ_ONLY",
         "result": result,
         "readonly": True,
@@ -134,6 +153,10 @@ def main():
     print(f"WAREHOUSE_COUNT={len(ids)}")
     print("WAREHOUSE_EXPLICIT_GET_CONTRACTS=2")
     print(f"WAREHOUSE_CONFIRMED_LIVE_GETS={len(confirmed_live_gets)}")
+    print(f"WAREHOUSE_LIST_HTTP={status}")
+    print(f"WAREHOUSE_LIST_JSON_VALID={str(valid_json).lower()}")
+    print(f"WAREHOUSE_LIST_ROWS={len(rows)}")
+    print(f"WAREHOUSE_LIST_KEYS={probe['response_keys']}")
     print("WRITE_REQUESTS_MADE=0")
     print("RO_APP_DATA_MUTATED=false")
     return 0
