@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """MARSEL warehouse contract audit — READ ONLY.
 
-Uses only explicitly documented RO App GET contracts. The warehouse list endpoint
-supports the documented `branch_id` and `type` query parameters. Warehouse IDs are
-never invented: they are extracted only from live warehouse-list responses.
+The script verifies documented RO App warehouse GET contracts. It never invents
+warehouse IDs and never performs write operations. A missing/404 contract is an
+external API compatibility finding, not a reason to fabricate a PASS result.
 """
 from __future__ import annotations
 import hashlib, json, os, time
@@ -24,7 +24,7 @@ def get(url: str):
     req = Request(url, headers={
         "Authorization": f"Bearer {KEY}",
         "Accept": "application/json",
-        "User-Agent": "MARSEL-Warehouse-Contract-V20.39",
+        "User-Agent": "MARSEL-Warehouse-Contract-V20.44",
     }, method="GET")
     started = time.time()
     try:
@@ -32,26 +32,29 @@ def get(url: str):
             body = r.read().decode("utf-8", errors="replace")
             return r.status, body, round(time.time() - started, 3), None
     except Exception as exc:
-        return None, "", round(time.time() - started, 3), f"{type(exc).__name__}: {exc}"
+        status = getattr(exc, "code", None)
+        body = ""
+        try:
+            body = exc.read().decode("utf-8", errors="replace")
+        except Exception:
+            pass
+        return status, body, round(time.time() - started, 3), f"{type(exc).__name__}: {exc}"
 
 
 def parse_json(body: str):
     try:
         return json.loads(body), True
-    except json.JSONDecodeError:
+    except (json.JSONDecodeError, TypeError):
         return None, False
 
 
 def extract_rows(payload):
-    """Find collection rows without assuming one undocumented response envelope."""
     if isinstance(payload, list):
         return [x for x in payload if isinstance(x, dict)]
     if not isinstance(payload, dict):
         return []
-
     preferred = ("data", "warehouses", "warehouse", "items", "results", "records", "collection")
-    seen = set()
-    found = []
+    seen, found = set(), []
 
     def walk(value, depth=0):
         if depth > 5 or id(value) in seen:
@@ -59,9 +62,9 @@ def extract_rows(payload):
         if isinstance(value, (dict, list)):
             seen.add(id(value))
         if isinstance(value, list):
-            dict_rows = [x for x in value if isinstance(x, dict)]
-            if dict_rows and any(row.get("id") or row.get("warehouse_id") for row in dict_rows):
-                found.extend(dict_rows)
+            rows = [x for x in value if isinstance(x, dict)]
+            if rows and any(row.get("id") or row.get("warehouse_id") for row in rows):
+                found.extend(rows)
                 return
             for item in value:
                 walk(item, depth + 1)
@@ -76,8 +79,7 @@ def extract_rows(payload):
                 walk(child, depth + 1)
 
     walk(payload)
-    unique = []
-    signatures = set()
+    unique, signatures = [], set()
     for row in found:
         sig = json.dumps(row, sort_keys=True, ensure_ascii=False, default=str)
         if sig not in signatures:
@@ -96,53 +98,51 @@ def warehouse_id(row):
     return None
 
 
-def probe_warehouse_list(query):
-    url = f"{API_BASE}/warehouse/" + (f"?{urlencode(query)}" if query else "")
+def probe(path: str, query: dict | None, source: str, documented: bool):
+    url = f"{path}" + (f"?{urlencode(query)}" if query else "")
     status, body, elapsed, error = get(url)
     payload, valid_json = parse_json(body) if status == 200 else (None, False)
     rows = extract_rows(payload) if valid_json else []
-    probe = {
-        "method": "GET", "path": "/v2/warehouse/", "url": url,
-        "source": WAREHOUSE_DOC, "query": query,
-        "http": status, "elapsed_s": elapsed, "json_valid": valid_json,
-        "error": error,
+    return {
+        "method": "GET", "path": url.replace(API_ROOT, ""), "url": url,
+        "source": source, "documented_contract": documented,
+        "query": query or {}, "http": status, "elapsed_s": elapsed,
+        "json_valid": valid_json, "error": error,
         "response_top_level_type": type(payload).__name__ if valid_json else None,
         "response_keys": sorted(payload.keys()) if isinstance(payload, dict) else None,
         "rows_discovered": len(rows),
-    }
-    return probe, rows
+    }, rows
 
 
 def main():
     if not KEY:
         raise SystemExit("ROAPP_API_KEY is required")
 
-    contract = {
-        "warehouse_list": {
-            "method": "GET", "path": "/v2/warehouse/", "source": WAREHOUSE_DOC,
-            "query": {"type": "product"},
-        },
-        "stock": {"method": "GET", "path": "/warehouse/goods/{warehouse_id}", "source": STOCK_DOC},
-    }
-
     branch_id = os.getenv("ROAPP_BRANCH_ID", "").strip()
     query = {"type": "product"}
     if branch_id:
         query["branch_id"] = branch_id
 
-    probe, rows = probe_warehouse_list(query)
-    probes = [probe]
+    probes = []
+    list_probe, rows = probe(f"{API_BASE}/warehouse/", query, WAREHOUSE_DOC, True)
+    probes.append(list_probe)
 
-    # `type=product` is explicitly documented, but it also defaults to product.
-    # If a valid 200 response contains no rows, retry the same documented GET
-    # without optional query parameters rather than inventing another endpoint.
-    if probe["http"] == 200 and probe["json_valid"] and not rows and not branch_id:
-        fallback_probe, fallback_rows = probe_warehouse_list({})
-        fallback_probe["reason"] = "documented type parameter defaults to product; first valid response contained no discoverable rows"
+    if list_probe["http"] == 200 and list_probe["json_valid"] and not rows and not branch_id:
+        fallback_probe, fallback_rows = probe(f"{API_BASE}/warehouse/", {}, WAREHOUSE_DOC, True)
+        fallback_probe["reason"] = "documented type parameter defaults to product"
         probes.append(fallback_probe)
         if fallback_rows:
             rows = fallback_rows
-            query = {}
+
+    # Diagnostic-only candidates. These are NOT treated as official contracts.
+    # They help distinguish a moved endpoint from an unavailable contract.
+    if not rows:
+        for candidate in (f"{API_ROOT}/warehouse/", f"{API_BASE}/warehouses"):
+            candidate_probe, candidate_rows = probe(candidate, query, WAREHOUSE_DOC, False)
+            candidate_probe["reason"] = "undocumented compatibility probe"
+            probes.append(candidate_probe)
+            if candidate_rows:
+                rows = candidate_rows
 
     ids = []
     for row in rows:
@@ -150,8 +150,7 @@ def main():
         if wid and wid not in ids:
             ids.append(wid)
 
-    confirmed_live_gets = [p for p in probes if p.get("http") == 200 and p.get("json_valid") and p.get("rows_discovered", 0) > 0]
-
+    stock_probes = []
     for wid in ids:
         url = f"{API_ROOT}/warehouse/goods/{wid}"
         status, body, elapsed, error = get(url)
@@ -159,32 +158,31 @@ def main():
         row = {
             "method": "GET", "path": "/warehouse/goods/{warehouse_id}",
             "warehouse_id": wid, "url": url, "source": STOCK_DOC,
-            "http": status, "elapsed_s": elapsed, "json_valid": valid_json,
-            "error": error,
+            "documented_contract": True, "http": status,
+            "elapsed_s": elapsed, "json_valid": valid_json, "error": error,
             "response_top_level_type": type(parsed).__name__ if valid_json else None,
             "response_keys": sorted(parsed.keys()) if isinstance(parsed, dict) else None,
         }
-        probes.append(row)
-        if status == 200 and valid_json:
-            confirmed_live_gets.append(row)
+        stock_probes.append(row)
 
-    result = "PASS" if ids and len(confirmed_live_gets) >= 2 else "NOT_VERIFIED"
+    probes.extend(stock_probes)
+    documented_live = [p for p in probes if p.get("documented_contract") and p.get("http") == 200 and p.get("json_valid")]
+    confirmed_live_gets = [p for p in documented_live if p.get("rows_discovered", 0) > 0 or p.get("path") == "/warehouse/goods/{warehouse_id}"]
+
+    # PASS means both documented contracts are demonstrably usable. NOT_VERIFIED
+    # is an expected audit finding and must not be converted into PASS by CI.
+    list_ok = any(p.get("documented_contract") and p.get("path") == "/v2/warehouse/" and p.get("http") == 200 and p.get("json_valid") and p.get("rows_discovered", 0) > 0 for p in probes)
+    stock_ok = any(p.get("documented_contract") and p.get("path") == "/warehouse/goods/{warehouse_id}" and p.get("http") == 200 and p.get("json_valid") for p in probes)
+    result = "PASS" if ids and list_ok and stock_ok else "NOT_VERIFIED"
+
     report = {
-        "version": "20.39",
-        "mode": "READ_ONLY",
-        "result": result,
-        "readonly": True,
-        "write_requests_made": 0,
-        "ro_app_data_mutated": False,
-        "official_documentation": {
-            "warehouse_list": WAREHOUSE_DOC,
-            "stock": STOCK_DOC,
-            "explicit_contracts": list(contract.values()),
-        },
-        "warehouse_count": len(ids),
-        "warehouse_ids_discovered": ids,
-        "probes": probes,
-        "confirmed_live_gets": confirmed_live_gets,
+        "version": "20.44",
+        "mode": "READ_ONLY", "result": result, "readonly": True,
+        "write_requests_made": 0, "ro_app_data_mutated": False,
+        "official_documentation": {"warehouse_list": WAREHOUSE_DOC, "stock": STOCK_DOC},
+        "warehouse_count": len(ids), "warehouse_ids_discovered": ids,
+        "probes": probes, "confirmed_live_gets": confirmed_live_gets,
+        "diagnostic_only_undocumented_probes": [p for p in probes if not p.get("documented_contract")],
     }
     raw = json.dumps(report, ensure_ascii=False, indent=2).encode()
     report["report_sha256"] = hashlib.sha256(raw).hexdigest()
@@ -196,13 +194,9 @@ def main():
     print(f"WAREHOUSE_COUNT={len(ids)}")
     print("WAREHOUSE_EXPLICIT_GET_CONTRACTS=2")
     print(f"WAREHOUSE_CONFIRMED_LIVE_GETS={len(confirmed_live_gets)}")
-    print(f"WAREHOUSE_LIST_HTTP={probe['http']}")
-    print(f"WAREHOUSE_LIST_JSON_VALID={str(probe['json_valid']).lower()}")
-    print(f"WAREHOUSE_LIST_ROWS={probe['rows_discovered']}")
-    print(f"WAREHOUSE_LIST_KEYS={probe['response_keys']}")
-    if len(probes) > 1:
-        print(f"WAREHOUSE_FALLBACK_HTTP={probes[1]['http']}")
-        print(f"WAREHOUSE_FALLBACK_ROWS={probes[1]['rows_discovered']}")
+    print(f"WAREHOUSE_LIST_HTTP={list_probe['http']}")
+    print(f"WAREHOUSE_LIST_JSON_VALID={str(list_probe['json_valid']).lower()}")
+    print(f"WAREHOUSE_LIST_ROWS={list_probe['rows_discovered']}")
     print("WRITE_REQUESTS_MADE=0")
     print("RO_APP_DATA_MUTATED=false")
     return 0
