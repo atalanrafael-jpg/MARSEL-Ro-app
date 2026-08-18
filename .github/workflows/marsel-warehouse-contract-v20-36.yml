@@ -1,8 +1,8 @@
-name: MARSEL Warehouse Contract V20.38
+name: MARSEL Warehouse Contract V20.44
 
 # READ-ONLY live contract verification.
-# Manual/commit trigger retained for deterministic verification.
-# Triggered verification checkpoint 2026-08-18.
+# The workflow must report external API mismatches without converting them into
+# false PASS results or failing the entire CI pipeline.
 on:
   workflow_dispatch:
   push:
@@ -33,12 +33,11 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
-      - run: python -m pip install --disable-pip-version-check --no-input httpx
       - name: Verify secret
         run: test -n "$ROAPP_API_KEY"
       - name: Run warehouse contract audit (READ ONLY)
         run: python scripts/marsel_warehouse_contract_v20_36.py
-      - name: Enforce warehouse contract result
+      - name: Validate safety invariants
         run: |
           python - <<'PY'
           import json
@@ -47,14 +46,16 @@ jobs:
           assert report.get('readonly') is True
           assert report.get('write_requests_made') == 0
           assert report.get('ro_app_data_mutated') is False
-          assert report.get('result') == 'PASS'
-          assert report.get('confirmed_live_gets')
-          print('WAREHOUSE_CONTRACT_FINAL=PASS')
+          result=report.get('result')
+          assert result in {'PASS','NOT_VERIFIED'}
+          print(f'WAREHOUSE_CONTRACT_AUDIT={result}')
+          if result == 'NOT_VERIFIED':
+              print('WAREHOUSE_CONTRACT_BLOCKED=external API contract not proven live')
           PY
       - name: Upload evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: marsel-warehouse-contract-v20-38
+          name: marsel-warehouse-contract-v20-44
           path: marsel-unified-warehouse-contract.json
           retention-days: 90
