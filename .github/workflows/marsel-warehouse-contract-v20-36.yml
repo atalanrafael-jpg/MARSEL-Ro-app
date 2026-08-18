@@ -1,5 +1,6 @@
 name: MARSEL Warehouse Contract V20.37
 
+# Triggered by push so the corrected READ-ONLY contract audit is live-verified.
 on:
   workflow_dispatch:
   push:
