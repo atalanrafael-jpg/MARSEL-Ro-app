@@ -1,11 +1,19 @@
-name: MARSEL Warehouse Contract V20.36
+name: MARSEL Warehouse Contract V20.37
+
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/marsel_warehouse_contract_v20_36.py'
+      - '.github/workflows/marsel-warehouse-contract-v20-36.yml'
+
 permissions:
   contents: read
+
 jobs:
   audit:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     env:
       ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
       ROAPP_API_BASE: https://api.roapp.io/v2
@@ -23,7 +31,7 @@ jobs:
         run: |
           python - <<'PY'
           import json
-          report=json.load(open('marsel-warehouse-contract-v20-36.json',encoding='utf-8'))
+          report=json.load(open('marsel-unified-warehouse-contract.json',encoding='utf-8'))
           assert report.get('mode') == 'READ_ONLY'
           assert report.get('readonly') is True
           assert report.get('write_requests_made') == 0
@@ -36,6 +44,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: marsel-warehouse-contract-v20-36
-          path: marsel-warehouse-contract-v20-36.json
+          name: marsel-warehouse-contract-v20-37
+          path: marsel-unified-warehouse-contract.json
           retention-days: 90
