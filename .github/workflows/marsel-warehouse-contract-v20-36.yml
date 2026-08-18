@@ -2,6 +2,7 @@ name: MARSEL Warehouse Contract V20.38
 
 # READ-ONLY live contract verification.
 # Manual/commit trigger retained for deterministic verification.
+# Triggered verification checkpoint 2026-08-18.
 on:
   workflow_dispatch:
   push:
