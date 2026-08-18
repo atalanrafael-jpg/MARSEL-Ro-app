@@ -1,4 +1,4 @@
-name: MARSEL Warehouse Contract V20.37
+name: MARSEL Warehouse Contract V20.38
 
 # READ-ONLY live contract verification.
 on:
@@ -53,6 +53,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: marsel-warehouse-contract-v20-37
+          name: marsel-warehouse-contract-v20-38
           path: marsel-unified-warehouse-contract.json
           retention-days: 90
