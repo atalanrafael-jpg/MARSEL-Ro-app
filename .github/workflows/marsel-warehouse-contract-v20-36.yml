@@ -1,7 +1,7 @@
 name: MARSEL Warehouse Contract V20.38
 
 # READ-ONLY live contract verification.
-# Manual/PR trigger preserved; this commit intentionally retriggers the contract audit.
+# Manual/PR/push triggers preserved; this commit intentionally retriggers the contract audit.
 on:
   workflow_dispatch:
   push:
