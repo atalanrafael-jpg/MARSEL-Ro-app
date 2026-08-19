@@ -4,6 +4,8 @@
 The script verifies documented RO App warehouse GET contracts. It never invents
 warehouse IDs and never performs write operations. A missing/404 contract is an
 external API compatibility finding, not a reason to fabricate a PASS result.
+Transient transport failures are retried within a bounded budget and remain
+NOT_VERIFIED unless the documented GET contract is actually confirmed live.
 """
 from __future__ import annotations
 import hashlib, json, os, time
@@ -13,32 +15,45 @@ from urllib.request import Request, urlopen
 KEY = os.getenv("ROAPP_API_KEY", "")
 API_BASE = os.getenv("ROAPP_API_BASE", "https://api.roapp.io/v2").rstrip("/")
 API_ROOT = API_BASE.removesuffix("/v2")
-TIMEOUT = 8
-MIN_INTERVAL = 0.34
+TIMEOUT = float(os.getenv("ROAPP_WAREHOUSE_TIMEOUT", os.getenv("ROAPP_TIMEOUT", "15")))
+MAX_RETRIES = max(int(os.getenv("ROAPP_MAX_RETRIES", "2")), 0)
+MIN_INTERVAL = max(float(os.getenv("ROAPP_MIN_REQUEST_INTERVAL", "0.34")), 0.34)
 WAREHOUSE_DOC = "https://roappua.readme.io/reference/get-warehouses"
 STOCK_DOC = "https://roappua.readme.io/reference/get-stock"
 
 
 def get(url: str):
-    time.sleep(MIN_INTERVAL)
-    req = Request(url, headers={
-        "Authorization": f"Bearer {KEY}",
-        "Accept": "application/json",
-        "User-Agent": "MARSEL-Warehouse-Contract-V20.44",
-    }, method="GET")
-    started = time.time()
-    try:
-        with urlopen(req, timeout=TIMEOUT) as r:
-            body = r.read().decode("utf-8", errors="replace")
-            return r.status, body, round(time.time() - started, 3), None
-    except Exception as exc:
-        status = getattr(exc, "code", None)
-        body = ""
+    last_error = None
+    for attempt in range(MAX_RETRIES + 1):
+        if attempt:
+            time.sleep(min(2 ** (attempt - 1), 4))
+        time.sleep(MIN_INTERVAL)
+        req = Request(url, headers={
+            "Authorization": f"Bearer {KEY}",
+            "Accept": "application/json",
+            "User-Agent": "MARSEL-Warehouse-Contract-V20.45",
+        }, method="GET")
+        started = time.time()
         try:
-            body = exc.read().decode("utf-8", errors="replace")
-        except Exception:
-            pass
-        return status, body, round(time.time() - started, 3), f"{type(exc).__name__}: {exc}"
+            with urlopen(req, timeout=TIMEOUT) as r:
+                body = r.read().decode("utf-8", errors="replace")
+                if r.status in {408, 429, 500, 502, 503, 504} and attempt < MAX_RETRIES:
+                    continue
+                return r.status, body, round(time.time() - started, 3), None
+        except Exception as exc:
+            status = getattr(exc, "code", None)
+            body = ""
+            try:
+                body = exc.read().decode("utf-8", errors="replace")
+            except Exception:
+                pass
+            last_error = f"{type(exc).__name__}: {exc}"
+            if status in {408, 429, 500, 502, 503, 504} and attempt < MAX_RETRIES:
+                continue
+            if status is None and attempt < MAX_RETRIES:
+                continue
+            return status, body, round(time.time() - started, 3), last_error
+    return None, "", 0, last_error or "GET request failed"
 
 
 def parse_json(body: str):
@@ -134,8 +149,6 @@ def main():
         if fallback_rows:
             rows = fallback_rows
 
-    # Diagnostic-only candidates. These are NOT treated as official contracts.
-    # They help distinguish a moved endpoint from an unavailable contract.
     if not rows:
         for candidate in (f"{API_ROOT}/warehouse/", f"{API_BASE}/warehouses"):
             candidate_probe, candidate_rows = probe(candidate, query, WAREHOUSE_DOC, False)
@@ -155,34 +168,43 @@ def main():
         url = f"{API_ROOT}/warehouse/goods/{wid}"
         status, body, elapsed, error = get(url)
         parsed, valid_json = parse_json(body) if status == 200 else (None, False)
-        row = {
+        stock_probes.append({
             "method": "GET", "path": "/warehouse/goods/{warehouse_id}",
             "warehouse_id": wid, "url": url, "source": STOCK_DOC,
             "documented_contract": True, "http": status,
             "elapsed_s": elapsed, "json_valid": valid_json, "error": error,
             "response_top_level_type": type(parsed).__name__ if valid_json else None,
             "response_keys": sorted(parsed.keys()) if isinstance(parsed, dict) else None,
-        }
-        stock_probes.append(row)
+        })
 
     probes.extend(stock_probes)
-    documented_live = [p for p in probes if p.get("documented_contract") and p.get("http") == 200 and p.get("json_valid")]
-    confirmed_live_gets = [p for p in documented_live if p.get("rows_discovered", 0) > 0 or p.get("path") == "/warehouse/goods/{warehouse_id}"]
+    confirmed_live_gets = [
+        p for p in probes
+        if p.get("documented_contract") and p.get("http") == 200 and p.get("json_valid")
+        and (p.get("rows_discovered", 0) > 0 or p.get("path") == "/warehouse/goods/{warehouse_id}")
+    ]
 
-    # PASS means both documented contracts are demonstrably usable. NOT_VERIFIED
-    # is an expected audit finding and must not be converted into PASS by CI.
-    list_ok = any(p.get("documented_contract") and p.get("path") == "/v2/warehouse/" and p.get("http") == 200 and p.get("json_valid") and p.get("rows_discovered", 0) > 0 for p in probes)
-    stock_ok = any(p.get("documented_contract") and p.get("path") == "/warehouse/goods/{warehouse_id}" and p.get("http") == 200 and p.get("json_valid") for p in probes)
+    list_ok = any(
+        p.get("documented_contract") and p.get("path") == "/v2/warehouse/"
+        and p.get("http") == 200 and p.get("json_valid") and p.get("rows_discovered", 0) > 0
+        for p in probes
+    )
+    stock_ok = any(
+        p.get("documented_contract") and p.get("path") == "/warehouse/goods/{warehouse_id}"
+        and p.get("http") == 200 and p.get("json_valid")
+        for p in probes
+    )
     result = "PASS" if ids and list_ok and stock_ok else "NOT_VERIFIED"
 
     report = {
-        "version": "20.44",
-        "mode": "READ_ONLY", "result": result, "readonly": True,
+        "version": "20.45", "mode": "READ_ONLY", "result": result, "readonly": True,
         "write_requests_made": 0, "ro_app_data_mutated": False,
         "official_documentation": {"warehouse_list": WAREHOUSE_DOC, "stock": STOCK_DOC},
         "warehouse_count": len(ids), "warehouse_ids_discovered": ids,
         "probes": probes, "confirmed_live_gets": confirmed_live_gets,
         "diagnostic_only_undocumented_probes": [p for p in probes if not p.get("documented_contract")],
+        "retry_policy": {"max_retries": MAX_RETRIES, "timeout_seconds": TIMEOUT,
+                         "retryable_http": [408, 429, 500, 502, 503, 504]},
     }
     raw = json.dumps(report, ensure_ascii=False, indent=2).encode()
     report["report_sha256"] = hashlib.sha256(raw).hexdigest()
