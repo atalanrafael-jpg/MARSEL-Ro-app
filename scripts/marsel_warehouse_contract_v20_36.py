@@ -1,38 +1,55 @@
 #!/usr/bin/env python3
 """MARSEL warehouse contract audit — READ ONLY.
 
-Uses only explicitly documented RO App GET contracts. The warehouse list endpoint
-supports the documented `branch_id` and `type` query parameters. Warehouse IDs are
-never invented: they are extracted only from live warehouse-list responses.
+Uses only explicitly documented RO App GET contracts. Warehouse IDs are never
+invented: they are extracted only from live warehouse-list responses.
+Transient transport failures are retried within a bounded budget and remain
+NOT_VERIFIED unless the documented GET contract is actually confirmed live.
 """
 from __future__ import annotations
 import hashlib, json, os, time
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
+from urllib.error import HTTPError, URLError
 
 KEY = os.getenv("ROAPP_API_KEY", "")
 API_BASE = os.getenv("ROAPP_API_BASE", "https://api.roapp.io/v2").rstrip("/")
 API_ROOT = API_BASE.removesuffix("/v2")
-TIMEOUT = 8
-MIN_INTERVAL = 0.34
+TIMEOUT = float(os.getenv("ROAPP_WAREHOUSE_TIMEOUT", os.getenv("ROAPP_TIMEOUT", "15")))
+MAX_RETRIES = max(int(os.getenv("ROAPP_MAX_RETRIES", "2")), 0)
+MIN_INTERVAL = max(float(os.getenv("ROAPP_MIN_REQUEST_INTERVAL", "0.34")), 0.34)
 WAREHOUSE_DOC = "https://roappua.readme.io/reference/get-warehouses"
 STOCK_DOC = "https://roappua.readme.io/reference/get-stock"
 
 
 def get(url: str):
-    time.sleep(MIN_INTERVAL)
-    req = Request(url, headers={
-        "Authorization": f"Bearer {KEY}",
-        "Accept": "application/json",
-        "User-Agent": "MARSEL-Warehouse-Contract-V20.39",
-    }, method="GET")
-    started = time.time()
-    try:
-        with urlopen(req, timeout=TIMEOUT) as r:
-            body = r.read().decode("utf-8", errors="replace")
-            return r.status, body, round(time.time() - started, 3), None
-    except Exception as exc:
-        return None, "", round(time.time() - started, 3), f"{type(exc).__name__}: {exc}"
+    last_error = None
+    for attempt in range(MAX_RETRIES + 1):
+        if attempt:
+            time.sleep(min(2 ** (attempt - 1), 4))
+        time.sleep(MIN_INTERVAL)
+        req = Request(url, headers={
+            "Authorization": f"Bearer {KEY}",
+            "Accept": "application/json",
+            "User-Agent": "MARSEL-Warehouse-Contract-V20.40-READONLY",
+        }, method="GET")
+        started = time.time()
+        try:
+            with urlopen(req, timeout=TIMEOUT) as r:
+                body = r.read().decode("utf-8", errors="replace")
+                return r.status, body, round(time.time() - started, 3), None, attempt + 1
+        except HTTPError as exc:
+            body = exc.read().decode("utf-8", errors="replace")[:1000]
+            if exc.code in {408, 429, 500, 502, 503, 504} and attempt < MAX_RETRIES:
+                last_error = f"HTTPError: {exc.code}"
+                continue
+            return exc.code, body, round(time.time() - started, 3), f"HTTPError: {exc.code}", attempt + 1
+        except (TimeoutError, URLError, OSError) as exc:
+            last_error = f"{type(exc).__name__}: {exc}"
+            if attempt < MAX_RETRIES:
+                continue
+            return None, "", round(time.time() - started, 3), last_error, attempt + 1
+    return None, "", 0.0, last_error or "GET failed", MAX_RETRIES + 1
 
 
 def parse_json(body: str):
@@ -49,13 +66,10 @@ def extract_rows(payload):
     if not isinstance(payload, dict):
         return []
     preferred = ("data", "warehouses", "warehouse", "items", "results", "records", "collection")
-    seen = set()
-    found = []
+    seen = set(); found = []
     def walk(value, depth=0):
-        if depth > 5 or id(value) in seen:
-            return
-        if isinstance(value, (dict, list)):
-            seen.add(id(value))
+        if depth > 5 or id(value) in seen: return
+        if isinstance(value, (dict, list)): seen.add(id(value))
         if isinstance(value, list):
             dict_rows = [x for x in value if isinstance(x, dict)]
             if dict_rows and any(row.get("id") or row.get("warehouse_id") for row in dict_rows):
@@ -86,10 +100,10 @@ def warehouse_id(row):
 
 def probe_warehouse_list(query):
     url = f"{API_BASE}/warehouse/" + (f"?{urlencode(query)}" if query else "")
-    status, body, elapsed, error = get(url)
+    status, body, elapsed, error, attempts = get(url)
     payload, valid_json = parse_json(body) if status == 200 else (None, False)
     rows = extract_rows(payload) if valid_json else []
-    return ({"method":"GET","path":"/v2/warehouse/","url":url,"source":WAREHOUSE_DOC,"query":query,"http":status,"elapsed_s":elapsed,"json_valid":valid_json,"error":error,"response_top_level_type":type(payload).__name__ if valid_json else None,"response_keys":sorted(payload.keys()) if isinstance(payload,dict) else None,"rows_discovered":len(rows)}, rows)
+    return ({"method":"GET","path":"/v2/warehouse/","url":url,"source":WAREHOUSE_DOC,"query":query,"http":status,"elapsed_s":elapsed,"attempts":attempts,"json_valid":valid_json,"error":error,"response_top_level_type":type(payload).__name__ if valid_json else None,"response_keys":sorted(payload.keys()) if isinstance(payload,dict) else None,"rows_discovered":len(rows)}, rows)
 
 
 def main():
@@ -101,7 +115,7 @@ def main():
     probe, rows = probe_warehouse_list(query); probes=[probe]
     if probe["http"] == 200 and probe["json_valid"] and not rows and not branch_id:
         fallback_probe, fallback_rows = probe_warehouse_list({})
-        fallback_probe["reason"]="documented type parameter defaults to product; first valid response contained no discoverable rows"
+        fallback_probe["reason"]="documented type parameter returned no discoverable rows; fallback probe used without inventing IDs"
         probes.append(fallback_probe)
         if fallback_rows: rows=fallback_rows; query={}
     ids=[]
@@ -111,17 +125,15 @@ def main():
     confirmed_live_gets=[p for p in probes if p.get("http")==200 and p.get("json_valid") and p.get("rows_discovered",0)>0]
     for wid in ids:
         url=f"{API_ROOT}/warehouse/goods/{wid}"
-        status,body,elapsed,error=get(url); parsed,valid_json=parse_json(body) if status==200 else (None,False)
-        row={"method":"GET","path":"/warehouse/goods/{warehouse_id}","warehouse_id":wid,"url":url,"source":STOCK_DOC,"http":status,"elapsed_s":elapsed,"json_valid":valid_json,"error":error,"response_top_level_type":type(parsed).__name__ if valid_json else None,"response_keys":sorted(parsed.keys()) if isinstance(parsed,dict) else None}
+        status,body,elapsed,error,attempts=get(url); parsed,valid_json=parse_json(body) if status==200 else (None,False)
+        row={"method":"GET","path":"/warehouse/goods/{warehouse_id}","warehouse_id":wid,"url":url,"source":STOCK_DOC,"http":status,"elapsed_s":elapsed,"attempts":attempts,"json_valid":valid_json,"error":error,"response_top_level_type":type(parsed).__name__ if valid_json else None,"response_keys":sorted(parsed.keys()) if isinstance(parsed,dict) else None}
         probes.append(row)
         if status==200 and valid_json: confirmed_live_gets.append(row)
     result="PASS" if ids and len(confirmed_live_gets)>=2 else "NOT_VERIFIED"
-    report={"version":"20.39","mode":"READ_ONLY","result":result,"readonly":True,"write_requests_made":0,"ro_app_data_mutated":False,"official_documentation":{"warehouse_list":WAREHOUSE_DOC,"stock":STOCK_DOC,"explicit_contracts":list(contract.values())},"warehouse_count":len(ids),"warehouse_ids_discovered":ids,"probes":probes,"confirmed_live_gets":confirmed_live_gets}
+    report={"version":"20.40","mode":"READ_ONLY","result":result,"readonly":True,"write_requests_made":0,"ro_app_data_mutated":False,"official_documentation":{"warehouse_list":WAREHOUSE_DOC,"stock":STOCK_DOC,"explicit_contracts":list(contract.values())},"warehouse_count":len(ids),"warehouse_ids_discovered":ids,"probes":probes,"confirmed_live_gets":confirmed_live_gets,"retry_policy":{"max_retries":MAX_RETRIES,"timeout_s":TIMEOUT}}
     raw=json.dumps(report,ensure_ascii=False,indent=2).encode(); report["report_sha256"]=hashlib.sha256(raw).hexdigest()
     out=os.getenv("WAREHOUSE_CONTRACT_OUTPUT","marsel-unified-warehouse-contract.json")
     with open(out,"w",encoding="utf-8") as fh: json.dump(report,fh,ensure_ascii=False,indent=2)
-    print(f"WAREHOUSE_CONTRACT_RESULT={result}"); print(f"WAREHOUSE_COUNT={len(ids)}"); print("WAREHOUSE_EXPLICIT_GET_CONTRACTS=2"); print(f"WAREHOUSE_CONFIRMED_LIVE_GETS={len(confirmed_live_gets)}"); print(f"WAREHOUSE_LIST_HTTP={probe['http']}"); print(f"WAREHOUSE_LIST_JSON_VALID={str(probe['json_valid']).lower()}"); print(f"WAREHOUSE_LIST_ROWS={probe['rows_discovered']}"); print(f"WAREHOUSE_LIST_KEYS={probe['response_keys']}");
-    if len(probes)>1: print(f"WAREHOUSE_FALLBACK_HTTP={probes[1]['http']}"); print(f"WAREHOUSE_FALLBACK_ROWS={probes[1]['rows_discovered']}") if len(probes)>1 else None
-    print("WRITE_REQUESTS_MADE=0"); print("RO_APP_DATA_MUTATED=false"); return 0
+    print(f"WAREHOUSE_CONTRACT_RESULT={result}"); print(f"WAREHOUSE_COUNT={len(ids)}"); print("WAREHOUSE_EXPLICIT_GET_CONTRACTS=2"); print(f"WAREHOUSE_CONFIRMED_LIVE_GETS={len(confirmed_live_gets)}"); print(f"WAREHOUSE_LIST_HTTP={probe['http']}"); print(f"WAREHOUSE_LIST_JSON_VALID={str(probe['json_valid']).lower()}"); print(f"WAREHOUSE_LIST_ROWS={probe['rows_discovered']}"); print(f"WAREHOUSE_LIST_KEYS={probe['response_keys']}"); print("WRITE_REQUESTS_MADE=0"); print("RO_APP_DATA_MUTATED=false"); return 0
 
 if __name__ == "__main__": raise SystemExit(main())
