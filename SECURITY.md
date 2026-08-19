@@ -1,10 +1,17 @@
-# Безопасность
+# Security — MARSEL ROAPP
 
-1. API-ключ хранится только в GitHub Actions Secrets / секретном хранилище или локальной среде; реальные ключи не хранятся в репозитории.
-2. Никогда не публиковать API-ключи в GitHub issues, PR, комментариях, коде, документации, артефактах или логах.
-3. Если ключ был раскрыт или есть подозрение на раскрытие: немедленно отозвать/ротировать его, затем проверить репозиторий, issues, PR, Actions logs и artifacts.
-4. Перед операциями записи сделать резервную копию/экспорт, если это поддерживается RO App.
-5. До разрешения production WRITE пройти: backup, restore test, schema reconciliation, dry-run, idempotency, rollback plan, reversible test write и post-write verification.
-6. По умолчанию все API-аудиты и диагностика выполняются READ-ONLY; POST/PUT/PATCH/DELETE запрещены, пока отдельные production WRITE gates не пройдены.
-7. Дубликаты сначала выявлять и формировать отчет, а не удалять автоматически.
-8. Не помещать PII и секреты в отчеты, артефакты или диагностические журналы.
+MARSEL ROAPP is one system. Security controls apply to the complete repository, including MARSEL business logic, ROAPP API/integrations, AI/MCP and CI/CD.
+
+## Mandatory rules
+
+- Never commit API keys, OAuth tokens, refresh tokens, client secrets or passwords.
+- Keep production credentials in protected secret storage.
+- Keep RO App production mutations disabled until the unified production safety gate passes.
+- Treat READ-ONLY evidence as the default verification mode.
+- Do not claim backup, restore, reconciliation, OAuth, MCP authorization or WRITE readiness without direct evidence.
+- Review repository history, Issues, PRs, Actions logs and artifacts when credential exposure is suspected.
+- Minimize OAuth scopes and use read-only scopes unless a documented business requirement requires more.
+
+## Canonical control
+
+Use `.github/workflows/marsel-unified-control-plane.yml` as the canonical MARSEL ROAPP audit workflow. Avoid parallel security/audit implementations that duplicate the same responsibility.
