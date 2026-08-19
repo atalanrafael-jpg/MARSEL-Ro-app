@@ -5,7 +5,7 @@ import pytest
 from app.openai_ads import OpenAIAdsClient, OpenAIAdsContent
 
 
-def test_order_event_uses_minor_units_and_stable_id(monkeypatch):
+def test_order_event_uses_minor_units_stable_id_and_sanitized_url(monkeypatch):
     client = OpenAIAdsClient()
     captured = {}
 
@@ -22,7 +22,7 @@ def test_order_event_uses_minor_units_and_stable_id(monkeypatch):
             currency="RUB",
             contents=[OpenAIAdsContent(id="sku-1", name="Ring", quantity=1)],
             timestamp=datetime.now(timezone.utc),
-            source_url="https://marsel.example/checkout/confirmation",
+            source_url="https://marsel.example/checkout/confirmation?utm_source=openai#done",
             validate_only=True,
         )
     )
@@ -34,6 +34,7 @@ def test_order_event_uses_minor_units_and_stable_id(monkeypatch):
     assert event.data["amount"] == 125000
     assert event.data["currency"] == "RUB"
     assert event.data["contents"][0]["id"] == "sku-1"
+    assert event.source_url == "https://marsel.example/checkout/confirmation"
     assert captured["validate_only"] is True
 
 
@@ -41,10 +42,27 @@ def test_web_order_requires_source_url():
     client = OpenAIAdsClient()
     with pytest.raises(ValueError, match="source_url"):
         __import__("asyncio").run(
+            client.send_order_created(order_id="order_123", amount_minor=100, timestamp=datetime.now(timezone.utc))
+        )
+
+
+def test_source_url_rejects_non_http_scheme():
+    client = OpenAIAdsClient()
+    with pytest.raises(ValueError, match="HTTP\\(S\\)-URL"):
+        __import__("asyncio").run(
+            client.send_order_created(order_id="order_123", amount_minor=100, source_url="javascript:alert(1)")
+        )
+
+
+def test_raw_identity_fields_are_rejected():
+    client = OpenAIAdsClient()
+    with pytest.raises(ValueError, match="raw identity"):
+        __import__("asyncio").run(
             client.send_order_created(
                 order_id="order_123",
                 amount_minor=100,
-                timestamp=datetime.now(timezone.utc),
+                source_url="https://marsel.example/checkout/confirmation",
+                user={"email": "customer@example.com"},
             )
         )
 
@@ -53,9 +71,30 @@ def test_order_amount_cannot_be_negative():
     client = OpenAIAdsClient()
     with pytest.raises(ValueError, match="отрицательным"):
         __import__("asyncio").run(
+            client.send_order_created(order_id="order_123", amount_minor=-1, source_url="https://marsel.example/checkout/confirmation")
+        )
+
+
+def test_order_timestamp_cannot_be_older_than_seven_days():
+    client = OpenAIAdsClient()
+    with pytest.raises(ValueError, match="старше 7 дней"):
+        __import__("asyncio").run(
             client.send_order_created(
                 order_id="order_123",
-                amount_minor=-1,
+                amount_minor=100,
                 source_url="https://marsel.example/checkout/confirmation",
+                timestamp=datetime.now(timezone.utc) - timedelta(days=7, seconds=1),
             )
         )
+
+
+def test_non_blocking_wrapper_swallows_reporting_failure(monkeypatch):
+    client = OpenAIAdsClient()
+
+    async def fail(**kwargs):
+        raise RuntimeError("conversion API unavailable")
+
+    monkeypatch.setattr(client, "send_order_created", fail)
+    assert __import__("asyncio").run(
+        client.try_send_order_created(order_id="order_123", amount_minor=100, source_url="https://marsel.example/checkout/confirmation")
+    ) is False
