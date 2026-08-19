@@ -8,6 +8,7 @@ on:
 permissions:
   contents: read
 
+# CI contract trigger: run the current workflow definition on every branch push.
 jobs:
   test:
     runs-on: ubuntu-latest
