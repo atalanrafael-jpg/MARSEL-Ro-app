@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from typing import Any
+from urllib.parse import urlsplit, urlunsplit
 
 import httpx
 from pydantic import BaseModel, Field
@@ -14,6 +15,8 @@ class OpenAIAdsContent(BaseModel):
     name: str | None = None
     content_type: str = "product"
     quantity: int = Field(ge=1)
+    amount: int | None = Field(default=None, ge=0)
+    currency: str | None = None
 
 
 class OpenAIAdsEvent(BaseModel):
@@ -29,23 +32,22 @@ class OpenAIAdsEvent(BaseModel):
 
 
 class OpenAIAdsEventsRequest(BaseModel):
-    validate_only: bool = True
+    validate_only: bool = False
+    integration_source: str | None = None
     events: list[OpenAIAdsEvent] = Field(min_length=1, max_length=1000)
 
 
 class OpenAIAdsClient:
-    """Server-side client for OpenAI Ads Conversions API.
+    """Server-side client for OpenAI Ads Conversions API."""
 
-    Credentials are read only from environment-backed settings. The conversion
-    API key must be generated in Ads Manager > Conversions; it must never be
-    exposed to browser/client code.
-    """
+    _FORBIDDEN_USER_KEYS = {"email", "external_id", "phone", "phone_number"}
 
     def __init__(self) -> None:
         self.base_url = settings.openai_ads_base_url.rstrip("/")
         self.pixel_id = settings.openai_ads_pixel_id
         self.api_key = settings.openai_ads_conversions_api_key
         self.timeout = settings.openai_ads_timeout_seconds
+        self.integration_source = settings.openai_ads_integration_source
 
     def _validate_config(self) -> None:
         if not self.pixel_id:
@@ -62,6 +64,26 @@ class OpenAIAdsClient:
         if event_time > now + timedelta(minutes=10):
             raise ValueError("timestamp события не может быть более чем на 10 минут в будущем")
 
+    @staticmethod
+    def _sanitize_source_url(source_url: str | None) -> str | None:
+        if not source_url:
+            return None
+        parsed = urlsplit(source_url)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            raise ValueError("source_url должен быть абсолютным HTTP(S)-URL")
+        return urlunsplit((parsed.scheme, parsed.netloc, parsed.path or "/", "", ""))
+
+    @classmethod
+    def _validate_user(cls, user: dict[str, Any] | None) -> None:
+        if not user:
+            return
+        leaked = cls._FORBIDDEN_USER_KEYS.intersection(user)
+        if leaked:
+            raise ValueError(
+                "OpenAI Ads user data must not contain raw identity fields: "
+                + ", ".join(sorted(leaked))
+            )
+
     async def send_events(
         self,
         events: list[OpenAIAdsEvent],
@@ -71,13 +93,16 @@ class OpenAIAdsClient:
         self._validate_config()
         if not 1 <= len(events) <= 1000:
             raise ValueError("OpenAI Ads принимает от 1 до 1000 событий за запрос")
+        for event in events:
+            self._validate_user(event.user)
+            if event.action_source == "web":
+                event.source_url = self._sanitize_source_url(event.source_url)
+                if not event.source_url:
+                    raise ValueError("source_url обязателен для web-события")
 
         request = OpenAIAdsEventsRequest(
-            validate_only=(
-                settings.openai_ads_validate_only
-                if validate_only is None
-                else validate_only
-            ),
+            validate_only=settings.openai_ads_validate_only if validate_only is None else validate_only,
+            integration_source=self.integration_source or None,
             events=events,
         )
 
@@ -108,18 +133,13 @@ class OpenAIAdsClient:
         opt_out: bool = False,
         validate_only: bool | None = None,
     ) -> dict[str, Any]:
-        """Send an order_created event using a stable order ID for deduplication.
-
-        amount_minor must be the currency's lowest denomination (for RUB,
-        kopecks). This prevents accidental decimal/major-unit revenue values.
-        """
         if amount_minor < 0:
             raise ValueError("amount_minor не может быть отрицательным")
 
         event_time = timestamp or datetime.now(timezone.utc)
         self._validate_timestamp(event_time)
-        timestamp_ms = int(event_time.timestamp() * 1000)
-        event_source_url = source_url or settings.openai_ads_source_url
+        event_source_url = self._sanitize_source_url(source_url or settings.openai_ads_source_url)
+        self._validate_user(user)
 
         event_data: dict[str, Any] = {
             "type": "contents",
@@ -132,7 +152,7 @@ class OpenAIAdsClient:
         event = OpenAIAdsEvent(
             id=order_id,
             type="order_created",
-            timestamp_ms=timestamp_ms,
+            timestamp_ms=int(event_time.timestamp() * 1000),
             oppref=oppref,
             source_url=event_source_url,
             action_source="web",
@@ -140,8 +160,12 @@ class OpenAIAdsClient:
             opt_out=opt_out,
             data=event_data,
         )
-
-        if event.action_source == "web" and not event.source_url:
-            raise ValueError("source_url обязателен для web-события")
-
         return await self.send_events([event], validate_only=validate_only)
+
+    async def try_send_order_created(self, **kwargs: Any) -> bool:
+        """Best-effort reporting that never blocks the business flow."""
+        try:
+            await self.send_order_created(**kwargs)
+            return True
+        except Exception:
+            return False
