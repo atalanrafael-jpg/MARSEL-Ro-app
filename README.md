@@ -1,68 +1,21 @@
 # MARSEL ROAPP
 
-**MARSEL ROAPP** — единая система для Ювелирной студии MARSEL.
+Единая система ювелирной студии MARSEL: бизнес-контур MARSEL и технологический контур ROAPP находятся в одном исходном и операционном проекте.
 
-MARSEL и ROAPP в этом проекте **не являются двумя отдельными системами**:
+## Canonical architecture
 
-- **MARSEL** — бизнес-контур системы.
-- **ROAPP** — API/интеграционный и операционный технологический контур.
-- `Ro-app` — текущее техническое имя единого GitHub-репозитория.
+- MARSEL — бизнес и операционные процессы.
+- ROAPP — API, данные, интеграции, автоматизация и контроль.
+- GitHub repository: `atalanrafael-jpg/Ro-app`.
+- Default branch: `main`.
+- Canonical control plane: `.github/workflows/marsel-unified-control-plane.yml`.
 
-Архитектурное решение зафиксировано в [`MARSEL_ROAPP_UNIFIED_SYSTEM.md`](./MARSEL_ROAPP_UNIFIED_SYSTEM.md).
+## Safety
 
-## Единая система
+Все production data mutations запрещены до прохождения полного production gate: backup/restore, reconciliation, READ-ONLY inventory, duplicate/orphan/reference analysis, dry-run, idempotency, rollback и post-write verification.
 
-```text
-MARSEL ROAPP
-├── Business Core
-│   ├── Клиенты
-│   ├── Заказы
-│   ├── Изделия
-│   ├── Ремонт ювелирных изделий
-│   ├── Ремонт часов
-│   ├── Производство
-│   ├── Продажи
-│   ├── Склад
-│   ├── Металлы и камни
-│   ├── Услуги
-│   └── Финансы
-├── ROAPP Integration Core
-│   ├── API contracts
-│   ├── Data quality
-│   ├── Synchronization
-│   └── Diagnostics
-├── Commerce
-├── Web / iOS
-├── AI / Automation
-└── CI / Security / Observability
-```
+## Current state
 
-## Правила
+CI и READ-ONLY audit контур продолжают проверку API, качества данных, сущностей, product-code collisions и warehouse contract. Неподтверждённые внешние зависимости не считаются выполненными.
 
-1. Один проект, одна архитектура и единая модель данных.
-2. Не создавать параллельные источники истины без документированной причины.
-3. Не угадывать API endpoints, поля и идентификаторы.
-4. Read-only проверки не должны изменять production data.
-5. Production WRITE остаётся заблокированным до прохождения go-live gates.
-6. Синхронизация допускается только при наличии проверяемых mapping, idempotency, reconciliation, rollback и post-write verification.
-7. Ошибки и дубликаты контролируются централизованно.
-
-## API / CI
-
-Текущая CI-архитектура сохраняет принцип доказательного read-only аудита. Production mutation flows не включаются только на основании предположений о контракте API.
-
-PR #37 (`ci: run MARSEL warehouse contract verification`) относится к **единому проекту MARSEL ROAPP**, а не к отдельному warehouse-проекту.
-
-## Безопасность
-
-- API-ключи хранятся в GitHub Actions Secrets.
-- Аудит не должен раскрывать PII.
-- Не подтверждённые API paths не используются для live-вызовов.
-
-## Техническое имя
-
-GitHub-репозиторий: `atalanrafael-jpg/Ro-app`.
-
-Каноническое имя продукта/системы: **MARSEL ROAPP**.
-
-Переименование самого GitHub-репозитория не выполнялось этим изменением и не считается выполненным без фактического подтверждения GitHub.
+Подробная архитектура и контрольные правила: `MARSEL_ROAPP_UNIFIED_SYSTEM.md`.
