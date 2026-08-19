@@ -26,8 +26,8 @@ jobs:
       MARSEL_MAX_DOCS: "300"
       MARSEL_INVENTORY_BUDGET_SECONDS: "300"
       MARSEL_MAX_PAGES: "10000"
-      ROAPP_TIMEOUT: "8"
-      ROAPP_MAX_RETRIES: "0"
+      ROAPP_TIMEOUT: "15"
+      ROAPP_MAX_RETRIES: "2"
       ROAPP_MIN_REQUEST_INTERVAL: "0.34"
     steps:
       - uses: actions/checkout@v7
