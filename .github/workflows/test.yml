@@ -37,6 +37,38 @@ jobs:
         run: python -m pip install --disable-pip-version-check --no-input httpx
       - name: Verify RO App secret
         run: test -n "$ROAPP_API_KEY"
+      - name: Diagnose RO App API connectivity (READ ONLY)
+        run: |
+          python - <<'PY'
+          import os, socket, ssl, urllib.request
+          from urllib.parse import urlparse
+          base = os.environ["ROAPP_API_BASE"]
+          host = urlparse(base).hostname
+          print(f"ROAPP_API_HOST={host}")
+          print(f"DNS={socket.gethostbyname_ex(host)}")
+          ctx = ssl.create_default_context()
+          with socket.create_connection((host, 443), timeout=10) as sock:
+              with ctx.wrap_socket(sock, server_hostname=host) as tls:
+                  print(f"TLS_VERSION={tls.version()}")
+                  print(f"TLS_CIPHER={tls.cipher()[0]}")
+          req = urllib.request.Request(
+              f"{base}/warehouse/?type=product",
+              headers={"Authorization": f"Bearer {os.environ['ROAPP_API_KEY']}", "Accept": "application/json", "User-Agent": "MARSEL-CI-DIAGNOSTIC"},
+              method="GET",
+          )
+          try:
+              with urllib.request.urlopen(req, timeout=15) as r:
+                  body = r.read(512)
+                  print(f"API_HTTP={r.status}")
+                  print(f"API_CONTENT_TYPE={r.headers.get('content-type')}")
+                  print(f"API_BODY_PREFIX={body.decode('utf-8', 'replace')[:200]}")
+          except Exception as exc:
+              print(f"API_ERROR_TYPE={type(exc).__name__}")
+              print(f"API_ERROR={exc}")
+              status = getattr(exc, "code", None)
+              print(f"API_ERROR_HTTP={status}")
+              raise
+          PY
       - name: Run warehouse contract audit (READ ONLY)
         run: python scripts/marsel_warehouse_contract_v20_36.py
       - name: Enforce warehouse contract
