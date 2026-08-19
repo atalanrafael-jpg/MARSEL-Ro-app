@@ -8,7 +8,6 @@ on:
 permissions:
   contents: read
 
-# CI contract trigger: run the current workflow definition on every branch push.
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -29,6 +28,9 @@ jobs:
     env:
       ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
       ROAPP_API_BASE: https://api.roapp.io/v2
+      ROAPP_TIMEOUT: "15"
+      ROAPP_MAX_RETRIES: "2"
+      ROAPP_MIN_REQUEST_INTERVAL: "0.34"
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -66,8 +68,7 @@ jobs:
           except Exception as exc:
               print(f"API_ERROR_TYPE={type(exc).__name__}")
               print(f"API_ERROR={exc}")
-              status = getattr(exc, "code", None)
-              print(f"API_ERROR_HTTP={status}")
+              print(f"API_ERROR_HTTP={getattr(exc, 'code', None)}")
               raise
           PY
       - name: Run warehouse contract audit (READ ONLY)
