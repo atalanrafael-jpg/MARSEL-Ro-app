@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""MARSEL V22.3 — comprehensive read-only data-quality audit.
+"""MARSEL V22.4 — comprehensive read-only data-quality audit.
 
-Only GET requests are used. Product-code/SKU/number duplicates are review
-findings unless uniqueness is explicitly established by the API contract.
-Missing/duplicate IDs, count mismatches, access failures and incomplete
-pagination remain hard failures.
+Only GET requests are used. Transient network/timeout failures are recorded as
+explicit access failures so evidence is always emitted; they are never converted
+to PASS. Pagination and data-integrity failures remain hard failures.
 """
 from __future__ import annotations
 
@@ -23,6 +22,7 @@ KEY = os.environ.get("ROAPP_API_KEY", "")
 TIMEOUT = float(os.environ.get("ROAPP_TIMEOUT", "30"))
 PAGE_SIZE = min(int(os.environ.get("MARSEL_PAGE_SIZE", "50")), 50)
 MIN_INTERVAL = max(float(os.environ.get("ROAPP_MIN_REQUEST_INTERVAL", "0.34")), 0.34)
+MAX_RETRIES = max(int(os.environ.get("ROAPP_MAX_RETRIES", "2")), 0)
 OUT = Path(os.environ.get("MARSEL_DATA_QUALITY_OUTPUT", "marsel-data-quality-v22-readonly.json"))
 MAX_PAGES = int(os.environ.get("MARSEL_MAX_PAGES", "10000"))
 
@@ -30,7 +30,7 @@ if not KEY:
     print("ROAPP_API_KEY is required", file=sys.stderr)
     raise SystemExit(1)
 
-HEADERS = {"Authorization": f"Bearer {KEY}", "Accept": "application/json", "User-Agent": "MARSEL-Data-Quality-V23-READONLY"}
+HEADERS = {"Authorization": f"Bearer {KEY}", "Accept": "application/json", "User-Agent": "MARSEL-Data-Quality-V24-READONLY"}
 COLLECTIONS = {"products": "/catalog/products", "services": "/catalog/services", "orders": "/orders"}
 
 
@@ -58,6 +58,21 @@ def safe_error(response: httpx.Response) -> dict:
     return {"http": response.status_code, "body": response.text[:1000]}
 
 
+def request_get(client: httpx.Client, url: str, params: dict | None = None) -> tuple[httpx.Response | None, dict | None]:
+    last_error = None
+    for attempt in range(MAX_RETRIES + 1):
+        if attempt:
+            time.sleep(min(2 ** (attempt - 1), 4))
+        try:
+            response = client.get(url, params=params, headers=HEADERS)
+            if response.status_code in {408, 429, 500, 502, 503, 504} and attempt < MAX_RETRIES:
+                continue
+            return response, None
+        except (httpx.TimeoutException, httpx.NetworkError) as exc:
+            last_error = {"type": type(exc).__name__, "message": str(exc)[:500], "attempts": attempt + 1}
+    return None, last_error or {"type": "UnknownError", "message": "GET request failed"}
+
+
 def audit_collection(client: httpx.Client, name: str, path: str) -> dict:
     rows, pages = [], []
     page, expected_total_pages, expected_count, last_request = 1, None, None, 0.0
@@ -66,14 +81,25 @@ def audit_collection(client: httpx.Client, name: str, path: str) -> dict:
         if wait > 0:
             time.sleep(wait)
         started = time.monotonic()
-        response = client.get(BASE + path, params={"page": page, "pageSize": PAGE_SIZE}, headers=HEADERS)
+        response, request_error = request_get(client, BASE + path, {"page": page, "pageSize": PAGE_SIZE})
         last_request = time.monotonic()
+        if request_error:
+            return {"path": path, "rows_read": len(rows), "expected_count": expected_count, "count_matches_rows": False,
+                    "expected_total_pages": expected_total_pages, "pages_read": len(pages), "pagination_complete": False,
+                    "missing_id": 0, "duplicate_id_groups": {}, "duplicate_id_group_count": 0, "pages": pages,
+                    "access_error": request_error}
         if response.status_code != 200:
             return {"path": path, "rows_read": len(rows), "expected_count": expected_count, "count_matches_rows": False,
                     "expected_total_pages": expected_total_pages, "pages_read": len(pages), "pagination_complete": False,
                     "missing_id": 0, "duplicate_id_groups": {}, "duplicate_id_group_count": 0, "pages": pages,
                     "access_error": safe_error(response)}
-        payload = response.json()
+        try:
+            payload = response.json()
+        except ValueError as exc:
+            return {"path": path, "rows_read": len(rows), "expected_count": expected_count, "count_matches_rows": False,
+                    "expected_total_pages": expected_total_pages, "pages_read": len(pages), "pagination_complete": False,
+                    "missing_id": 0, "duplicate_id_groups": {}, "duplicate_id_group_count": 0, "pages": pages,
+                    "access_error": {"type": "InvalidJSON", "message": str(exc)[:500], "http": response.status_code}}
         batch, pi = extract_rows(payload), page_info(payload)
         if expected_total_pages is None:
             expected_total_pages, expected_count = pi.get("total_pages"), pi.get("count")
@@ -85,7 +111,10 @@ def audit_collection(client: httpx.Client, name: str, path: str) -> dict:
             break
         page += 1
         if page > MAX_PAGES:
-            raise RuntimeError(f"pagination safety limit exceeded for {name}")
+            return {"path": path, "rows_read": len(rows), "expected_count": expected_count, "count_matches_rows": False,
+                    "expected_total_pages": expected_total_pages, "pages_read": len(pages), "pagination_complete": False,
+                    "missing_id": 0, "duplicate_id_groups": {}, "duplicate_id_group_count": 0, "pages": pages,
+                    "access_error": {"type": "PaginationSafetyLimit", "message": f"pagination safety limit exceeded for {name}"}}
 
     ids = [r.get("id") for r in rows]
     duplicate_id = duplicate_groups(rows, "id")
@@ -111,14 +140,13 @@ def audit_collection(client: httpx.Client, name: str, path: str) -> dict:
 
 
 def probe_company(client: httpx.Client) -> dict:
-    try:
-        response = client.get(BASE + "/company", headers=HEADERS)
-        result = {"http": response.status_code}
-        if response.status_code != 200:
-            result["error"] = safe_error(response)
-        return result
-    except (httpx.TimeoutException, httpx.NetworkError) as exc:
-        return {"http": None, "error": {"type": type(exc).__name__, "message": str(exc)[:500]}}
+    response, request_error = request_get(client, BASE + "/company")
+    if request_error:
+        return {"http": None, "error": request_error}
+    result = {"http": response.status_code}
+    if response.status_code != 200:
+        result["error"] = safe_error(response)
+    return result
 
 
 def main() -> int:
@@ -143,12 +171,13 @@ def main() -> int:
         if not r.get("pagination_complete"):
             hard_issues.append(f"{name}.pagination_incomplete=true")
 
-    report = {"version": "22.3", "mode": "READ_ONLY", "generated_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    report = {"version": "22.4", "mode": "READ_ONLY", "generated_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
               "api_base": BASE, "company_probe": company_probe,
               "method_policy": {"allowed": ["GET"], "blocked": ["POST", "PUT", "PATCH", "DELETE"]},
               "write_requests_made": 0, "ro_app_data_mutated": False, "collections": results,
               "access_failures": access_failures, "hard_issues": hard_issues, "review_issues": review_issues,
               "policy": {"code_uniqueness_established": False, "duplicate_codes_are_hard_failures": False},
+              "retry_policy": {"max_retries": MAX_RETRIES, "retryable_http": [408,429,500,502,503,504]},
               "elapsed_s": round(time.monotonic() - started, 3)}
     report["summary"] = {"collections_audited": len(results), "products_rows": results["products"]["rows_read"],
                           "services_rows": results["services"]["rows_read"], "orders_rows": results["orders"]["rows_read"],
@@ -156,7 +185,7 @@ def main() -> int:
                           "review_issue_count": len(review_issues), "write_requests_made": 0, "ro_app_data_mutated": False}
     report["report_sha256"] = hashlib.sha256(json.dumps(report, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
     OUT.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
-    print("=== MARSEL V22.3 / COMPREHENSIVE DATA QUALITY / READ ONLY ===")
+    print("=== MARSEL V22.4 / COMPREHENSIVE DATA QUALITY / READ ONLY ===")
     for k, v in report["summary"].items():
         print(f"{k.upper()}={v}")
     print(f"ACCESS_FAILURES={access_failures}")
