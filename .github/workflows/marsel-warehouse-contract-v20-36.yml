@@ -1,4 +1,4 @@
-name: MARSEL Warehouse Contract V20.44
+name: MARSEL Warehouse Contract V20.45
 
 # READ-ONLY live contract verification.
 # The workflow must report external API mismatches without converting them into
@@ -28,6 +28,9 @@ jobs:
     env:
       ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
       ROAPP_API_BASE: https://api.roapp.io/v2
+      ROAPP_WAREHOUSE_TIMEOUT: "15"
+      ROAPP_MAX_RETRIES: "2"
+      ROAPP_MIN_REQUEST_INTERVAL: "0.34"
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -56,6 +59,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: marsel-warehouse-contract-v20-44
+          name: marsel-warehouse-contract-v20-45
           path: marsel-unified-warehouse-contract.json
           retention-days: 90
