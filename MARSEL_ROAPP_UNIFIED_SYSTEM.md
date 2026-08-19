@@ -15,7 +15,7 @@ MARSEL ROAPP — единая система ювелирной студии. MA
 
 WRITE запрещён до прямого evidence по backup/export, restore integrity, schema reconciliation, READ-ONLY inventory, duplicate/orphan/reference analysis, dry-run, idempotency, rollback и post-write verification.
 
-## Verified external gates
+## External verification gates
 
 Gmail OAuth, официальный RO App MCP authorization и production backup/restore требуют внешней авторизации или доступа к фактической среде. Они не должны объявляться выполненными без прямого evidence.
 
@@ -25,4 +25,5 @@ Gmail OAuth, официальный RO App MCP authorization и production backu
 - Default branch: `main`.
 - Unified MARSEL ROAPP architecture is canonical.
 - Test workflow run #879 completed successfully.
+- OpenAI Ads CAPI hardening has been integrated into `main`.
 - Production WRITE remains disabled.
