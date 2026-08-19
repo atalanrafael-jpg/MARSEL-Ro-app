@@ -1,5 +1,5 @@
 # MARSEL ROAPP — GPT INTEGRATION
 
-MARSEL ROAPP is one system. GPT/AI integrations are part of the same application and must use the canonical MARSEL ROAPP control, API and safety contracts.
+GPT, AI and MCP integrations are components of the single MARSEL ROAPP system. They must use the canonical API, security and control-plane rules.
 
-AI integrations must remain read-only unless a separate production gate explicitly authorizes a mutation. Secrets belong only in protected secret storage, never in source code, documentation examples or artifacts.
+Default mode is READ-ONLY. Production mutations require the unified production gate and direct evidence. Secrets never belong in source, documentation, logs or artifacts.
