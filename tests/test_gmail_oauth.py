@@ -1,11 +1,14 @@
 import os
+import stat
 
 import pytest
 from cryptography.fernet import Fernet
 
+import app.gmail_oauth as gmail_oauth_module
 from app.gmail_oauth import (
     ACCOUNT_EMAIL,
     GMAIL_READONLY_SCOPE,
+    STATE_TTL_SECONDS,
     GmailOAuthService,
     GmailTokenStore,
 )
@@ -22,6 +25,29 @@ def test_state_is_persistent_and_single_use(tmp_path):
 
     assert store.consume_state("state-123") == "https://example.com/gmail/callback"
     assert store.consume_state("state-123") is None
+
+
+def test_expired_state_is_rejected_and_deleted(tmp_path, monkeypatch):
+    store = GmailTokenStore(str(tmp_path / "oauth.db"))
+    now = 1_000_000
+    monkeypatch.setattr(gmail_oauth_module.time, "time", lambda: now)
+    store.save_state("state-expired", "https://example.com/gmail/callback")
+
+    monkeypatch.setattr(
+        gmail_oauth_module.time,
+        "time",
+        lambda: now + STATE_TTL_SECONDS + 1,
+    )
+    assert store.consume_state("state-expired") is None
+    assert store.consume_state("state-expired") is None
+
+
+def test_storage_directory_and_database_are_owner_only(tmp_path):
+    database = tmp_path / "secure" / "oauth.db"
+    GmailTokenStore(str(database))
+
+    assert stat.S_IMODE(database.parent.stat().st_mode) == 0o700
+    assert stat.S_IMODE(database.stat().st_mode) == 0o600
 
 
 def test_credentials_are_encrypted_at_rest(tmp_path):
