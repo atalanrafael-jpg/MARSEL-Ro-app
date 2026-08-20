@@ -27,7 +27,7 @@ from googleapiclient.discovery import build
 
 GMAIL_READONLY_SCOPE = "https://www.googleapis.com/auth/gmail.readonly"
 ACCOUNT_EMAIL = "atalanrafael@gmail.com"
-DEFAULT_STORE_PATH = ".runtime/gmail_oauth.db"
+DEFAULT_STORE_PATH = "~/.local/share/marsel/gmail_oauth.db"
 STATE_TTL_SECONDS = 600
 
 
@@ -35,7 +35,8 @@ class GmailTokenStore:
     """SQLite-backed store safe for multiple workers on the same host."""
 
     def __init__(self, path: str | None = None) -> None:
-        self.path = Path(path or os.getenv("GMAIL_TOKEN_STORE_PATH", DEFAULT_STORE_PATH))
+        configured_path = path or os.getenv("GMAIL_TOKEN_STORE_PATH", DEFAULT_STORE_PATH)
+        self.path = Path(configured_path).expanduser()
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._initialize()
 
