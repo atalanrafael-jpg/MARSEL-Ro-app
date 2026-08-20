@@ -1,9 +1,10 @@
-"""Read-only Gmail OAuth 2.0 integration with persistent encrypted storage.
+"""Read-only Gmail OAuth 2.0 integration with secure local persistence.
 
 Security model:
-- OAuth client credentials come from environment variables.
+- OAuth client credentials come from runtime environment variables.
 - Refresh/access credentials are encrypted at rest with Fernet.
 - OAuth state is stored server-side with a TTL and consumed atomically once.
+- The SQLite directory/database are created with owner-only permissions.
 - No Gmail password or token is stored in source control.
 - The token encryption key must be supplied by the runtime secret manager.
 """
@@ -20,6 +21,7 @@ from pathlib import Path
 from typing import Any
 
 from cryptography.fernet import Fernet, InvalidToken
+from google.auth.exceptions import RefreshError
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
@@ -37,8 +39,24 @@ class GmailTokenStore:
     def __init__(self, path: str | None = None) -> None:
         configured_path = path or os.getenv("GMAIL_TOKEN_STORE_PATH", DEFAULT_STORE_PATH)
         self.path = Path(configured_path).expanduser()
-        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._prepare_storage_path()
         self._initialize()
+
+    def _prepare_storage_path(self) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            os.chmod(self.path.parent, 0o700)
+        except OSError:
+            pass
+
+        # Pre-create the database with owner-only permissions before SQLite opens it.
+        if not self.path.exists():
+            fd = os.open(self.path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+            os.close(fd)
+        try:
+            os.chmod(self.path, 0o600)
+        except OSError:
+            pass
 
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self.path, timeout=10)
@@ -55,6 +73,10 @@ class GmailTokenStore:
                 "CREATE TABLE IF NOT EXISTS gmail_credentials ("
                 "account_email TEXT PRIMARY KEY, encrypted_credentials BLOB NOT NULL, updated_at INTEGER NOT NULL)"
             )
+        try:
+            os.chmod(self.path, 0o600)
+        except OSError:
+            pass
 
     def save_state(self, state: str, redirect_uri: str) -> None:
         state_hash = hashlib.sha256(state.encode("utf-8")).hexdigest()
@@ -67,9 +89,12 @@ class GmailTokenStore:
             )
 
     def consume_state(self, state: str) -> str | None:
+        """Consume an OAuth state exactly once, including under concurrent workers."""
         state_hash = hashlib.sha256(state.encode("utf-8")).hexdigest()
         now = int(time.time())
         with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            connection.execute("DELETE FROM oauth_state WHERE created_at < ?", (now - STATE_TTL_SECONDS,))
             row = connection.execute(
                 "SELECT redirect_uri, created_at FROM oauth_state WHERE state_hash = ?",
                 (state_hash,),
@@ -164,7 +189,7 @@ class GmailOAuthService:
         profile = self._gmail_service(credentials).users().getProfile(userId="me").execute()
         email = profile.get("emailAddress")
         if email != ACCOUNT_EMAIL:
-            raise PermissionError("Authorized Google account does not match configured Gmail account")
+            raise PermissionError("Authorized Google account is not permitted")
 
         encrypted = self._fernet().encrypt(credentials.to_json().encode("utf-8"))
         self._store.save_credentials(ACCOUNT_EMAIL, encrypted)
@@ -187,30 +212,32 @@ class GmailOAuthService:
         except (InvalidToken, ValueError, TypeError, json.JSONDecodeError) as exc:
             raise RuntimeError("Stored Gmail credentials are invalid or cannot be decrypted") from exc
 
+    def _refresh_if_needed(self, credentials: Credentials) -> Credentials:
+        if not credentials.expired or not credentials.refresh_token:
+            return credentials
+        credentials.refresh(Request())
+        self._store.save_credentials(
+            ACCOUNT_EMAIL,
+            self._fernet().encrypt(credentials.to_json().encode("utf-8")),
+        )
+        return credentials
+
     def status(self) -> dict[str, Any]:
         credentials = self._load_credentials()
         if credentials is None:
             return {"status": "unauthorized", "email": ACCOUNT_EMAIL}
-        if credentials.expired and credentials.refresh_token:
-            try:
-                credentials.refresh(Request())
-                encrypted = self._fernet().encrypt(credentials.to_json().encode("utf-8"))
-                self._store.save_credentials(ACCOUNT_EMAIL, encrypted)
-            except Exception:
-                self._store.delete_credentials(ACCOUNT_EMAIL)
-                return {"status": "token_expired", "email": ACCOUNT_EMAIL}
+        try:
+            self._refresh_if_needed(credentials)
+        except RefreshError:
+            # Do not delete a credential on an unclassified/transient refresh failure.
+            return {"status": "token_refresh_failed", "email": ACCOUNT_EMAIL}
         return {"status": "connected", "email": ACCOUNT_EMAIL, "scope": GMAIL_READONLY_SCOPE}
 
     def list_messages(self, max_results: int = 10) -> list[dict[str, Any]]:
         credentials = self._load_credentials()
         if credentials is None:
             raise PermissionError("Gmail is not connected")
-        if credentials.expired and credentials.refresh_token:
-            credentials.refresh(Request())
-            self._store.save_credentials(
-                ACCOUNT_EMAIL,
-                self._fernet().encrypt(credentials.to_json().encode("utf-8")),
-            )
+        credentials = self._refresh_if_needed(credentials)
         response = (
             self._gmail_service(credentials)
             .users()
