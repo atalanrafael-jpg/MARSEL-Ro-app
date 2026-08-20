@@ -27,7 +27,7 @@ from googleapiclient.discovery import build
 
 GMAIL_READONLY_SCOPE = "https://www.googleapis.com/auth/gmail.readonly"
 ACCOUNT_EMAIL = "atalanrafael@gmail.com"
-DEFAULT_STORE_PATH = "/var/lib/marsel/gmail_oauth.db"
+DEFAULT_STORE_PATH = ".runtime/gmail_oauth.db"
 STATE_TTL_SECONDS = 600
 
 
