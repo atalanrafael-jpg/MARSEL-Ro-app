@@ -1,4 +1,4 @@
-import os
+from concurrent.futures import ThreadPoolExecutor
 import stat
 
 import pytest
@@ -25,6 +25,19 @@ def test_state_is_persistent_and_single_use(tmp_path):
 
     assert store.consume_state("state-123") == "https://example.com/gmail/callback"
     assert store.consume_state("state-123") is None
+
+
+def test_state_is_single_use_under_concurrency(tmp_path):
+    store = GmailTokenStore(str(tmp_path / "oauth.db"))
+    store.save_state("concurrent-state", "https://example.com/gmail/callback")
+
+    def consume() -> str | None:
+        return store.consume_state("concurrent-state")
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        results = list(executor.map(lambda _: consume(), range(2)))
+
+    assert sorted(result is not None for result in results) == [False, True]
 
 
 def test_expired_state_is_rejected_and_deleted(tmp_path, monkeypatch):
