@@ -5,7 +5,7 @@ import secrets
 from contextlib import asynccontextmanager
 from typing import Annotated, AsyncIterator
 
-from fastapi import Depends, FastAPI, HTTPException, Query, Request, status
+from fastapi import Depends, FastAPI, HTTPException, Query, status
 from fastapi.responses import RedirectResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
@@ -15,7 +15,6 @@ from .gmail_oauth import gmail_oauth
 from .mcp_auth import JWTTokenVerifier
 from .mcp_server import create_mcp_server
 from .roapp_client import RoAppClient
-
 
 mcp_http = None
 if settings.mcp_http_enabled:
@@ -30,11 +29,7 @@ if settings.mcp_http_enabled:
     ]
     if missing:
         raise RuntimeError("MCP HTTP mode requires: " + ", ".join(missing))
-    verifier = JWTTokenVerifier(
-        jwks_url=settings.mcp_auth_jwks_url,
-        issuer=settings.mcp_auth_issuer,
-        audience=settings.mcp_resource_server_url,
-    )
+    verifier = JWTTokenVerifier(jwks_url=settings.mcp_auth_jwks_url, issuer=settings.mcp_auth_issuer, audience=settings.mcp_resource_server_url)
     mcp_http = create_mcp_server(verifier)
     mcp_http.settings.streamable_http_path = "/"
 
@@ -52,29 +47,23 @@ app = FastAPI(title="MARSEL RO App Connector", version="0.4.0", lifespan=lifespa
 if mcp_http is not None:
     app.mount("/mcp", mcp_http.streamable_http_app())
 
-
 gmail_basic = HTTPBasic(auto_error=False)
 
 
-def require_gmail_admin(
-    credentials: Annotated[HTTPBasicCredentials | None, Depends(gmail_basic)],
-) -> None:
+def require_gmail_admin(credentials: Annotated[HTTPBasicCredentials | None, Depends(gmail_basic)]) -> None:
     username = os.getenv("GMAIL_ADMIN_USERNAME", "")
     password = os.getenv("GMAIL_ADMIN_PASSWORD", "")
     if not username or not password or credentials is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Gmail administration is not configured or authorized",
-            headers={"WWW-Authenticate": "Basic"},
-        )
-    valid_user = secrets.compare_digest(credentials.username, username)
-    valid_password = secrets.compare_digest(credentials.password, password)
-    if not (valid_user and valid_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid Gmail administrator credentials",
-            headers={"WWW-Authenticate": "Basic"},
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Gmail administration is not configured or authorized", headers={"WWW-Authenticate": "Basic"})
+    if not (secrets.compare_digest(credentials.username, username) and secrets.compare_digest(credentials.password, password)):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Gmail administrator credentials", headers={"WWW-Authenticate": "Basic"})
+
+
+def gmail_redirect_uri() -> str:
+    redirect_uri = os.getenv("GMAIL_REDIRECT_URI", "").strip()
+    if not redirect_uri.startswith("https://"):
+        raise HTTPException(status_code=503, detail="Gmail OAuth redirect URI is not configured for HTTPS")
+    return redirect_uri
 
 
 @app.get("/health")
@@ -93,6 +82,7 @@ def ready():
         "mcp_http_enabled": settings.mcp_http_enabled,
         "mcp_auth_configured": bool(settings.mcp_auth_issuer and settings.mcp_resource_server_url),
         "gmail_admin_configured": bool(os.getenv("GMAIL_ADMIN_USERNAME") and os.getenv("GMAIL_ADMIN_PASSWORD")),
+        "gmail_redirect_configured": bool(os.getenv("GMAIL_REDIRECT_URI")),
     }
 
 
@@ -123,10 +113,9 @@ def gmail_status():
 
 
 @app.get("/gmail/connect", dependencies=[Depends(require_gmail_admin)])
-def gmail_connect(request: Request):
-    redirect_uri = str(request.url_for("gmail_callback"))
+def gmail_connect():
     try:
-        return RedirectResponse(gmail_oauth.authorization_url(redirect_uri), status_code=302)
+        return RedirectResponse(gmail_oauth.authorization_url(gmail_redirect_uri()), status_code=302)
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail="Gmail OAuth is not configured") from exc
 
