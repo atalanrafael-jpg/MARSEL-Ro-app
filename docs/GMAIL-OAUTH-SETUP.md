@@ -12,6 +12,7 @@ GMAIL_CLIENT_SECRET=...
 GMAIL_TOKEN_ENCRYPTION_KEY=<Fernet key>
 GMAIL_ADMIN_USERNAME=...
 GMAIL_ADMIN_PASSWORD=...
+GMAIL_REDIRECT_URI=https://YOUR-DOMAIN/gmail/callback
 ```
 
 Опционально:
@@ -27,9 +28,11 @@ GMAIL_TOKEN_STORE_PATH=/var/lib/marsel/gmail_oauth.db
 
 1. Включите Gmail API.
 2. Создайте OAuth Client ID типа Web application.
-3. Добавьте HTTPS redirect URI `/gmail/callback`.
+3. Зарегистрируйте **точно тот же** HTTPS URI, который указан в `GMAIL_REDIRECT_URI`.
 4. Запрашивайте только `https://www.googleapis.com/auth/gmail.readonly`.
 5. Для production используйте HTTPS.
+
+Redirect URI берётся только из runtime configuration, а не из HTTP `Host` заголовка. Это предотвращает подмену callback origin.
 
 ## Storage
 
@@ -39,7 +42,7 @@ SQLite предназначен для одного хоста. Для неск�
 
 ## Защита endpoints
 
-Все `/gmail/*` endpoints требуют HTTP Basic credentials из `GMAIL_ADMIN_USERNAME`/`GMAIL_ADMIN_PASSWORD`. Это отдельный административный gate; отсутствие этих secrets блокирует доступ.
+Все `/gmail/*` endpoints требуют HTTP Basic credentials из `GMAIL_ADMIN_USERNAME`/`GMAIL_ADMIN_PASSWORD`. Отсутствие этих secrets блокирует доступ. Production должен использовать HTTPS.
 
 Endpoints:
 
