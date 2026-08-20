@@ -55,6 +55,43 @@ jobs:
         continue-on-error: true
         if: always()
         run: python scripts/marsel_entity_audit_v20_35.py
+      - name: Discover live warehouse branch id
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, os
+          from urllib.request import Request, urlopen
+          base = os.environ['ROAPP_API_BASE'].rstrip('/')
+          key = os.environ['ROAPP_API_KEY']
+          req = Request(f'{base}/company/locations', headers={
+              'Authorization': f'Bearer {key}',
+              'Accept': 'application/json',
+              'User-Agent': 'MARSEL-Unified-Control-Plane',
+          }, method='GET')
+          try:
+              with urlopen(req, timeout=float(os.environ.get('ROAPP_TIMEOUT','30'))) as r:
+                  payload = json.loads(r.read().decode('utf-8'))
+              data = payload.get('data') if isinstance(payload, dict) else payload
+              rows = data if isinstance(data, list) else []
+              ids = []
+              for row in rows:
+                  if isinstance(row, dict):
+                      value = row.get('id')
+                      if isinstance(value, (int, str)) and str(value).strip():
+                          value = str(value).strip()
+                          if value not in ids:
+                              ids.append(value)
+              if ids:
+                  with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as fh:
+                      fh.write(f'ROAPP_BRANCH_ID={ids[0]}\n')
+                  print(f'ROAPP_BRANCH_ID_DISCOVERED={ids[0]}')
+                  print(f'ROAPP_BRANCH_ID_CANDIDATE_COUNT={len(ids)}')
+              else:
+                  print('ROAPP_BRANCH_ID_DISCOVERED=NONE')
+          except Exception as exc:
+              print(f'ROAPP_BRANCH_ID_DISCOVERY_ERROR={type(exc).__name__}: {exc}')
+          PY
       - name: Canonical READ-ONLY product collision review
         timeout-minutes: 10
         continue-on-error: true
