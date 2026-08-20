@@ -1,6 +1,13 @@
 name: PR CI
 
+# Dedicated PR validation workflow.
+# Keep this workflow intentionally read-only and deterministic.
+
 on:
+  push:
+    branches:
+      - main
+      - feat/gmail-oauth-readonly
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
