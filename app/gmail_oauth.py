@@ -50,8 +50,11 @@ class GmailTokenStore:
             pass
 
         # Pre-create the database with owner-only permissions before SQLite opens it.
-        if not self.path.exists():
+        try:
             fd = os.open(self.path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        except FileExistsError:
+            pass
+        else:
             os.close(fd)
         try:
             os.chmod(self.path, 0o600)
