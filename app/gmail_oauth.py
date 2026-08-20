@@ -158,6 +158,9 @@ class GmailOAuthService:
         return credentials
 
     def status(self) -> dict[str, Any]:
+        # Validate the encryption boundary even when no credentials exist.
+        # This prevents a misconfigured runtime from being reported as healthy.
+        self._fernet()
         credentials = self._load_credentials()
         if credentials is None:
             return {"status": "unauthorized", "email": self.account_email}
