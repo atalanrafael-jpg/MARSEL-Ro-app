@@ -33,7 +33,7 @@ MARSEL и ROAPP — единая система ювелирной студии,
 
 ## Production safety
 
-Production WRITE остаётся отключённым до прямого evidence по:
+**Production WRITE remains disabled.** Production mutations remain disabled until direct evidence exists for:
 
 `backup/export → restore integrity → schema reconciliation → READ-ONLY inventory → duplicate/orphan/reference analysis → dry-run → idempotency → rollback → controlled write → post-write verification`.
 
