@@ -127,7 +127,7 @@ jobs:
           PY
       - name: Upload unified evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: marsel-unified-evidence
           path: |
