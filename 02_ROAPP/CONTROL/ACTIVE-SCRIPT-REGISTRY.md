@@ -1,7 +1,7 @@
 # MARSEL / Ro App — Active Script Registry
 
 Дата контрольной ревизии: 2026-08-21
-Ветка: `fix/issue-42-warehouse-contract`
+Ветка: `main`
 
 ## 1. ACTIVE / CORE — фактически вызывается Unified Control Plane
 
