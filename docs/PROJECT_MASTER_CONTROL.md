@@ -6,7 +6,7 @@
 ## Canonical state
 - Repository: `atalanrafael-jpg/Ro-app`
 - Branch: `main`
-- Current HEAD: `f4e213ec6eaf3f4d58bccf037015a6d7e38694a3` (`chore: remove duplicate warehouse audit workflow from canonical control plane`).
+- Control record synchronized against: `f4e213ec6eaf3f4d58bccf037015a6d7e38694a3`.
 - Current integration mode: READ-ONLY.
 - Production WRITE: DISABLED.
 - Canonical warehouse implementation: `scripts/marsel_warehouse_contract_v20_36.py`.
@@ -18,13 +18,6 @@
 3. Direct live API evidence with timestamps/artifacts.
 4. Current official RO App documentation.
 5. Older project documents are historical only and must not override current evidence.
-
-## Verified external facts
-- RO App documents Public API v2 and states that API requests are performed on behalf of the employee whose API key is used; access to a warehouse/location depends on that employee's permissions.
-- RO App states that if an endpoint is not available in the latest API documentation, the previous API version may be used until September 1, 2026.
-- RO App's current API documentation must be treated as the source for refreshing the API registry; the registry is not a permanent substitute for current official documentation.
-- RO App documents stock/product-price synchronization with websites, but website sales do not automatically write off RO App inventory or automatically create a sale in RO App. This must be accounted for in MARSEL ecommerce synchronization design.
-- Warehouse/stock operations require verified warehouse identifiers; identifiers must never be guessed.
 
 ## 100% completion gates
 
