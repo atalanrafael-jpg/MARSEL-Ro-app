@@ -1,15 +1,15 @@
 # 05_MARSEL_CURRENT_STATE
 
-**Role:** single living project checkpoint. Update this file after every material verified change.
+**Role:** single living project checkpoint. Update after every material verified change.
 
 ## DATE
 2026-08-21
 
 ## CURRENT VERSION
-Documentation consolidation into five master files.
+Five-file master documentation layer + verified legal/tax source register.
 
-## CURRENT GITHUB COMMIT
-At the beginning of this documentation action, `main` was verified at `4e5e37104389817d6fdad95bfdfa6aac9cb4c0b2`. Four master documents were then committed sequentially before this file. The exact final commit after this write must be re-read from `main` and is the authoritative current commit.
+## CONTROL CHECKPOINT
+Immediately before this refresh, `main` was verified at `537440614403f234e43834eede47a564b70ccc40` after adding the five master documents and updating the legal/tax source register. The commit created by this refresh becomes the next authoritative `main` checkpoint.
 
 ## SYSTEM MODEL
 **MARSEL = business contour + ROAPP = technical contour → one unified system → one canonical `main` control plane.**
@@ -55,18 +55,18 @@ No production WRITE may proceed until restore evidence exists.
 
 ## WAREHOUSE STATUS
 🔴 NOT VERIFIED.
-Do not invent warehouse IDs. Existing IDs from historical evidence must remain evidence-only until their source and current validity are rechecked.
+Do not invent warehouse IDs. Existing IDs from historical evidence remain evidence-only until their source and current validity are rechecked.
 
 ## INTEGRATIONS
 - GitHub: 🟢 repository access and `main` control confirmed.
 - ROAPP API: 🟢 READ-only live access confirmed.
 - ROAPP MCP: 🟡 technical integration exists; production authorization/write remains blocked.
-- Gmail / Google Workspace: 🟡/🔴 dependent on actual OAuth/live verification; not considered connected without evidence.
+- Gmail / Google Workspace: 🟡/🔴 not considered connected without live OAuth verification.
 - Website / e-commerce / marketplaces / payments / analytics / accounting: 🔵 PROPOSED unless live verification is recorded.
 
 ## SECURITY
 🟢 READ/WRITE separation is a project invariant.
-🟢 Secrets are intended to remain in secret storage, not code/logs.
+🟢 Secrets are intended to remain in secure secret storage, not code/logs.
 🔴 Production mutation remains gated.
 
 ## OPEN BLOCKERS
@@ -84,7 +84,8 @@ Do not invent warehouse IDs. Existing IDs from historical evidence must remain e
 - ROAPP API READ-only smoke test proven by historical evidence.
 - Orders READ-only audit completed in historical runs.
 - Deep detail audit completed without writes.
-- Five-file master documentation layer added in this action.
+- Five-file master documentation layer added.
+- Legal/tax master updated with current official-source checkpoints dated 2026-08-21.
 
 ## UNVERIFIED ITEMS
 - Full live API completeness.
@@ -93,26 +94,29 @@ Do not invent warehouse IDs. Existing IDs from historical evidence must remain e
 - Complete backup and independently tested restore.
 - Production WRITE readiness.
 - Live status of external integrations not reverified in this action.
+- MARSEL-specific tax regime and exact legal applicability until the business legal form and current operating model are explicitly verified.
 
 ## CHANGELOG / CONTROL HISTORY
-- Before consolidation: main = `4e5e37104389817d6fdad95bfdfa6aac9cb4c0b2`.
+- Initial source checkpoint before documentation: `4e5e37104389817d6fdad95bfdfa6aac9cb4c0b2`.
 - Added `01_MARSEL_MASTER.md`.
 - Added `02_ROAPP_TECHNICAL_MASTER.md`.
 - Added `03_MARSEL_DATA_MASTER.md`.
 - Added `04_MARSEL_LEGAL_FINANCE_MASTER.md`.
-- Added this current-state checkpoint.
+- Added `05_MARSEL_CURRENT_STATE.md`.
+- Added verified 2026 legal/tax source register to `04_MARSEL_LEGAL_FINANCE_MASTER.md`.
 
 ## DECISIONS
 - Five master files are the project-context layer for limited Project file capacity.
 - Historical/duplicate materials are not allowed to override the canonical current state.
 - READ-only remains the default.
 - No write, deletion, mass synchronization or invented API contract is allowed without the production gate.
+- Legal/tax statements are separated into verified official-source facts and MARSEL-specific items requiring applicability analysis.
 
 ## NEXT SAFE ACTION
-**Re-read `main` after this commit, verify the five master files exist, then run the existing read-only CI/self-check. Do not modify ROAPP data.**
+**Re-read `main`, verify the five master files and current control-plane files, then run the existing READ-ONLY CI/self-check. Do not modify ROAPP data.**
 
 ## REQUIRED UPDATE RULE
 After every material change:
 `OBSERVE -> MEASURE -> FIND -> FIX -> TEST -> VERIFY -> DOCUMENT -> MONITOR`
 
-The newest verified evidence always supersedes older contradictory evidence; older records remain history and are not silently rewritten.
+The newest verified evidence supersedes older contradictory evidence; older records remain history and are not silently rewritten.
