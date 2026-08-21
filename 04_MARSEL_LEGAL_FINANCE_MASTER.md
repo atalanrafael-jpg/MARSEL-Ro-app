@@ -1,22 +1,39 @@
 # 04_MARSEL_LEGAL_FINANCE_MASTER
 
-**Purpose:** legal/tax and financial control layer. This is a verification register, not a substitute for individualized legal/accounting advice.
+**Purpose:** legal/tax and financial control layer. This is a verification register and research base, not a registration, filing, disclosure, or authorization mechanism.
 
-## 1. Verified legal/tax checkpoints
+## 0. Hard safety boundary
+The inclusion of an official authority or source in this project **does not authorize any action outside research and documentation**.
 
-| Area | Verified fact | Checked | Official source | Status |
-|---|---|---|---|---|
-| Jewelry marking/assay | Russian jewelry made from precious metals and/or imported jewelry is subject to state assay hallmarking and marking under the applicable rules; silver domestic jewelry has a specific voluntary state-hallmark regime described by FPP. | 2026-08-21 | Federal Assay Chamber: https://probpalata.gov.ru/deyatelnost/kleymenie-i-markirovka/klejmenie-i-markirovka/ | VERIFIED |
-| Jewelry technical procedure | FPP Instruction No. 193n dated 25.11.2025 entered into force 01.03.2026 and regulates assay, analysis, hallmarking, 2D code application and related handling processes. | 2026-08-21 | Federal Assay Chamber: https://probpalata.gov.ru/federalnaya-probirnaya-palata-utverdila-edinuyu-instrukciyu-reguliruyushhuyu-klyuchevye-processy-raboty-vedomstva/ | VERIFIED |
-| Jewelry name-brand marks | From 01.09.2026, registered manufacturer name-marks become valid indefinitely from registration under Government Resolution No. 632 dated 29.05.2026. | 2026-08-21 | Federal Assay Chamber: https://probpalata.gov.ru/s-1-sentyabrya-2026-goda-imenniki-dejstvuyut-bessrochno-s-daty-ix-registracii-v-reestre/ | VERIFIED |
-| Synthetic faceted diamonds | From 01.09.2026 new tag wording requirements apply for jewelry entering circulation with synthetic faceted diamonds when a natural-mineral name is used. | 2026-08-21 | Federal Assay Chamber: https://probpalata.gov.ru/novye-trebovaniya-k-birkam-yuvelirnyx-izdelij/ | VERIFIED |
-| Cash registers | KKT is generally required for organizations and individual entrepreneurs when making settlements, subject to statutory exceptions under 54-FZ. | 2026-08-21 | FNS: https://www.nalog.gov.ru/create_business/ip/in_progress/kkt/ | VERIFIED |
-| Personal data | Operators generally have notification duties under Article 22 of 152-FZ before processing personal data, subject to statutory exceptions. Applicability must be checked against MARSEL's actual processing. | 2026-08-21 | Roskomnadzor: https://82.rkn.gov.ru/directions/pers/p15375/ | VERIFIED |
-| USN / VAT | From 01.01.2026 the USN VAT exemption threshold is 20m RUB based on prior-year income; if the current-year threshold is exceeded, VAT obligations arise under the rules described by FNS. | 2026-08-21 | FNS: https://www.nalog.gov.ru/rn77/taxation/taxes/nds_usn/ | VERIFIED |
-| USN VAT threshold 2027-2029 | FNS reports Federal Law No. 228-FZ dated 04.07.2026 keeps the 20m RUB threshold through 2029. | 2026-08-21 | FNS: https://www.nalog.gov.ru/rn64/news/activities_fts/16635804/ | VERIFIED |
+Until explicit user authorization is given, the project must **not**:
+- register MARSEL or any user/account with any authority or service;
+- submit applications, notifications, reports, declarations, forms or other documents;
+- upload, transmit, disclose or publish MARSEL business data, customer data, employee data or personal data;
+- create an account, activate a production integration, or accept terms on behalf of MARSEL;
+- send credentials, API keys, tokens, private keys or other secrets;
+- initiate payments or legally binding actions.
 
-## 2. Items requiring MARSEL-specific legal determination
-These are **NOT VERIFIED** until the legal form, tax regime, actual operations, contracts and transaction flows are confirmed:
+Allowed scope by default: **READ / RESEARCH / VERIFY / DOCUMENT / DRAFT WITHOUT SUBMISSION**.
+
+Status of every external action without explicit authorization: **BLOCKED**.
+
+## 1. Official sources preserved for verification
+The following are retained only as official-source references for future verification:
+- Federal Tax Service of Russia (FNS);
+- Federal Assay Chamber;
+- Roskomnadzor;
+- other competent official Russian authorities when directly relevant to a specific verification task.
+
+A source being listed here does not mean MARSEL is registered, connected, compliant, or that any data has been transmitted.
+
+## 2. Verified source checkpoints
+Official-source research already recorded in this project may be retained with:
+`AREA / VERIFIED FACT / DATE CHECKED / OFFICIAL SOURCE / STATUS`
+
+MARSEL-specific applicability remains **NOT VERIFIED** unless separately established from actual business facts and, where required, professional legal/accounting review.
+
+## 3. Items requiring MARSEL-specific determination
+**NOT VERIFIED** until separately established:
 - exact tax regime and applicable rates;
 - employee payroll and insurance contributions;
 - exact marking/GIIS DMDK obligations for each product/repair flow;
@@ -27,7 +44,13 @@ These are **NOT VERIFIED** until the legal form, tax regime, actual operations, 
 - accounting policy and document flow;
 - treatment of jewelry repair versus sale/manufacturing in each transaction type.
 
-## 3. Tax scope
+## 4. External-action gate
+Before any future registration, filing, integration activation, data transfer or document submission:
+`VERIFY PURPOSE -> IDENTIFY DATA -> MINIMIZE DATA -> CHECK LEGAL BASIS -> SHOW DRAFT -> EXPLICIT USER APPROVAL -> ACTION -> RECEIPT/CONFIRMATION -> LOG -> VERIFY`
+
+No step after **EXPLICIT USER APPROVAL** may be performed automatically.
+
+## 5. Tax scope
 For MARSEL, verify separately:
 - tax regime;
 - rates;
@@ -41,7 +64,7 @@ For MARSEL, verify separately:
 
 No tax conclusion is final without current official-source verification.
 
-## 4. Financial model
+## 6. Financial model
 Business target:
 **3,000,000 RUB net profit/month** — target only, no guarantee.
 
@@ -55,7 +78,7 @@ Business target:
 `- OTHER EXPENSES`
 `= NET PROFIT`
 
-## 5. KPI dictionary
+## 7. KPI dictionary
 - revenue
 - gross profit
 - net profit
@@ -72,28 +95,17 @@ Business target:
 
 Every KPI must have source, period, formula and verification timestamp.
 
-## 6. Growth economics
+## 8. Growth economics
 Every growth proposal uses:
 `COST -> EFFECT -> RISK -> TEST -> KPI -> RESULT`
 
-Areas:
-- average check
-- manufacturing
-- jewelry repair
-- watch repair
-- custom orders
-- B2B/corporate
-- e-commerce
-- social commerce
-- repeat sales
-- loyalty
-- upsell/cross-sell
-- marketing
-- AI automation
-
-## 7. Financial safety
+## 9. Financial and data safety
 Do not mix external market benchmarks with MARSEL actuals. Actual margin/profit requires source transaction, cost and expense data.
 
-## 8. Evidence standard
+Do not store secrets or unnecessary personal data in project documentation.
+
+## 10. Evidence standard
 Financial/legal reports must identify:
 `source system / period / rule or query / included records / exclusions / calculation / verification date / official source`.
+
+**Default external mode: RESEARCH ONLY. NO REGISTRATION. NO SUBMISSION. NO DATA DISCLOSURE.**
