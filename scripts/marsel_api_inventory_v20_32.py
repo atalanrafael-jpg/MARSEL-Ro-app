@@ -25,5 +25,12 @@ base.MAX_RETRIES = 0
 base.RETRY_BASE = 0.0
 base.MIN_INTERVAL = max(float(os.environ.get("ROAPP_MIN_REQUEST_INTERVAL", "0.34")), 0.34)
 
+# Re-export the canonical v20.31 helpers used by package-level tests and
+# downstream read-only tooling. This keeps v20.32 as the public entrypoint
+# while preserving the underlying safety implementation.
+clean_preserve_parameters = base.clean_preserve_parameters
+strict_extract_paths = base.strict_extract_paths
+main = base.main
+
 if __name__ == "__main__":
-    raise SystemExit(base.main())
+    raise SystemExit(main())
