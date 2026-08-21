@@ -45,7 +45,7 @@
 - CORE inventory entrypoint: `v20_32`.
 - `v20_31` и `v20_29` ранее были ошибочно отмечены как legacy candidates; фактическая import chain делает их REQUIRED INTERNAL DEPENDENCIES.
 - CORE collision: `marsel_product_code_collision_audit_v22_1.py`.
-- CORE warehouse: `marsel_warehouse_contract_v20_45.py`; внутреннее поле версии обновлено до `20.47`.
+- CORE warehouse: `marsel_warehouse_contract_v20_45.py`; внутреннее поле версии обновлено до `20.48`.
 - Официальный Warehouse List contract подтверждён документацией v2.0.1: `GET /v2/warehouse/`, `branch_id` optional, `type` optional с default `product`, allowed `product|asset`.
 - `get-locations` больше не используется как источник branch IDs: доступная страница этого метода относится к v1.4 и документирует другой путь `/branches/`, поэтому использование `/v2/company/locations` удалено из warehouse audit.
 - Warehouse List PASS теперь зависит именно от успешного документированного list GET с реально извлечёнными warehouse IDs; stock GET больше не может компенсировать провал list contract.
