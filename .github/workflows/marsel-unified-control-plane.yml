@@ -65,7 +65,7 @@ jobs:
         timeout-minutes: 10
         continue-on-error: true
         if: always()
-        run: python scripts/marsel_warehouse_contract_v20_36.py
+        run: python scripts/marsel_warehouse_contract_v20_45.py
       - name: Enforce unified READ-ONLY safety and quality gates
         if: always()
         shell: bash
@@ -73,19 +73,11 @@ jobs:
           python - <<'PY'
           import json
           from pathlib import Path
-
-          required = [
-              'marsel-unified-api-inventory.json',
-              'marsel-unified-data-quality.json',
-              'marsel-unified-entity-audit.json',
-              'marsel-unified-product-collisions.json',
-              'marsel-unified-warehouse-contract.json',
-          ]
+          required = ['marsel-unified-api-inventory.json','marsel-unified-data-quality.json','marsel-unified-entity-audit.json','marsel-unified-product-collisions.json','marsel-unified-warehouse-contract.json']
           missing = [x for x in required if not Path(x).exists()]
           if missing:
               print(f'MISSING_EVIDENCE={missing}')
               raise SystemExit('Unified quality gate requires complete audit evidence')
-
           inv=json.load(open('marsel-unified-api-inventory.json',encoding='utf-8'))
           dq=json.load(open('marsel-unified-data-quality.json',encoding='utf-8'))
           ent=json.load(open('marsel-unified-entity-audit.json',encoding='utf-8'))
