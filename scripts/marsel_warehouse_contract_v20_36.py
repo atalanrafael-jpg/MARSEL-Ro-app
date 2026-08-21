@@ -3,8 +3,9 @@
 
 Only confirmed RO App contracts can satisfy the gate. The documented v2
 warehouse-list contract is probed with its documented query variants
-(type=product, type=asset, and no type); undocumented endpoints remain
-diagnostic and can never produce PASS. No write operation is performed.
+(type=product, type=asset, and no type). Every probe is reported with its
+HTTP status and safe response diagnostics. Undocumented endpoints remain
+diagnostic-only and can never produce PASS. No write operation is performed.
 """
 from __future__ import annotations
 import hashlib, json, os, time
@@ -27,7 +28,7 @@ def get(url: str):
         if attempt:
             time.sleep(min(2 ** (attempt - 1), 4))
         time.sleep(MIN_INTERVAL)
-        req = Request(url, headers={"Authorization": f"Bearer {KEY}", "Accept": "application/json", "User-Agent": "MARSEL-Warehouse-Contract-V20.47"}, method="GET")
+        req = Request(url, headers={"Authorization": f"Bearer {KEY}", "Accept": "application/json", "User-Agent": "MARSEL-Warehouse-Contract-V20.48"}, method="GET")
         started = time.time()
         try:
             with urlopen(req, timeout=TIMEOUT) as r:
@@ -98,20 +99,37 @@ def warehouse_id(row):
     return None
 
 
+def safe_body_preview(body: str, limit: int = 300):
+    """Return a bounded, non-secret diagnostic preview; never emit auth headers."""
+    if not body:
+        return ""
+    text = " ".join(body.replace("\n", " ").split())
+    return text[:limit]
+
+
 def probe(path, query, source, documented, reason=None):
     url = path + (f"?{urlencode(query)}" if query else "")
     status, body, elapsed, error = get(url)
     payload, valid = parse_json(body) if status == 200 else (None, False)
     rows = extract_rows(payload) if valid else []
-    return {
+    result = {
         "method": "GET", "path": url.replace(API_ROOT, ""), "url": url,
         "source": source, "documented_contract": documented,
         "query": query or {}, "http": status, "elapsed_s": elapsed,
         "json_valid": valid, "error": error,
+        "response_preview": safe_body_preview(body),
         "response_top_level_type": type(payload).__name__ if valid else None,
         "response_keys": sorted(payload.keys()) if isinstance(payload, dict) else None,
         "rows_discovered": len(rows), "reason": reason,
-    }, rows
+    }
+    print(
+        "WAREHOUSE_PROBE "
+        f"documented={documented} path={result['path']} "
+        f"http={status} json={valid} rows={len(rows)}"
+    )
+    if status != 200:
+        print(f"WAREHOUSE_PROBE_DETAIL path={result['path']} preview={safe_body_preview(body)}")
+    return result, rows
 
 
 def main():
@@ -153,6 +171,7 @@ def main():
             "method": "GET", "path": "/warehouse/goods/{warehouse_id}", "warehouse_id": wid,
             "url": url, "source": STOCK_DOC, "documented_contract": True,
             "http": status, "elapsed_s": elapsed, "json_valid": valid, "error": error,
+            "response_preview": safe_body_preview(body),
             "response_top_level_type": type(parsed).__name__ if valid else None,
             "response_keys": sorted(parsed.keys()) if isinstance(parsed, dict) else None,
         })
@@ -169,7 +188,7 @@ def main():
     )
     result = "PASS" if ids and list_ok and stock_ok else "NOT_VERIFIED"
     report = {
-        "version": "20.47", "mode": "READ_ONLY", "result": result,
+        "version": "20.48", "mode": "READ_ONLY", "result": result,
         "readonly": True, "write_requests_made": 0, "ro_app_data_mutated": False,
         "official_documentation": {"warehouse_list": WAREHOUSE_DOC, "stock": STOCK_DOC},
         "warehouse_count": len(ids), "warehouse_ids_discovered": ids, "probes": probes,
