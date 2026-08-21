@@ -15,6 +15,15 @@ This document is the operational instruction for future agents, developers and o
 9. Every production write requires explicit safety gates.
 10. Every change requires post-change verification.
 
+## Canonical business scope
+MARSEL currently includes four business directions:
+1. manufacture and sale of jewelry;
+2. jewelry repair;
+3. watch repair;
+4. glasses repair.
+
+All four directions must be represented consistently in the business plan, service/catalog model, orders, cost accounting, inventory, analytics, marketing attribution and automation. A direction is not considered technically implemented merely because it appears in documentation; implementation requires evidence at the relevant gate.
+
 ## Required task lifecycle
 
 ### Phase 0 — Context
@@ -29,7 +38,8 @@ This document is the operational instruction for future agents, developers and o
 - map imports and runtime dependencies;
 - map workflow references;
 - map tests to active modules;
-- distinguish active code from historical/archive code.
+- distinguish active code from historical/archive code;
+- check all four MARSEL business directions for coverage gaps.
 
 ### Phase 2 — Design
 Produce a minimal canonical change. Do not create a new version merely because an old version exists.
@@ -58,7 +68,8 @@ A release is READY only if:
 - security checks pass;
 - live API claims are evidence-backed;
 - data mutation status is explicitly known;
-- documentation matches implementation.
+- documentation matches implementation;
+- all four MARSEL business directions have an explicit implementation/evidence status.
 
 ## Evidence states
 Use only these states:
@@ -76,10 +87,11 @@ MARSEL BUSINESS
 ├── Customers
 ├── Orders
 ├── Master Catalog
-├── Manufacturing
+├── Jewelry Manufacturing & Sales
 ├── Jewelry Repair
 ├── Watch Repair
-├── Materials & Stones
+├── Glasses Repair
+├── Materials, Parts & Stones
 ├── Warehouse
 ├── Sales & Payments
 ├── E-commerce / Marketplace
