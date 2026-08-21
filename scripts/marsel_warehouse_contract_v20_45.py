@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """MARSEL warehouse contract audit — READ ONLY.
 
-Canonical version 20.45. The script verifies documented RO App warehouse GET
-contracts. It never invents warehouse IDs and never performs write operations.
+Canonical version 20.46. The script verifies documented RO App warehouse GET
+contracts. It never invents warehouse or branch IDs and never performs writes.
+When no branch_id is configured, real branch IDs are obtained from the
+contract-confirmed /company/locations collection and used as documented query
+parameters for the warehouse endpoint.
 """
 from __future__ import annotations
 import hashlib, json, os, time
@@ -17,6 +20,7 @@ MAX_RETRIES = max(int(os.getenv("ROAPP_MAX_RETRIES", "2")), 0)
 MIN_INTERVAL = max(float(os.getenv("ROAPP_MIN_REQUEST_INTERVAL", "0.34")), 0.34)
 WAREHOUSE_DOC = "https://roappua.readme.io/reference/get-warehouses"
 STOCK_DOC = "https://roappua.readme.io/reference/get-stock"
+LOCATIONS_DOC = "https://roappua.readme.io/reference/get-locations"
 
 
 def get(url: str):
@@ -25,7 +29,7 @@ def get(url: str):
         if attempt:
             time.sleep(min(2 ** (attempt - 1), 4))
         time.sleep(MIN_INTERVAL)
-        req = Request(url, headers={"Authorization": f"Bearer {KEY}", "Accept": "application/json", "User-Agent": "MARSEL-Warehouse-Contract-V20.45"}, method="GET")
+        req = Request(url, headers={"Authorization": f"Bearer {KEY}", "Accept": "application/json", "User-Agent": "MARSEL-Warehouse-Contract-V20.46"}, method="GET")
         started = time.time()
         try:
             with urlopen(req, timeout=TIMEOUT) as r:
@@ -94,6 +98,21 @@ def extract_rows(payload):
     return unique
 
 
+def extract_location_ids(payload):
+    rows = []
+    if isinstance(payload, dict) and isinstance(payload.get("data"), list):
+        rows = payload["data"]
+    elif isinstance(payload, list):
+        rows = payload
+    ids = []
+    for row in rows:
+        if isinstance(row, dict) and row.get("id") is not None:
+            value = str(row["id"]).strip()
+            if value and value not in ids:
+                ids.append(value)
+    return ids
+
+
 def warehouse_id(row):
     if not isinstance(row, dict):
         return None
@@ -116,30 +135,49 @@ def main():
     if not KEY:
         raise SystemExit("ROAPP_API_KEY is required")
     branch_id = os.getenv("ROAPP_BRANCH_ID", "").strip()
-    query = {"type": "product"}
-    if branch_id:
-        query["branch_id"] = branch_id
     probes = []
-    list_probe, rows = probe(f"{API_BASE}/warehouse/", query, WAREHOUSE_DOC, True)
-    probes.append(list_probe)
-    if list_probe["http"] == 200 and list_probe["json_valid"] and not rows and not branch_id:
+    branch_ids = [branch_id] if branch_id else []
+
+    if not branch_ids:
+        location_status, location_body, location_elapsed, location_error = get(f"{API_BASE}/company/locations")
+        location_payload, location_json = parse_json(location_body) if location_status == 200 else (None, False)
+        branch_ids = extract_location_ids(location_payload) if location_json else []
+        probes.append({"method": "GET", "path": "/v2/company/locations", "url": f"{API_BASE}/company/locations", "source": LOCATIONS_DOC, "documented_contract": True, "http": location_status, "elapsed_s": location_elapsed, "json_valid": location_json, "error": location_error, "rows_discovered": len(branch_ids), "real_branch_ids_used": branch_ids})
+
+    query_variants = []
+    for bid in branch_ids:
+        query_variants.append({"type": "product", "branch_id": bid})
+    if not query_variants:
+        query_variants.append({"type": "product"})
+
+    rows = []
+    for query in query_variants:
+        list_probe, candidate_rows = probe(f"{API_BASE}/warehouse/", query, WAREHOUSE_DOC, True)
+        probes.append(list_probe)
+        if candidate_rows:
+            rows.extend(candidate_rows)
+
+    if not rows and not branch_ids:
         fallback_probe, fallback_rows = probe(f"{API_BASE}/warehouse/", {}, WAREHOUSE_DOC, True)
         fallback_probe["reason"] = "documented type parameter defaults to product"
         probes.append(fallback_probe)
         if fallback_rows:
             rows = fallback_rows
+
     if not rows:
         for candidate in (f"{API_ROOT}/warehouse/", f"{API_BASE}/warehouses"):
-            candidate_probe, candidate_rows = probe(candidate, query, WAREHOUSE_DOC, False)
+            candidate_probe, candidate_rows = probe(candidate, {"type": "product"}, WAREHOUSE_DOC, False)
             candidate_probe["reason"] = "undocumented compatibility probe"
             probes.append(candidate_probe)
             if candidate_rows:
-                rows = candidate_rows
+                rows.extend(candidate_rows)
+
     ids = []
     for row in rows:
         wid = warehouse_id(row)
         if wid and wid not in ids:
             ids.append(wid)
+
     stock_probes = []
     for wid in ids:
         url = f"{API_ROOT}/warehouse/goods/{wid}"
@@ -147,11 +185,12 @@ def main():
         parsed, valid_json = parse_json(body) if status == 200 else (None, False)
         stock_probes.append({"method": "GET", "path": "/warehouse/goods/{warehouse_id}", "warehouse_id": wid, "url": url, "source": STOCK_DOC, "documented_contract": True, "http": status, "elapsed_s": elapsed, "json_valid": valid_json, "error": error, "response_top_level_type": type(parsed).__name__ if valid_json else None, "response_keys": sorted(parsed.keys()) if isinstance(parsed, dict) else None})
     probes.extend(stock_probes)
+
     confirmed_live_gets = [p for p in probes if p.get("documented_contract") and p.get("http") == 200 and p.get("json_valid") and (p.get("rows_discovered", 0) > 0 or p.get("path") == "/warehouse/goods/{warehouse_id}")]
     list_ok = any(p.get("documented_contract") and p.get("path") == "/v2/warehouse/" and p.get("http") == 200 and p.get("json_valid") and p.get("rows_discovered", 0) > 0 for p in probes)
     stock_ok = any(p.get("documented_contract") and p.get("path") == "/warehouse/goods/{warehouse_id}" and p.get("http") == 200 and p.get("json_valid") for p in probes)
     result = "PASS" if ids and list_ok and stock_ok else "NOT_VERIFIED"
-    report = {"version": "20.45", "mode": "READ_ONLY", "result": result, "readonly": True, "write_requests_made": 0, "ro_app_data_mutated": False, "official_documentation": {"warehouse_list": WAREHOUSE_DOC, "stock": STOCK_DOC}, "warehouse_count": len(ids), "warehouse_ids_discovered": ids, "probes": probes, "confirmed_live_gets": confirmed_live_gets, "diagnostic_only_undocumented_probes": [p for p in probes if not p.get("documented_contract")], "retry_policy": {"max_retries": MAX_RETRIES, "timeout_seconds": TIMEOUT, "retryable_http": [408, 429, 500, 502, 503, 504]}}
+    report = {"version": "20.46", "mode": "READ_ONLY", "result": result, "readonly": True, "write_requests_made": 0, "ro_app_data_mutated": False, "official_documentation": {"warehouse_list": WAREHOUSE_DOC, "stock": STOCK_DOC, "locations": LOCATIONS_DOC}, "warehouse_count": len(ids), "warehouse_ids_discovered": ids, "branch_ids_discovered": branch_ids, "probes": probes, "confirmed_live_gets": confirmed_live_gets, "diagnostic_only_undocumented_probes": [p for p in probes if not p.get("documented_contract")], "retry_policy": {"max_retries": MAX_RETRIES, "timeout_seconds": TIMEOUT, "retryable_http": [408, 429, 500, 502, 503, 504]}}
     raw = json.dumps(report, ensure_ascii=False, indent=2).encode()
     report["report_sha256"] = hashlib.sha256(raw).hexdigest()
     out = os.getenv("WAREHOUSE_CONTRACT_OUTPUT", "marsel-unified-warehouse-contract.json")
@@ -159,11 +198,9 @@ def main():
         json.dump(report, fh, ensure_ascii=False, indent=2)
     print(f"WAREHOUSE_CONTRACT_RESULT={result}")
     print(f"WAREHOUSE_COUNT={len(ids)}")
+    print(f"BRANCH_IDS_DISCOVERED={','.join(branch_ids) or 'NONE'}")
     print("WAREHOUSE_EXPLICIT_GET_CONTRACTS=2")
     print(f"WAREHOUSE_CONFIRMED_LIVE_GETS={len(confirmed_live_gets)}")
-    print(f"WAREHOUSE_LIST_HTTP={list_probe['http']}")
-    print(f"WAREHOUSE_LIST_JSON_VALID={str(list_probe['json_valid']).lower()}")
-    print(f"WAREHOUSE_LIST_ROWS={list_probe['rows_discovered']}")
     print("WRITE_REQUESTS_MADE=0")
     print("RO_APP_DATA_MUTATED=false")
     return 0
