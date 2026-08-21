@@ -12,7 +12,7 @@
 | Data quality | `scripts/marsel_data_quality_v22_readonly.py` | ACTIVE |
 | Entity audit | `scripts/marsel_entity_audit_v20_35.py` | ACTIVE |
 | Product collision | `scripts/marsel_product_code_collision_audit_v22_1.py` | ACTIVE |
-| Warehouse contract | `scripts/marsel_warehouse_contract_v20_36.py` | ACTIVE |
+| Warehouse contract | `scripts/marsel_warehouse_contract_v20_45.py` | ACTIVE |
 
 Источник истины для ACTIVE-набора: `.github/workflows/marsel-unified-control-plane.yml` на `main`.
 
@@ -35,28 +35,18 @@
 
 Их нельзя переносить в `старые данные/` только по номеру версии. Сначала проверяются все references/imports/workflow/test/docs dependencies.
 
-## 4. Исправленная ошибка предыдущего реестра
+## 4. Исправленные расхождения
 
-Предыдущая запись `marsel_api_inventory_v20_29.py` как прямого CORE entrypoint была неточной. Текущий workflow фактически запускает `marsel_api_inventory_v20_32.py`.
+- CORE inventory: фактически `v20_32`, не `v20_31`.
+- CORE collision: фактически `marsel_product_code_collision_audit_v22_1.py`.
+- CORE warehouse: фактически `marsel_warehouse_contract_v20_45.py`; внутреннее поле `version` также `20.45`.
+- Версия `20.48` не подтверждена и больше не используется как активная версия.
+- Старый путь `scripts/marsel_warehouse_contract_v20_36.py` выведен из ACTIVE и сохранён в `старые данные/` как исторический след.
 
-Предыдущая запись `marsel_product_collision_v20_36.py` также была неточной: фактический active файл — `marsel_product_code_collision_audit_v22_1.py`.
-
-Эти расхождения исправлены в настоящем реестре.
-
-## 5. Warehouse version discrepancy
-
-Текущий active filename:
-
-`scripts/marsel_warehouse_contract_v20_36.py`
-
-Фактическое внутреннее поле `version` в текущем файле: `20.45`.
-
-Поэтому `20.48` не считается подтверждённой версией. До отдельного version-normalization изменения используем фактические значения filename + internal version, без выдуманного номера.
-
-## 6. Правила
+## 5. Правила
 
 1. Workflow является источником истины для фактического ACTIVE execution set.
 2. Более новая версия не заменяет старую автоматически.
-3. Архивирование = перенос после dependency audit, а не удаление.
+3. Архивирование = перенос после dependency audit, а не потеря исторических данных.
 4. История Git/GitHub Actions сохраняется.
 5. После любого изменения ACTIVE execution set требуется новый Unified Control Plane run.
