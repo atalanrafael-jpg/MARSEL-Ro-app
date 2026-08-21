@@ -1,43 +1,62 @@
 # MARSEL / Ro App — Active Script Registry
 
-Дата проверки: 2026-08-21
+Дата контрольной ревизии: 2026-08-21
+Ветка: `main`
 
-## Назначение
+## 1. ACTIVE / CORE — фактически вызывается Unified Control Plane
 
-Этот реестр отделяет подтверждённо используемые скрипты от исторических версий и кандидатов на архивирование. Реестр не является разрешением на удаление файлов.
+| Роль | Файл | Статус |
+|---|---|---|
+| Structure self-check | `scripts/marsel_canonical_self_check.py` | ACTIVE |
+| API inventory | `scripts/marsel_api_inventory_v20_32.py` | ACTIVE |
+| Data quality | `scripts/marsel_data_quality_v22_readonly.py` | ACTIVE |
+| Entity audit | `scripts/marsel_entity_audit_v20_35.py` | ACTIVE |
+| Product collision | `scripts/marsel_product_code_collision_audit_v22_1.py` | ACTIVE |
+| Warehouse contract | `scripts/marsel_warehouse_contract_v20_36.py` | ACTIVE |
 
-## ACTIVE / CORE
+Источник истины для ACTIVE-набора: `.github/workflows/marsel-unified-control-plane.yml` на `main`.
 
-### Unified Control Plane
-Используются активным контрольным контуром:
-- `marsel_canonical_self_check.py`
-- `marsel_api_inventory_v20_29.py`
-- `marsel_data_quality_v22_readonly.py`
-- `marsel_entity_audit_v20_35.py`
-- `marsel_product_collision_v20_36.py`
-- `marsel_warehouse_contract_v20_36.py`
+## 2. SUPPORT
 
-### API registry and probe support
-- `marsel_api_v2_canonical_registry_v1.py`
-- `marsel_api_v2_probe_v1.py`
+- `scripts/marsel_api_v2_canonical_registry_v1.py` — API registry/evidence support.
+- `scripts/marsel_api_v2_probe_v1.py` — read-only API probe support.
+- `scripts/generate_drafts.py` — draft-generation support; не относится к live Ro App audit.
 
-### Support
-- `generate_drafts.py`
+## 3. LEGACY / REVIEW CANDIDATES
 
-## REVIEW / LEGACY CANDIDATES
+Следующие файлы обнаружены в репозитории, но не являются самостоятельными active entrypoints Unified Control Plane:
 
-Файлы с более ранними версиями, не включённые в текущий Unified Control Plane, нельзя удалять автоматически. До переноса в `старые данные/` требуется подтвердить отсутствие ссылок из workflows, тестов, документации и runtime-кода.
+- `scripts/marsel_api_inventory_v20_29.py`
+- `scripts/marsel_api_inventory_v20_31.py`
+- `scripts/marsel_entity_audit_v20_32.py`
+- `scripts/marsel_data_contract_v20_26.py`
+- `scripts/marsel_coverage_audit_v20_25.py`
+- другие исторические V20.x/V21.x/V22.x варианты.
 
-Примеры обнаруженных исторических линий:
-- `marsel_api_inventory_v20_31.py`
-- `marsel_api_inventory_v20_32.py`
-- `marsel_entity_audit_v20_32.py`
-- более ранние V20.x contract/coverage/catalog scripts
+Их нельзя переносить в `старые данные/` только по номеру версии. Сначала проверяются все references/imports/workflow/test/docs dependencies.
 
-## Правила
+## 4. Исправленная ошибка предыдущего реестра
 
-1. Активный workflow должен ссылаться только на файлы из ACTIVE или на явно документированную поддержку.
-2. Более новая версия файла не считается автоматически заменой старой без проверки интерфейса и зависимостей.
-3. Архивирование выполняется перемещением после проверки, а не удалением.
-4. История Git и GitHub Actions остаётся сохранённой независимо от расположения файлов.
-5. Любое изменение ACTIVE-набора требует повторной проверки CI.
+Предыдущая запись `marsel_api_inventory_v20_29.py` как прямого CORE entrypoint была неточной. Текущий workflow фактически запускает `marsel_api_inventory_v20_32.py`.
+
+Предыдущая запись `marsel_product_collision_v20_36.py` также была неточной: фактический active файл — `marsel_product_code_collision_audit_v22_1.py`.
+
+Эти расхождения исправлены в настоящем реестре.
+
+## 5. Warehouse version discrepancy
+
+Текущий active filename:
+
+`scripts/marsel_warehouse_contract_v20_36.py`
+
+Фактическое внутреннее поле `version` в текущем файле: `20.45`.
+
+Поэтому `20.48` не считается подтверждённой версией. До отдельного version-normalization изменения используем фактические значения filename + internal version, без выдуманного номера.
+
+## 6. Правила
+
+1. Workflow является источником истины для фактического ACTIVE execution set.
+2. Более новая версия не заменяет старую автоматически.
+3. Архивирование = перенос после dependency audit, а не удаление.
+4. История Git/GitHub Actions сохраняется.
+5. После любого изменения ACTIVE execution set требуется новый Unified Control Plane run.
