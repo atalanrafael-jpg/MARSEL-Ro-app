@@ -24,7 +24,7 @@ jobs:
       # workflow_run is privileged: execute only trusted default-branch code.
       - uses: actions/checkout@v7
         with:
-          ref: ${{ event_name == 'workflow_run' && github.event.repository.default_branch || github.sha }}
+          ref: ${{ github.event_name == 'workflow_run' && github.event.repository.default_branch || github.sha }}
 
       - name: Verify production secret is not exposed in source
         shell: bash
