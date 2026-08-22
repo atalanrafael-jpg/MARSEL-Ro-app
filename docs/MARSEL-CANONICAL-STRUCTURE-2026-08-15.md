@@ -1,6 +1,6 @@
 # MARSEL / ROAPP — ЕДИНАЯ КАНОНИЧЕСКАЯ СТРУКТУРА
 
-Дата ревизии: 2026-08-21  
+Дата ревизии: 2026-08-22  
 Ветка: `main`
 
 ## 1. Единая система
@@ -16,28 +16,31 @@
 
 `.github/workflows/marsel-unified-control-plane.yml`
 
-Порядок:
+Порядок выполнения:
 
-1. API inventory — READ ONLY
-2. Data quality — READ ONLY
-3. Entity audit — READ ONLY
-4. Product-code collision review — READ ONLY / advisory
-5. Warehouse contract audit — READ ONLY
-6. Unified safety/quality gate
-7. Unified evidence artifact
+1. Canonical structure self-check
+2. RO App secret presence check
+3. API inventory — READ ONLY
+4. Data quality — READ ONLY
+5. Entity audit — READ ONLY
+6. Product-code collision review — READ ONLY / advisory
+7. Warehouse contract audit — READ ONLY
+8. Unified safety/quality gate
+9. Unified evidence artifact
+10. Artifact upload
 
 Другие workflow не должны выполнять самостоятельный live-аудит RO App.
 
 ## 3. Канонические runtime-компоненты
 
-- `scripts/marsel_api_inventory_v20_32.py` — текущая точка входа API inventory.
+- `scripts/marsel_canonical_self_check.py` — structural self-check.
+- `scripts/marsel_api_inventory_v20_32.py` — API inventory.
 - `scripts/marsel_data_quality_v22_readonly.py` — data quality.
 - `scripts/marsel_entity_audit_v20_35.py` — entity audit.
 - `scripts/marsel_product_code_collision_audit_v22_1.py` — advisory collision review.
 - `scripts/marsel_warehouse_contract_v20_36.py` — warehouse contract audit.
 - `scripts/marsel_api_v2_probe_v1.py` — canonical read-only probe.
 - `scripts/marsel_api_v2_canonical_registry_v1.py` — API evidence/registry support.
-- `scripts/marsel_canonical_self_check.py` — structural self-check.
 
 Старые versioned auditors сохраняются только как исторический материал и не подключаются к live Control Plane.
 
@@ -55,6 +58,7 @@ Ro-app/
 ├── javascript/          # GPT integration
 ├── typescript/          # GPT integration
 ├── python/              # Python integration
+├── 02_ROAPP/CONTROL/    # control registries
 ├── .github/workflows/   # CI + Unified Control Plane
 ├── .agents/             # agent skills/contracts
 ├── старые данные/       # historical material; not active
@@ -66,7 +70,7 @@ Ro-app/
 - `marsel-unified-control-plane.yml` — единственный RO App live-audit workflow.
 - `test.yml` — unit/compile/dependency validation; live RO App audit сюда не входит.
 - `language-quality.yml` — языковые проверки.
-- `generate-drafts.yml` — draft generation.
+- `generate-drafts.yml` — draft generation; не является READ-ONLY control plane.
 - `mcp-production.yml` — MCP-specific readiness checks.
 
 ## 6. Обязательные safety invariants
@@ -77,8 +81,9 @@ Ro-app/
 - `RO_APP_DATA_MUTATED=false`;
 - `identifiers_guessed=false`;
 - отсутствие POST/PUT/PATCH/DELETE в live-аудите;
-- неполные live-данные = `REVIEW_REQUIRED`, никогда не `PASS`;
-- старый успешный запуск не заменяет новый запуск на текущем `main`.
+- неполные или неподтверждённые live-данные = `REVIEW_REQUIRED`, никогда не `PASS`;
+- старый успешный запуск не заменяет новый запуск на текущем `main`;
+- секреты не хранятся в репозитории.
 
 ## 7. Правила архива
 
