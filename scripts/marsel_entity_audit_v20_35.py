@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """MARSEL V20.35 — read-only entity audit from canonical API evidence.
 
-Identifiers are never guessed. Parameterized nested routes are probed only after
-real parent IDs have been obtained from a confirmed live collection endpoint.
+Warehouse verification is owned by the dedicated warehouse contract audit and is
+therefore intentionally excluded from this generic entity audit. Identifiers are
+never guessed. Parameterized nested routes are probed only after real parent IDs
+have been obtained from a confirmed live collection endpoint.
 """
 from __future__ import annotations
 
@@ -25,9 +27,7 @@ CLASSIFIERS = {
     "employees": lambda p: "/company/employees" in p,
     "locations": lambda p: "/company/locations" in p,
     "legal_entities": lambda p: "/company/legal-entities" in p,
-    "warehouse": lambda p: "warehouse" in p.lower() or "warehouses" in p.lower(),
     "custom_directories": lambda p: "/company/directories" in p,
-    "resources": lambda p: "/resources" in p.lower(),
 }
 
 
@@ -81,10 +81,7 @@ def main():
     results = []
     resolved = []
 
-    # Standard non-parameterized collection audits.
     for entity, match in CLASSIFIERS.items():
-        if entity == "resources":
-            continue
         candidates = [p for p in confirmed_collection if match(norm(p))]
         if not candidates:
             results.append({
@@ -122,7 +119,6 @@ def main():
                 "quality_issues": ["request_failed"],
             })
 
-    # Resources are documented only as a nested route under a real location ID.
     resource_templates = [
         p for p in confirmed
         if "/resources" in norm(p).lower() and PARAM.search(p)
@@ -214,6 +210,7 @@ def main():
         "readonly": True,
         "write_requests_made": 0,
         "ro_app_data_mutated": False,
+        "scope": {"warehouse": "DELEGATED_TO_WAREHOUSE_CONTRACT_AUDIT"},
         "confirmed_collection_audits": results,
         "verified_live_collection_audits": [
             r for r in results

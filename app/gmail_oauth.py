@@ -16,6 +16,8 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 
+from .config import settings
+
 GMAIL_READONLY_SCOPE = "https://www.googleapis.com/auth/gmail.readonly"
 DEFAULT_ACCOUNT_EMAIL = "atalanrafael@gmail.com"
 DEFAULT_STORE_PATH = "~/.local/share/marsel/gmail_oauth.db"
@@ -86,6 +88,12 @@ class GmailTokenStore:
             connection.execute("DELETE FROM gmail_credentials WHERE account_email = ?", (account_email,))
 
 
+@dataclass
+class PendingOAuth:
+    state: str
+    redirect_uri: str
+
+
 class GmailOAuthService:
     def __init__(self, store: GmailTokenStore | None = None) -> None:
         self._store = store or GmailTokenStore()
@@ -115,6 +123,12 @@ class GmailOAuthService:
         scopes = set(credentials.scopes or ())
         if scopes and scopes != {GMAIL_READONLY_SCOPE}:
             raise PermissionError("Authorized Gmail scope is not permitted")
+
+    def _configured_account(self) -> str:
+        account = settings.gmail_account_email.strip().lower()
+        if not account:
+            raise RuntimeError("GMAIL_ACCOUNT_EMAIL не задан")
+        return account
 
     def authorization_url(self, redirect_uri: str) -> str:
         flow = Flow.from_client_config(self._client_config(), scopes=[GMAIL_READONLY_SCOPE], redirect_uri=redirect_uri)
@@ -175,6 +189,39 @@ class GmailOAuthService:
             raise ValueError("max_results must be between 1 and 100")
         credentials = self._load_credentials()
         if credentials is None:
+        self._credentials = credentials
+
+        profile = self._gmail_service().users().getProfile(userId="me").execute()
+        email = str(profile.get("emailAddress") or "").strip().lower()
+        configured_account = self._configured_account()
+        if email != configured_account:
+            self._credentials = None
+            raise PermissionError("Authorized Google account does not match configured Gmail account")
+
+        return {
+            "status": "connected",
+            "email": email,
+            "scope": GMAIL_READONLY_SCOPE,
+            "messages_total": profile.get("messagesTotal"),
+            "threads_total": profile.get("threadsTotal"),
+        }
+
+    def status(self) -> dict[str, Any]:
+        account = self._configured_account()
+        if self._credentials is None:
+            return {"status": "unauthorized", "email": account}
+        if self._credentials.expired and self._credentials.refresh_token:
+            try:
+                self._credentials.refresh(Request())
+            except Exception:
+                self._credentials = None
+                return {"status": "token_expired", "email": account}
+        return {"status": "connected", "email": account, "scope": GMAIL_READONLY_SCOPE}
+
+    def list_messages(self, max_results: int = 10) -> list[dict[str, Any]]:
+        if not 1 <= max_results <= 100:
+            raise ValueError("max_results должен быть от 1 до 100")
+        if self._credentials is None:
             raise PermissionError("Gmail is not connected")
         response = self._gmail_service(self._refresh_if_needed(credentials)).users().messages().list(userId="me", maxResults=max_results).execute()
         return response.get("messages", [])
