@@ -1,111 +1,64 @@
 import os
+from typing import Optional
+
 from dotenv import load_dotenv
 from openai import OpenAI
 
-# Load environment variables
 load_dotenv()
 
-# Initialize OpenAI client
-client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
 class GPTIntegration:
-    def __init__(self, model: str = None):
-        """Initialize GPT Integration
-        
-        Args:
-            model: Model name (gpt-4 or gpt-3.5-turbo). Defaults to env variable.
-        """
-        self.model = model or os.getenv('GPT_MODEL', 'gpt-3.5-turbo')
-        self.conversation_history = []
-    
-    def chat(self, user_message: str, system_prompt: str = None) -> str:
-        """Send a message to GPT and get a response
-        
-        Args:
-            user_message: User message
-            system_prompt: Optional system prompt for context
-            
-        Returns:
-            Assistant response
-        """
-        messages = []
-        
+    """Small stateful wrapper around the OpenAI Responses API."""
+
+    def __init__(self, model: Optional[str] = None, client: Optional[OpenAI] = None):
+        api_key = os.getenv("OPENAI_API_KEY")
+        if client is None and not api_key:
+            raise RuntimeError("OPENAI_API_KEY is required")
+
+        self.client = client or OpenAI(api_key=api_key)
+        self.model = model or os.getenv("GPT_MODEL", "gpt-5.5")
+        self.previous_response_id: Optional[str] = None
+
+    def chat(self, user_message: str, system_prompt: Optional[str] = None) -> str:
+        if not isinstance(user_message, str) or not user_message.strip():
+            raise ValueError("user_message must be a non-empty string")
+        if system_prompt is not None and not isinstance(system_prompt, str):
+            raise ValueError("system_prompt must be a string or None")
+
+        request = {
+            "model": self.model,
+            "input": user_message.strip(),
+            "store": True,
+        }
         if system_prompt:
-            messages.append({"role": "system", "content": system_prompt})
-        
-        # Add conversation history
-        messages.extend(self.conversation_history)
-        
-        # Add current message
-        messages.append({"role": "user", "content": user_message})
-        
-        try:
-            response = client.chat.completions.create(
-                model=self.model,
-                messages=messages,
-                temperature=0.7,
-                max_tokens=2000
-            )
-            
-            assistant_message = response.choices[0].message.content
-            
-            # Store in conversation history
-            self.conversation_history.append({"role": "user", "content": user_message})
-            self.conversation_history.append({"role": "assistant", "content": assistant_message})
-            
-            return assistant_message
-        except Exception as e:
-            return f"Error: {str(e)}"
-    
-    def reset_conversation(self):
-        """Clear conversation history"""
-        self.conversation_history = []
-    
+            request["instructions"] = system_prompt
+        if self.previous_response_id:
+            request["previous_response_id"] = self.previous_response_id
+
+        response = self.client.responses.create(**request)
+        self.previous_response_id = response.id
+        text = (response.output_text or "").strip()
+        if not text:
+            raise RuntimeError("OpenAI returned an empty response")
+        return text
+
+    def reset_conversation(self) -> None:
+        self.previous_response_id = None
+
     def analyze_text(self, text: str) -> str:
-        """Analyze text using GPT
-        
-        Args:
-            text: Text to analyze
-            
-        Returns:
-            Analysis result
-        """
-        prompt = f"Please analyze the following text:\n\n{text}"
-        return self.chat(prompt)
-    
-    def generate_content(self, topic: str, style: str = None) -> str:
-        """Generate content based on topic
-        
-        Args:
-            topic: Topic for content generation
-            style: Optional style/tone specification
-            
-        Returns:
-            Generated content
-        """
-        prompt = f"Generate content about: {topic}"
+        if not isinstance(text, str) or not text.strip():
+            raise ValueError("text must be a non-empty string")
+        return self.chat(f"Please analyze the following text:\n\n{text.strip()}")
+
+    def generate_content(self, topic: str, style: Optional[str] = None) -> str:
+        if not isinstance(topic, str) or not topic.strip():
+            raise ValueError("topic must be a non-empty string")
+        prompt = f"Generate content about: {topic.strip()}"
         if style:
-            prompt += f" in a {style} style."
+            prompt += f" in a {style.strip()} style."
         return self.chat(prompt)
 
-# Example usage
+
 if __name__ == "__main__":
-    # Initialize GPT
     gpt = GPTIntegration()
-    
-    # Example 1: Simple chat
-    response = gpt.chat("Hello! How are you?")
-    print(f"Assistant: {response}\n")
-    
-    # Example 2: Continue conversation
-    response = gpt.chat("Can you tell me more about Python?")
-    print(f"Assistant: {response}\n")
-    
-    # Example 3: Analyze text
-    gpt.reset_conversation()
-    analysis = gpt.analyze_text("Artificial Intelligence is transforming the world.")
-    print(f"Analysis: {analysis}\n")
-    
-    # Example 4: Generate content
-    content = gpt.generate_content("Machine Learning basics", "educational")
-    print(f"Generated Content: {content}")
+    print(gpt.chat("Hello! How are you?"))

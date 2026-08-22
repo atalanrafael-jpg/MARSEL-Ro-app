@@ -1,95 +1,82 @@
 import OpenAI from 'openai';
 import dotenv from 'dotenv';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-// Load environment variables
-dotenv.config({ path: '../.env' });
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
 
-// Initialize OpenAI client
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+export class GPTIntegration {
+  constructor({ model = process.env.GPT_MODEL || 'gpt-5.5', apiKey = process.env.OPENAI_API_KEY } = {}) {
+    if (!apiKey) {
+      throw new Error('OPENAI_API_KEY is not configured');
+    }
 
-class GPTIntegration {
-  constructor(model = null) {
-    this.model = model || process.env.GPT_MODEL || 'gpt-3.5-turbo';
-    this.conversationHistory = [];
+    this.client = new OpenAI({ apiKey });
+    this.model = model;
+    this.previousResponseId = null;
   }
 
   async chat(userMessage, systemPrompt = null) {
-    const messages = [];
+    if (typeof userMessage !== 'string' || !userMessage.trim()) {
+      throw new TypeError('userMessage must be a non-empty string');
+    }
+    if (systemPrompt !== null && (typeof systemPrompt !== 'string' || !systemPrompt.trim())) {
+      throw new TypeError('systemPrompt must be a non-empty string or null');
+    }
+
+    const request = {
+      model: this.model,
+      input: userMessage,
+    };
 
     if (systemPrompt) {
-      messages.push({ role: 'system', content: systemPrompt });
+      request.instructions = systemPrompt;
+    }
+    if (this.previousResponseId) {
+      request.previous_response_id = this.previousResponseId;
     }
 
-    // Add conversation history
-    messages.push(...this.conversationHistory);
+    const response = await this.client.responses.create(request);
+    const assistantMessage = response.output_text?.trim();
 
-    // Add current message
-    messages.push({ role: 'user', content: userMessage });
-
-    try {
-      const response = await client.chat.completions.create({
-        model: this.model,
-        messages: messages,
-        temperature: 0.7,
-        max_tokens: 2000,
-      });
-
-      const assistantMessage = response.choices[0].message.content;
-
-      // Store in conversation history
-      this.conversationHistory.push({ role: 'user', content: userMessage });
-      this.conversationHistory.push({ role: 'assistant', content: assistantMessage });
-
-      return assistantMessage;
-    } catch (error) {
-      return `Error: ${error.message}`;
+    if (!assistantMessage) {
+      throw new Error(`OpenAI returned an empty response${response.id ? ` (${response.id})` : ''}`);
     }
+
+    this.previousResponseId = response.id;
+    return assistantMessage;
   }
 
   resetConversation() {
-    this.conversationHistory = [];
+    this.previousResponseId = null;
   }
 
   async analyzeText(text) {
-    const prompt = `Please analyze the following text:\n\n${text}`;
-    return this.chat(prompt);
+    if (typeof text !== 'string' || !text.trim()) {
+      throw new TypeError('text must be a non-empty string');
+    }
+    return this.chat(`Please analyze the following text:\n\n${text}`);
   }
 
   async generateContent(topic, style = null) {
-    let prompt = `Generate content about: ${topic}`;
-    if (style) {
-      prompt += ` in a ${style} style.`;
+    if (typeof topic !== 'string' || !topic.trim()) {
+      throw new TypeError('topic must be a non-empty string');
     }
+    if (style !== null && (typeof style !== 'string' || !style.trim())) {
+      throw new TypeError('style must be a non-empty string or null');
+    }
+
+    const prompt = style
+      ? `Generate content about: ${topic} in a ${style} style.`
+      : `Generate content about: ${topic}`;
     return this.chat(prompt);
   }
 }
 
-// Example usage
-async function main() {
+if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
   const gpt = new GPTIntegration();
-
-  // Example 1: Simple chat
-  console.log('Example 1: Simple Chat');
-  const response1 = await gpt.chat('Hello! How are you?');
-  console.log(`Assistant: ${response1}\n`);
-
-  // Example 2: Continue conversation
-  console.log('Example 2: Continue Conversation');
-  const response2 = await gpt.chat('Can you tell me more about JavaScript?');
-  console.log(`Assistant: ${response2}\n`);
-
-  // Example 3: Analyze text
-  console.log('Example 3: Analyze Text');
-  gpt.resetConversation();
-  const analysis = await gpt.analyzeText('Artificial Intelligence is transforming the world.');
-  console.log(`Analysis: ${analysis}\n`);
-
-  // Example 4: Generate content
-  console.log('Example 4: Generate Content');
-  const content = await gpt.generateContent('Web Development basics', 'educational');
-  console.log(`Generated Content: ${content}`);
+  const response = await gpt.chat('Hello! How are you?');
+  console.log(`Assistant: ${response}`);
 }
-
-main().catch(console.error);

@@ -9,12 +9,17 @@ from __future__ import annotations
 
 import html
 import os
+import sys
 import time
+from pathlib import Path
 
-try:
-    from . import marsel_api_inventory_v20_29 as base
-except ImportError:
-    import marsel_api_inventory_v20_29 as base
+# Support both pytest imports from the repository root and direct execution
+# of this file. In both cases the V20.29 sibling must be importable.
+_SCRIPTS_DIR = Path(__file__).resolve().parent
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
+
+import marsel_api_inventory_v20_29 as base
 
 VERSION = "20.31"
 
@@ -44,7 +49,8 @@ def _same_line_method(text, start, end):
     line = text[line_start:line_end]
     rel_start = start - line_start
     rel_end = end - line_start
-    matches = list(__import__("re").finditer(r"\b(GET|POST|PUT|PATCH|DELETE)\b", line, __import__("re").I))
+    import re
+    matches = list(re.finditer(r"\b(GET|POST|PUT|PATCH|DELETE)\b", line, re.I))
     if not matches:
         return None
     candidate = min(matches, key=lambda m: min(abs(m.end() - rel_start), abs(m.start() - rel_end)))
