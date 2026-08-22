@@ -90,9 +90,17 @@ jobs:
           eb = [x for x in ent.get('blocked_entities', []) if x.get('entity') != 'warehouse']
           ef = [x for x in ent.get('failed_entities', []) if x.get('entity') != 'warehouse']
           entity = 'PASS' if not eb and not ef else 'REVIEW_REQUIRED'
-          collision = 'PASS' if not col.get('error') else 'REVIEW_REQUIRED'
+          real_collisions = int(col.get('real_collision_group_count') or 0)
+          unresolved = int(col.get('unresolved_group_count') or 0)
+          collision = 'PASS' if not col.get('error') and real_collisions == 0 and unresolved == 0 else 'REVIEW_REQUIRED'
           warehouse = 'PASS' if wh.get('result') == 'PASS' and bool(wh.get('confirmed_live_gets')) else 'REVIEW_REQUIRED'
           final = 'PASS' if all(x == 'PASS' for x in (quality, entity, collision, warehouse)) else 'REVIEW_REQUIRED'
+          print(f'DATA_QUALITY_RESULT={quality}')
+          print(f'ENTITY_AUDIT_RESULT={entity}')
+          print(f'REAL_COLLISION_GROUP_COUNT={real_collisions}')
+          print(f'UNRESOLVED_GROUP_COUNT={unresolved}')
+          print(f'COLLISION_REVIEW_RESULT={collision}')
+          print(f'WAREHOUSE_CONTRACT_RESULT={warehouse}')
           print(f'UNIFIED_RESULT={final}')
           if final != 'PASS': raise SystemExit('Unified quality gate requires review')
           PY
@@ -111,7 +119,9 @@ jobs:
               eb=[x for x in ent.get('blocked_entities',[]) if x.get('entity')!='warehouse']
               ef=[x for x in ent.get('failed_entities',[]) if x.get('entity')!='warehouse']
               e='PASS' if not eb and not ef else 'REVIEW_REQUIRED'
-              c='PASS' if not col.get('error') else 'REVIEW_REQUIRED'
+              real_collisions=int(col.get('real_collision_group_count') or 0)
+              unresolved=int(col.get('unresolved_group_count') or 0)
+              c='PASS' if not col.get('error') and real_collisions == 0 and unresolved == 0 else 'REVIEW_REQUIRED'
               w='PASS' if wh.get('result')=='PASS' and bool(wh.get('confirmed_live_gets')) else 'REVIEW_REQUIRED'
               final='PASS' if all(x=='PASS' for x in (q,e,c,w)) else 'REVIEW_REQUIRED'
               out={'system':'MARSEL Unified Control Plane','status':'VERIFIED' if final=='PASS' else 'REVIEW_REQUIRED','readonly':True,'write_requests_made':0,'ro_app_data_mutated':False,'warehouse_contract':{'result':w,'confirmed_live_gets':wh.get('confirmed_live_gets',[])}}
