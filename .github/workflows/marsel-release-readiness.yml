@@ -1,0 +1,37 @@
+name: MARSEL release readiness
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: marsel-release-readiness-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  readiness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Compile control scripts
+        run: python -m compileall -q scripts
+      - name: Canonical self-check
+        run: python scripts/marsel_canonical_self_check.py
+      - name: Release readiness check
+        run: python scripts/marsel_release_readiness_v1.py
+      - name: Production gate must remain fail-closed
+        env:
+          MARSEL_WRITE_APPROVED: "true"
+        run: |
+          if python scripts/marsel_production_gate_v1.py; then
+            echo "Production gate incorrectly accepted write approval" >&2
+            exit 1
+          fi
