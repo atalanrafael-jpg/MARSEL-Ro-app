@@ -1,0 +1,19 @@
+{
+  "name": "marsel-roapp",
+  "interface": {
+    "displayName": "MARSEL RO App"
+  },
+  "plugins": [
+    {
+      "name": "marsel-roapp",
+      "source": {
+        "source": "local",
+        "path": "./plugins/marsel-roapp"
+      },
+      "policy": {
+        "installation": "AVAILABLE"
+      },
+      "category": "Productivity"
+    }
+  ]
+}
