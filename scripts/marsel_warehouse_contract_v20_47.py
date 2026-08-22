@@ -24,6 +24,11 @@ MIN_INTERVAL = max(float(os.getenv("ROAPP_MIN_REQUEST_INTERVAL", "0.34")), 0.34)
 WAREHOUSE_DOC = "https://roappua.readme.io/reference/get-warehouses"
 STOCK_DOC = "https://roappua.readme.io/reference/get-stock"
 LOCATIONS_DOC = "https://roappua.readme.io/reference/get-locations"
+EXPLICIT_GET_CONTRACTS = [
+    "/v2/warehouse/",
+    "/warehouse/goods/{warehouse_id}",
+]
+REFERENCE_PAGES = [WAREHOUSE_DOC, STOCK_DOC, LOCATIONS_DOC]
 
 
 def get(url: str):
@@ -175,7 +180,7 @@ def main():
     list_ok = any(p.get("documented_contract") and p.get("path")=="/v2/warehouse/" and p.get("http")==200 and p.get("json_valid") and p.get("rows_discovered",0)>0 for p in probes)
     stock_ok = any(p.get("documented_contract") and p.get("path")=="/warehouse/goods/{warehouse_id}" and p.get("http")==200 and p.get("json_valid") for p in probes)
     result = "PASS" if ids and list_ok and stock_ok else "NOT_VERIFIED"
-    report = {"version":"20.47","mode":"READ_ONLY","result":result,"readonly":True,"write_requests_made":0,"ro_app_data_mutated":False,"official_documentation":{"warehouse_list":WAREHOUSE_DOC,"stock":STOCK_DOC,"locations":LOCATIONS_DOC},"warehouse_count":len(ids),"warehouse_ids_discovered":ids,"branch_ids_discovered":branch_ids,"probes":probes,"confirmed_live_gets":confirmed_live_gets,"diagnostic_only_undocumented_probes":[p for p in probes if not p.get("documented_contract")],"retry_policy":{"max_retries":MAX_RETRIES,"timeout_seconds":TIMEOUT,"retryable_http":[408,429,500,502,503,504]}}
+    report = {"version":"20.47","mode":"READ_ONLY","result":result,"readonly":True,"write_requests_made":0,"ro_app_data_mutated":False,"explicit_get_contracts":EXPLICIT_GET_CONTRACTS,"warehouse_reference_pages":REFERENCE_PAGES,"official_documentation":{"warehouse_list":WAREHOUSE_DOC,"stock":STOCK_DOC,"locations":LOCATIONS_DOC},"warehouse_count":len(ids),"warehouse_ids_discovered":ids,"branch_ids_discovered":branch_ids,"probes":probes,"confirmed_live_gets":confirmed_live_gets,"diagnostic_only_undocumented_probes":[p for p in probes if not p.get("documented_contract")],"retry_policy":{"max_retries":MAX_RETRIES,"timeout_seconds":TIMEOUT,"retryable_http":[408,429,500,502,503,504]}}
     raw = json.dumps(report, ensure_ascii=False, indent=2).encode()
     report["report_sha256"] = hashlib.sha256(raw).hexdigest()
     out = os.getenv("WAREHOUSE_CONTRACT_OUTPUT", "marsel-unified-warehouse-contract.json")
