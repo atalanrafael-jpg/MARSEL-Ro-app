@@ -3,16 +3,30 @@
 **Role:** single living project checkpoint. Update after every material verified change.
 
 ## DATE
-2026-08-21
+2026-08-22
 
 ## CURRENT VERSION
-Five-file master documentation layer + verified legal/tax source register.
+MARSEL/ROAPP unified control plane with production-container hardening and CI container smoke validation.
 
 ## CONTROL CHECKPOINT
-Immediately before this refresh, `main` was verified at `537440614403f234e43834eede47a564b70ccc40` after adding the five master documents and updating the legal/tax source register. The commit created by this refresh becomes the next authoritative `main` checkpoint.
+Current `main` checkpoint after production-container hardening and CI validation changes: `9ed602a3846350ac1232c0b336b8c1d8c2e37277`.
 
 ## SYSTEM MODEL
 **MARSEL = business contour + ROAPP = technical contour → one unified system → one canonical `main` control plane.**
+
+## APPLICATION
+- FastAPI connector service is present under `app/`.
+- Health endpoint: `GET /health`.
+- Configuration readiness endpoint: `GET /ready`.
+- ROAPP order read endpoint: `GET /roapp/orders`.
+- ROAPP read-only audit endpoint: `GET /roapp/audit/orders`.
+- MCP HTTP mode is explicitly configuration-gated and JWT-protected when enabled.
+- Production container now runs as a non-root user and has an HTTP healthcheck.
+
+## CI / DELIVERY
+- Unit-test workflow runs on push, pull request and manual dispatch.
+- CI now builds the production Docker image and starts it to verify `/health` before release evidence is accepted.
+- Production mutation remains fail-closed.
 
 ## RO APP STATUS
 🟢 **VERIFIED / PARTIAL**
@@ -26,7 +40,7 @@ Immediately before this refresh, `main` was verified at `537440614403f234e43834e
 - Full API/entity completeness is not proven.
 
 🔴 **BLOCKED / NOT VERIFIED**
-- Warehouse live API contract is NOT VERIFIED.
+- Fresh live warehouse API evidence is not recorded in this checkpoint.
 - Full backup is not proven.
 - Restore test is not proven.
 - Production WRITE is not authorized by the current safety gate.
@@ -40,33 +54,25 @@ Immediately before this refresh, `main` was verified at `537440614403f234e43834e
 🟡 Read-only audits have been performed against live ROAPP data.
 🔴 No claim of full current database inventory is made without a fresh complete audit.
 
-## BACKUP STATUS
-🔴 NOT VERIFIED as production-ready.
-A successful backup workflow/job is not sufficient unless the backup is complete, restorable and independently tested.
-
-## RESTORE STATUS
-🔴 NOT VERIFIED.
-No production WRITE may proceed until restore evidence exists.
+## BACKUP / RESTORE
+🔴 Complete production backup and independently tested restore remain unverified.
 
 ## DATA QUALITY
 🟡 Historical audits show strong order-ID integrity in audited runs.
 🟡 11 product-code collision groups were identified and require classification.
 🟡 Current completeness across all entity families is not proven.
 
-## WAREHOUSE STATUS
-🔴 NOT VERIFIED.
-Do not invent warehouse IDs. Existing IDs from historical evidence remain evidence-only until their source and current validity are rechecked.
-
 ## INTEGRATIONS
 - GitHub: 🟢 repository access and `main` control confirmed.
 - ROAPP API: 🟢 READ-only live access confirmed.
 - ROAPP MCP: 🟡 technical integration exists; production authorization/write remains blocked.
 - Gmail / Google Workspace: 🟡/🔴 not considered connected without live OAuth verification.
-- Website / e-commerce / marketplaces / payments / analytics / accounting: 🔵 PROPOSED unless live verification is recorded.
+- Website / e-commerce / marketplaces / payments / analytics / accounting: 🔵 proposed unless live verification is recorded.
 
 ## SECURITY
 🟢 READ/WRITE separation is a project invariant.
 🟢 Secrets are intended to remain in secure secret storage, not code/logs.
+🟢 Production container runs as non-root.
 🔴 Production mutation remains gated.
 
 ## OPEN BLOCKERS
@@ -74,46 +80,31 @@ Do not invent warehouse IDs. Existing IDs from historical evidence remain eviden
 2. Prove complete backup.
 3. Prove restore from backup.
 4. Resolve/classify 11 product-code collision groups without automatic deletion.
-5. Verify warehouse contract.
+5. Preserve fresh live warehouse evidence.
 6. Complete required OAuth/MCP authorization checks.
 7. Re-run final read-only audit after blockers are addressed.
 
-## COMPLETED TASKS
+## COMPLETED SOFTWARE TASKS
 - Unified project/control-plane architecture documented.
 - GitHub repository `main` established as canonical branch.
 - ROAPP API READ-only smoke test proven by historical evidence.
 - Orders READ-only audit completed in historical runs.
 - Deep detail audit completed without writes.
 - Five-file master documentation layer added.
-- Legal/tax master updated with current official-source checkpoints dated 2026-08-21.
+- Legal/tax master updated with official-source checkpoints.
+- Production MCP workflow hardened.
+- Release-readiness fail-closed controller added.
+- Production container hardened: non-root runtime + healthcheck.
+- CI production-container build and `/health` smoke validation added.
 
 ## UNVERIFIED ITEMS
 - Full live API completeness.
 - Current full database totals across all entities.
-- Warehouse contract and official warehouse IDs.
+- Fresh warehouse contract evidence.
 - Complete backup and independently tested restore.
 - Production WRITE readiness.
 - Live status of external integrations not reverified in this action.
-- MARSEL-specific tax regime and exact legal applicability until the business legal form and current operating model are explicitly verified.
-
-## CHANGELOG / CONTROL HISTORY
-- Initial source checkpoint before documentation: `4e5e37104389817d6fdad95bfdfa6aac9cb4c0b2`.
-- Added `01_MARSEL_MASTER.md`.
-- Added `02_ROAPP_TECHNICAL_MASTER.md`.
-- Added `03_MARSEL_DATA_MASTER.md`.
-- Added `04_MARSEL_LEGAL_FINANCE_MASTER.md`.
-- Added `05_MARSEL_CURRENT_STATE.md`.
-- Added verified 2026 legal/tax source register to `04_MARSEL_LEGAL_FINANCE_MASTER.md`.
-
-## DECISIONS
-- Five master files are the project-context layer for limited Project file capacity.
-- Historical/duplicate materials are not allowed to override the canonical current state.
-- READ-only remains the default.
-- No write, deletion, mass synchronization or invented API contract is allowed without the production gate.
-- Legal/tax statements are separated into verified official-source facts and MARSEL-specific items requiring applicability analysis.
-
-## NEXT SAFE ACTION
-**Re-read `main`, verify the five master files and current control-plane files, then run the existing READ-ONLY CI/self-check. Do not modify ROAPP data.**
+- MARSEL-specific legal/tax applicability where business-form facts are required.
 
 ## REQUIRED UPDATE RULE
 After every material change:
