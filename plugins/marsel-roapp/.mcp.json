@@ -1,8 +1,9 @@
 {
   "mcpServers": {
-    "marsel-roapp": {
-      "command": "python",
-      "args": ["../../mcp_server.py"]
+    "marsel_roapp": {
+      "command": "uv",
+      "args": ["run", "--directory", "./mcp_server", "server.py"],
+      "env_vars": ["ROAPP_API_KEY", "ROAPP_BASE_URL", "ROAPP_TIMEOUT_SECONDS"]
     }
   }
 }
