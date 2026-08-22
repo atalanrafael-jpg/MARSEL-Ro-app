@@ -19,20 +19,6 @@ jobs:
   audit:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    env:
-      ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
-      ROAPP_API_BASE: https://api.roapp.io/v2
-      MARSEL_API_INVENTORY_OUTPUT: marsel-unified-api-inventory.json
-      MARSEL_DATA_QUALITY_OUTPUT: marsel-unified-data-quality.json
-      MARSEL_ENTITY_AUDIT_OUTPUT: marsel-unified-entity-audit.json
-      MARSEL_COLLISION_OUTPUT: marsel-unified-product-collisions.json
-      WAREHOUSE_CONTRACT_OUTPUT: marsel-unified-warehouse-contract.json
-      MARSEL_MAX_DOCS: "300"
-      MARSEL_INVENTORY_BUDGET_SECONDS: "300"
-      MARSEL_MAX_PAGES: "10000"
-      ROAPP_TIMEOUT: "30"
-      ROAPP_MAX_RETRIES: "2"
-      ROAPP_MIN_REQUEST_INTERVAL: "0.34"
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -43,34 +29,85 @@ jobs:
       - name: Verify canonical structure
         run: python scripts/marsel_canonical_self_check.py
       - name: Verify RO App secret
+        if: github.event_name != 'pull_request'
+        env:
+          ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+        shell: bash
         run: test -n "$ROAPP_API_KEY"
       - name: Canonical READ-ONLY API inventory
         timeout-minutes: 10
         continue-on-error: true
-        if: always()
+        if: github.event_name != 'pull_request'
+        env:
+          ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+          ROAPP_API_BASE: https://api.roapp.io/v2
+          MARSEL_API_INVENTORY_OUTPUT: marsel-unified-api-inventory.json
+          MARSEL_MAX_DOCS: "300"
+          MARSEL_INVENTORY_BUDGET_SECONDS: "300"
+          MARSEL_MAX_PAGES: "10000"
+          ROAPP_TIMEOUT: "30"
+          ROAPP_MAX_RETRIES: "2"
+          ROAPP_MIN_REQUEST_INTERVAL: "0.34"
         run: python scripts/marsel_api_inventory_v20_32.py
       - name: Canonical READ-ONLY data quality
         timeout-minutes: 15
         continue-on-error: true
-        if: always()
+        if: github.event_name != 'pull_request'
+        env:
+          ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+          ROAPP_API_BASE: https://api.roapp.io/v2
+          MARSEL_DATA_QUALITY_OUTPUT: marsel-unified-data-quality.json
+          MARSEL_MAX_PAGES: "10000"
+          ROAPP_TIMEOUT: "30"
+          ROAPP_MAX_RETRIES: "2"
+          ROAPP_MIN_REQUEST_INTERVAL: "0.34"
         run: python scripts/marsel_data_quality_v22_readonly.py
       - name: Canonical READ-ONLY entity audit
         timeout-minutes: 10
         continue-on-error: true
-        if: always()
+        if: github.event_name != 'pull_request'
+        env:
+          ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+          ROAPP_API_BASE: https://api.roapp.io/v2
+          MARSEL_ENTITY_AUDIT_OUTPUT: marsel-unified-entity-audit.json
+          ROAPP_TIMEOUT: "30"
+          ROAPP_MAX_RETRIES: "2"
+          ROAPP_MIN_REQUEST_INTERVAL: "0.34"
         run: python scripts/marsel_entity_audit_v20_35.py
       - name: Canonical READ-ONLY product collision review
         timeout-minutes: 10
         continue-on-error: true
-        if: always()
+        if: github.event_name != 'pull_request'
+        env:
+          ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+          ROAPP_API_BASE: https://api.roapp.io/v2
+          MARSEL_COLLISION_OUTPUT: marsel-unified-product-collisions.json
+          ROAPP_TIMEOUT: "30"
+          ROAPP_MAX_RETRIES: "2"
+          ROAPP_MIN_REQUEST_INTERVAL: "0.34"
         run: python scripts/marsel_product_code_collision_audit_v22_3.py
       - name: Canonical READ-ONLY warehouse contract audit
         timeout-minutes: 10
         continue-on-error: true
-        if: always()
+        if: github.event_name != 'pull_request'
+        env:
+          ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+          ROAPP_API_BASE: https://api.roapp.io/v2
+          WAREHOUSE_CONTRACT_OUTPUT: marsel-unified-warehouse-contract.json
+          ROAPP_TIMEOUT: "30"
+          ROAPP_MAX_RETRIES: "2"
+          ROAPP_MIN_REQUEST_INTERVAL: "0.34"
         run: python scripts/marsel_warehouse_contract_v20_47.py
+      - name: Build PR-safe incomplete evidence
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          json.dump({'system':'MARSEL Unified Control Plane','status':'PR_SAFE_REVIEW','readonly':True,'write_requests_made':0,'ro_app_data_mutated':False,'reason':'Live RO App audit is skipped for pull_request events to prevent secret exposure.'}, open('marsel-unified-evidence.json','w',encoding='utf-8'), ensure_ascii=False, indent=2)
+          PY
       - name: Enforce unified READ-ONLY gates
-        if: always()
+        if: github.event_name != 'pull_request'
         shell: bash
         run: |
           python - <<'PY'
@@ -129,7 +166,7 @@ jobs:
           PY
       - name: Upload unified evidence
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: marsel-unified-evidence
           path: |
@@ -146,7 +183,7 @@ jobs:
         run: printf '%s\n' "run_id=${GITHUB_RUN_ID}" "sha=${GITHUB_SHA}" "workflow=${GITHUB_WORKFLOW}" "event=${GITHUB_EVENT_NAME}" > marsel-unified-run-marker.txt
       - name: Upload immutable run marker
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: marsel-unified-run-marker
           path: marsel-unified-run-marker.txt
