@@ -81,3 +81,7 @@ Never claim backup, restore, reconciliation, security, rotation, or WRITE readin
 
 ## Continuation rule
 Every future execution starts from this file and the current canonical HEAD, verifies current CI/live evidence, closes the next open gate, records the result, and repeats until either all gates are PASS or a technically unresolvable external blocker is documented.
+
+## CI CONTROL CHECKPOINT
+
+This commit is an intentional no-functional-change checkpoint used to force a fresh CI evaluation of the canonical branch. It does not alter RO App data, API behavior, production write permissions, or business logic.
