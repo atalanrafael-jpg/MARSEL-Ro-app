@@ -60,7 +60,7 @@ jobs:
         timeout-minutes: 10
         continue-on-error: true
         if: always()
-        run: python scripts/marsel_product_code_collision_audit_v22_1.py
+        run: python scripts/marsel_product_code_collision_audit_v22_3.py
       - name: Canonical READ-ONLY warehouse contract audit
         timeout-minutes: 10
         continue-on-error: true
@@ -78,11 +78,7 @@ jobs:
           if missing:
               print(f'MISSING_EVIDENCE={missing}')
               raise SystemExit('Unified quality gate requires complete audit evidence')
-          inv=json.load(open('marsel-unified-api-inventory.json',encoding='utf-8'))
-          dq=json.load(open('marsel-unified-data-quality.json',encoding='utf-8'))
-          ent=json.load(open('marsel-unified-entity-audit.json',encoding='utf-8'))
-          col=json.load(open('marsel-unified-product-collisions.json',encoding='utf-8'))
-          wh=json.load(open('marsel-unified-warehouse-contract.json',encoding='utf-8'))
+          inv,dq,ent,col,wh=[json.load(open(x,encoding='utf-8')) for x in required]
           assert inv.get('readonly') is True and inv.get('write_requests_made') == 0 and inv.get('ro_app_data_mutated') is False
           assert dq.get('mode') == 'READ_ONLY' and dq.get('write_requests_made') == 0 and dq.get('ro_app_data_mutated') is False
           assert ent.get('readonly') is True and ent.get('write_requests_made') == 0 and ent.get('ro_app_data_mutated') is False
@@ -91,13 +87,15 @@ jobs:
           assert wh.get('mode') == 'READ_ONLY' and wh.get('readonly') is True and wh.get('write_requests_made') == 0 and wh.get('ro_app_data_mutated') is False
           quality='PASS' if not dq.get('access_failures') and not dq.get('hard_issues') else 'REVIEW_REQUIRED'
           entity_review='PASS' if not ent.get('blocked_entities') and not ent.get('failed_entities') else 'REVIEW_REQUIRED'
-          gate_relevant=int(col.get('gate_relevant_issue_count') or 0)
-          collision_gate='PASS' if not col.get('error') and gate_relevant == 0 else 'REVIEW_REQUIRED'
+          real_collisions=int(col.get('real_collision_group_count') or 0)
+          unresolved=int(col.get('unresolved_group_count') or 0)
+          collision_gate='PASS' if not col.get('error') and real_collisions == 0 and unresolved == 0 else 'REVIEW_REQUIRED'
           warehouse_gate='PASS' if wh.get('result') == 'PASS' and bool(wh.get('confirmed_live_gets')) else 'REVIEW_REQUIRED'
           final='PASS' if quality=='PASS' and entity_review=='PASS' and collision_gate=='PASS' and warehouse_gate=='PASS' else 'REVIEW_REQUIRED'
           print(f'DATA_QUALITY_RESULT={quality}')
           print(f'ENTITY_AUDIT_RESULT={entity_review}')
-          print(f'GATE_RELEVANT_COLLISION_COUNT={gate_relevant}')
+          print(f'REAL_COLLISION_GROUP_COUNT={real_collisions}')
+          print(f'UNRESOLVED_GROUP_COUNT={unresolved}')
           print(f'COLLISION_REVIEW_RESULT={collision_gate}')
           print(f'WAREHOUSE_CONTRACT_RESULT={warehouse_gate}')
           print(f'UNIFIED_RESULT={final}')
@@ -118,11 +116,12 @@ jobs:
           inv,dq,ent,col,wh=[json.load(open(x,encoding='utf-8')) for x in fs]
           q='PASS' if not dq.get('access_failures') and not dq.get('hard_issues') else 'REVIEW_REQUIRED'
           e='PASS' if not ent.get('blocked_entities') and not ent.get('failed_entities') else 'REVIEW_REQUIRED'
-          gate_relevant=int(col.get('gate_relevant_issue_count') or 0)
-          c='PASS' if not col.get('error') and gate_relevant == 0 else 'REVIEW_REQUIRED'
+          real_collisions=int(col.get('real_collision_group_count') or 0)
+          unresolved=int(col.get('unresolved_group_count') or 0)
+          c='PASS' if not col.get('error') and real_collisions == 0 and unresolved == 0 else 'REVIEW_REQUIRED'
           w='PASS' if wh.get('result') == 'PASS' and bool(wh.get('confirmed_live_gets')) else 'REVIEW_REQUIRED'
           final='PASS' if q=='PASS' and e=='PASS' and c=='PASS' and w=='PASS' else 'REVIEW_REQUIRED'
-          out={'system':'MARSEL Unified Control Plane','status':'VERIFIED' if final=='PASS' else 'REVIEW_REQUIRED','readonly':True,'write_requests_made':0,'ro_app_data_mutated':False,'api_inventory':{'contract_state':inv.get('contract_state',{}),'summary':inv.get('summary',{}),'safety':inv.get('safety',{})},'data_quality':{'result':q,'summary':dq.get('summary',{}),'access_failures':dq.get('access_failures',[]),'hard_issues':dq.get('hard_issues',[])},'entity_audit':{'result':e,'resolved_entities':ent.get('resolved_entities',[]),'blocked_entities':ent.get('blocked_entities',[]),'failed_entities':ent.get('failed_entities',[])},'product_collision_review':{'result':c,'shared_code_group_count':col.get('shared_code_group_count',0),'exact_duplicate_identity_group_count':col.get('exact_duplicate_identity_group_count',0),'gate_relevant_issue_count':gate_relevant,'error':col.get('error')},'warehouse_contract':{'result':w,'confirmed_live_gets':wh.get('confirmed_live_gets',[]),'explicit_get_contracts':wh.get('explicit_get_contracts',[]),'reference_pages':wh.get('warehouse_reference_pages',[])}}
+          out={'system':'MARSEL Unified Control Plane','status':'VERIFIED' if final=='PASS' else 'REVIEW_REQUIRED','readonly':True,'write_requests_made':0,'ro_app_data_mutated':False,'api_inventory':{'contract_state':inv.get('contract_state',{}),'summary':inv.get('summary',{}),'safety':inv.get('safety',{})},'data_quality':{'result':q,'summary':dq.get('summary',{}),'access_failures':dq.get('access_failures',[]),'hard_issues':dq.get('hard_issues',[])},'entity_audit':{'result':e,'resolved_entities':ent.get('resolved_entities',[]),'blocked_entities':ent.get('blocked_entities',[]),'failed_entities':ent.get('failed_entities',[])},'product_collision_review':{'result':c,'shared_code_group_count':col.get('shared_code_group_count',0),'legitimate_reuse_group_count':col.get('legitimate_reuse_group_count',0),'real_collision_group_count':real_collisions,'unresolved_group_count':unresolved,'gate_relevant_issue_count':col.get('gate_relevant_issue_count',0),'error':col.get('error')},'warehouse_contract':{'result':w,'confirmed_live_gets':wh.get('confirmed_live_gets',[]),'explicit_get_contracts':wh.get('explicit_get_contracts',[]),'reference_pages':wh.get('warehouse_reference_pages',[])}}
           json.dump(out,open('marsel-unified-evidence.json','w',encoding='utf-8'),ensure_ascii=False,indent=2)
           PY
       - name: Upload unified evidence
