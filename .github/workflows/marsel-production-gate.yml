@@ -20,9 +20,11 @@ jobs:
       MARSEL_WRITE_APPROVED: "false"
       MARSEL_EVIDENCE_DIR: evidence
     steps:
+      # For workflow_run events, execute only trusted code from the default branch.
+      # The triggering run's SHA is used only to identify/download its evidence.
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ github.event_name == 'workflow_run' && github.event.repository.default_branch || github.sha }}
 
       - name: Verify production secret is not exposed in source
         shell: bash
@@ -32,7 +34,7 @@ jobs:
             -e 'ROAPP_API_KEY[[:space:]]*=[[:space:]]*"[^\"]{12,}"' \
             -e "ROAPP_API_KEY[[:space:]]*=[[:space:]]*'[^']{12,}'" \
             -e 'Bearer[[:space:]]+[A-Za-z0-9._-]{20,}' .; then
-            echo 'Credential-like material detected in tracked source.'
+            echo 'Credential-like material detected in trusted source.'
             exit 1
           fi
 
