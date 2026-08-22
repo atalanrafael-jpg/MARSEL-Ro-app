@@ -5,25 +5,24 @@
 
 ## Canonical state
 - Repository: `atalanrafael-jpg/Ro-app`
-- Branch: `main`
-- Control record synchronized against: `f4e213ec6eaf3f4d58bccf037015a6d7e38694a3`.
-- Current integration mode: READ-ONLY.
+- Canonical work branch: `act/marsel-unified-system-2026-08-22`
+- Baseline: current `main` at the moment this branch was created.
+- Integration mode: READ-ONLY.
 - Production WRITE: DISABLED.
-- Canonical warehouse implementation: `scripts/marsel_warehouse_contract_v20_36.py`.
-- Warehouse audit is controlled by the Unified Control Plane; the previously separate warehouse workflow has been removed to avoid duplicate control paths.
+- The canonical work branch is the only active implementation line until a new control point is explicitly approved.
 
 ## Evidence precedence
-1. Current `main` repository state.
-2. Current GitHub workflow/run evidence tied to the current `main` HEAD.
+1. Current HEAD of the canonical work branch.
+2. Current GitHub workflow/run evidence tied to that HEAD.
 3. Direct live API evidence with timestamps/artifacts.
 4. Current official RO App documentation.
-5. Older project documents are historical only and must not override current evidence.
+5. Older project documents, branches, commits and CI runs are historical only and cannot override current evidence.
 
 ## 100% completion gates
 
 ### Engineering
-- [ ] Unit tests GREEN on current `main` HEAD
-- [ ] All required CI workflows GREEN on current `main` HEAD
+- [ ] Unit tests GREEN on current canonical HEAD
+- [ ] Required CI workflows GREEN on current canonical HEAD
 - [ ] No known import/runtime failures
 - [ ] Canonical structure check PASS
 - [ ] Dependency/security review PASS
@@ -45,6 +44,13 @@
 - [ ] Duplicate/anomaly review complete
 - [ ] Reconciliation complete
 
+### MARSEL service domains
+- [ ] JEWELRY model verified
+- [ ] WATCH model verified
+- [ ] EYEWEAR repair model verified
+- [ ] Shared Customer → Order → Object → Diagnosis → Estimate → Work → Parts/Materials → QC → Delivery → Payment → Warranty flow verified
+- [ ] Domain-specific fields are isolated and not mixed
+
 ### Recovery
 - [ ] Full permitted backup created
 - [ ] Backup manifest/checksums verified
@@ -60,17 +66,8 @@
 - [ ] Post-write verification tested
 - [ ] Production writes explicitly enabled only after all gates pass
 
-### MARSEL Revenue Engine
-- [ ] Customer lifecycle defined
-- [ ] Repair-to-repeat-sales flow defined
-- [ ] Custom manufacturing sales flow defined
-- [ ] Daily action queue defined
-- [ ] KPI model connected to factual business data
-- [ ] 30-day content system prepared
-- [ ] Lead attribution and conversion tracking prepared
-
 ## Current blockers
-1. Current CI/live results for the current `main` HEAD must be directly verified; older successful runs do not prove current state.
+1. Current CI/live results for the current canonical HEAD must be directly verified; older successful runs do not prove current state.
 2. Warehouse/stock contract requires direct evidence and safe verification with real permitted identifiers; identifiers must never be guessed.
 3. Duplicate/anomaly and reconciliation gates remain open until current evidence is attached.
 4. Backup/restore evidence is not yet proven by this control record.
@@ -83,4 +80,4 @@ A gate is `PASS` only when current evidence exists. `PLANNED`, `CODED`, `NOT_TES
 Never claim backup, restore, reconciliation, security, rotation, or WRITE readiness without direct evidence. Never guess an API endpoint or identifier. Never execute a production mutation merely to make a test green.
 
 ## Continuation rule
-Every future execution starts from this file and the current `main` HEAD, verifies current CI/live evidence, closes the next open gate, records the result, and repeats until either all gates are PASS or a technically unresolvable external blocker is documented.
+Every future execution starts from this file and the current canonical HEAD, verifies current CI/live evidence, closes the next open gate, records the result, and repeats until either all gates are PASS or a technically unresolvable external blocker is documented.
