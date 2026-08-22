@@ -1,6 +1,6 @@
 # MARSEL / Ro App — Active Script Registry
 
-Дата контрольной ревизии: 2026-08-21
+Дата контрольной ревизии: 2026-08-22
 Ветка: `main`
 
 ## 1. ACTIVE / CORE — фактически вызывается Unified Control Plane
@@ -12,7 +12,7 @@
 | Data quality | `scripts/marsel_data_quality_v22_readonly.py` | ACTIVE |
 | Entity audit | `scripts/marsel_entity_audit_v20_35.py` | ACTIVE |
 | Product collision | `scripts/marsel_product_code_collision_audit_v22_1.py` | ACTIVE |
-| Warehouse contract | `scripts/marsel_warehouse_contract_v20_45.py` | ACTIVE |
+| Warehouse contract | `scripts/marsel_warehouse_contract_v20_47.py` | ACTIVE |
 
 Источник истины для ACTIVE-набора: `.github/workflows/marsel-unified-control-plane.yml` на `main`.
 
@@ -45,9 +45,9 @@
 - CORE inventory entrypoint: `v20_32`.
 - `v20_31` и `v20_29` ранее были ошибочно отмечены как legacy candidates; фактическая import chain делает их REQUIRED INTERNAL DEPENDENCIES.
 - CORE collision: `marsel_product_code_collision_audit_v22_1.py`.
-- CORE warehouse: `marsel_warehouse_contract_v20_45.py`; внутреннее поле `version` также `20.45`.
+- CORE warehouse: `marsel_warehouse_contract_v20_47.py`; внутреннее поле `version` также `20.47`.
 - Версия `20.48` не подтверждена и не используется как активная версия.
-- Старый путь `scripts/marsel_warehouse_contract_v20_36.py` выведен из ACTIVE и сохранён в `старые данные/` как исторический след.
+- Старые warehouse-варианты не входят в ACTIVE execution set и сохраняются только как исторический след.
 
 ## 6. Правила
 
