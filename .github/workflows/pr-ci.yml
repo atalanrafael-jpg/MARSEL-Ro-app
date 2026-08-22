@@ -2,6 +2,7 @@ name: PR CI
 
 # Dedicated PR validation workflow.
 # Keep this workflow intentionally read-only and deterministic.
+# CI trigger marker: validate the current branch HEAD after repository synchronization.
 
 on:
   push:
