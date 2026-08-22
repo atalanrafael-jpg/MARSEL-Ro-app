@@ -15,7 +15,7 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -28,6 +28,21 @@ jobs:
         run: |
           set -o pipefail
           python -m pytest -vv --tb=long --maxfail=1 --junitxml=pytest-results.xml | tee pytest-output.txt
+      - name: Build production container
+        run: docker build --pull --tag marsel-roapp:${GITHUB_SHA} .
+      - name: Verify production container
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm -d --name marsel-roapp-ci -p 18000:8000 marsel-roapp:${GITHUB_SHA}
+          trap 'docker logs marsel-roapp-ci || true; docker stop marsel-roapp-ci || true' EXIT
+          for _ in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:18000/health >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
       - name: Build test manifest
         if: always()
         shell: bash
@@ -38,6 +53,7 @@ jobs:
             echo "workflow=${GITHUB_WORKFLOW}";
             echo "python=$(python --version 2>&1)";
             echo "pytest=$(python -m pytest --version 2>&1)";
+            echo "docker=$(docker --version 2>&1)";
           } > test-manifest.txt
       - name: Upload test artifacts
         if: always()
