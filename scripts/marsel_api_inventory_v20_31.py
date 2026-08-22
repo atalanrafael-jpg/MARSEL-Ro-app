@@ -9,7 +9,16 @@ from __future__ import annotations
 
 import html
 import os
+import sys
 import time
+from pathlib import Path
+
+# Support both pytest imports from the repository root and direct execution
+# of this file. In both cases the V20.29 sibling must be importable.
+_SCRIPTS_DIR = Path(__file__).resolve().parent
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
+
 import marsel_api_inventory_v20_29 as base
 
 VERSION = "20.31"
