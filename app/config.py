@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     openai_ads_source_url: str = ""
     openai_ads_timeout_seconds: float = 15
 
+    # Gmail read-only OAuth integration.
+    # Credentials are supplied through environment variables; no secret is stored here.
+    gmail_account_email: str = ""
+
     # MCP / ChatGPT / Codex integration.
     # HTTP mode is disabled by default so existing deployments remain unchanged.
     # Enable HTTP mode only with a real OAuth 2.1/OIDC issuer and HTTPS resource URL.
