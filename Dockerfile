@@ -6,8 +6,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN python -m pip install --no-cache-dir -r requirements.txt \
+COPY requirements.lock ./requirements.lock
+RUN python -m pip install --no-cache-dir --require-hashes -r requirements.lock \
     && useradd --create-home --uid 10001 --shell /usr/sbin/nologin appuser
 
 COPY app ./app
