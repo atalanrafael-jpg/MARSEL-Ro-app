@@ -2,27 +2,39 @@ name: MARSEL Production Gate
 
 on:
   workflow_dispatch:
-  pull_request:
-  push:
+  workflow_run:
+    workflows: ["MARSEL Unified Control Plane"]
+    types: [completed]
     branches: [main]
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   production-gate:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+      MARSEL_WRITE_APPROVED: "false"
+      MARSEL_EVIDENCE_DIR: evidence
     steps:
+      # workflow_run is privileged: execute only trusted default-branch code.
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.repository.default_branch || github.sha }}
 
       - name: Verify production secret is not exposed in source
         shell: bash
         run: |
           set -euo pipefail
           if grep -RInE --exclude-dir=.git --exclude='*.lock' \
-            'ROAPP_API_KEY[[:space:]]*=[[:space:]]*["'"'][^"'"']{12,}["'"']|Bearer[[:space:]]+[A-Za-z0-9._-]{20,}' .; then
-            echo 'Credential-like material detected in tracked source.'
+            -e 'ROAPP_API_KEY[[:space:]]*=[[:space:]]*"[^\"]{12,}"' \
+            -e "ROAPP_API_KEY[[:space:]]*=[[:space:]]*'[^']{12,}'" \
+            -e 'Bearer[[:space:]]+[A-Za-z0-9._-]{20,}' .; then
+            echo 'Credential-like material detected in trusted source.'
             exit 1
           fi
 
@@ -34,6 +46,19 @@ jobs:
         run: |
           set -euo pipefail
           test -n "${ROAPP_API_KEY:-}"
+
+      - name: Prepare evidence directory
+        shell: bash
+        run: mkdir -p "$MARSEL_EVIDENCE_DIR"
+
+      - name: Download unified control-plane evidence
+        if: github.event_name == 'workflow_run'
+        uses: actions/download-artifact@v8
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+          name: marsel-unified-evidence
+          path: ${{ env.MARSEL_EVIDENCE_DIR }}
 
       - name: Run fail-closed Issue #19 gate
         if: github.event_name != 'pull_request'
