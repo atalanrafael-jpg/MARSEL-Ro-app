@@ -63,7 +63,7 @@ jobs:
         timeout-minutes: 10
         continue-on-error: true
         if: always()
-        run: python scripts/marsel_product_code_collision_audit_v22_1.py
+        run: python scripts/marsel_product_code_collision_audit_v22_3.py
       - name: Canonical READ-ONLY warehouse contract audit
         timeout-minutes: 10
         continue-on-error: true
