@@ -172,7 +172,7 @@ jobs:
           PY
       - name: Upload unified evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: marsel-unified-evidence
           path: |
@@ -182,4 +182,16 @@ jobs:
             marsel-unified-entity-audit.json
             marsel-unified-product-collisions.json
             marsel-unified-warehouse-contract.json
+          retention-days: 90
+      - name: Write immutable run marker
+        if: always()
+        shell: bash
+        run: |
+          printf '%s\n' "run_id=${GITHUB_RUN_ID}" "sha=${GITHUB_SHA}" "workflow=${GITHUB_WORKFLOW}" "event=${GITHUB_EVENT_NAME}" > marsel-unified-run-marker.txt
+      - name: Upload immutable run marker
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: marsel-unified-run-marker
+          path: marsel-unified-run-marker.txt
           retention-days: 90
