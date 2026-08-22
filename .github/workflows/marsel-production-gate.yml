@@ -13,9 +13,6 @@ jobs:
   production-gate:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    env:
-      ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
-      MARSEL_WRITE_APPROVED: "false"
     steps:
       - uses: actions/checkout@v7
 
@@ -30,15 +27,25 @@ jobs:
           fi
 
       - name: Verify API key is only supplied by GitHub secret
+        if: github.event_name != 'pull_request'
+        env:
+          ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
         shell: bash
         run: |
           set -euo pipefail
           test -n "${ROAPP_API_KEY:-}"
 
       - name: Run fail-closed Issue #19 gate
+        if: github.event_name != 'pull_request'
+        env:
+          ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
         run: python scripts/marsel_production_gate_v1.py
+
+      - name: Skip live secret gate for pull requests
+        if: github.event_name == 'pull_request'
+        run: echo 'Live production secret gate is intentionally skipped for pull_request events.'
 
       - name: Explicitly assert no production WRITE authorization
         run: |
-          test "${MARSEL_WRITE_APPROVED}" = "false"
+          test "${MARSEL_WRITE_APPROVED:-false}" = "false"
           echo 'PRODUCTION_WRITE_AUTHORIZED=false'
