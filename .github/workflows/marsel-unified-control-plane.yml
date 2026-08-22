@@ -65,7 +65,7 @@ jobs:
         timeout-minutes: 10
         continue-on-error: true
         if: always()
-        run: python scripts/marsel_warehouse_contract_v20_45.py
+        run: python scripts/marsel_warehouse_contract_v20_47.py
       - name: Enforce unified READ-ONLY safety and quality gates
         if: always()
         shell: bash
