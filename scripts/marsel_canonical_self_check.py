@@ -14,7 +14,7 @@ CANONICAL_SCRIPTS = {
     "scripts/marsel_data_quality_v22_readonly.py",
     "scripts/marsel_entity_audit_v20_35.py",
     "scripts/marsel_product_code_collision_audit_v22_1.py",
-    "scripts/marsel_warehouse_contract_v20_45.py",
+    "scripts/marsel_warehouse_contract_v20_47.py",
 }
 FORBIDDEN_LIVE_WORKFLOW_NAMES = {
     "marsel-inventory-v20-12.yml","marsel-live-probe-v20-27.yml","marsel-master-directories-v1.yml","marsel-orders-backup-v20-20.yml","marsel-product-code-collision-v22-1.yml","marsel-readonly-integrity-v21.yml","marsel-v21-5-quality-gate.yml","marsel-v21-6-naming-quality-gate.yml",
