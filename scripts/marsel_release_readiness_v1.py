@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+EVIDENCE_DIR = ROOT / "evidence"
 REQUIRED = [
     ".github/workflows/mcp-production.yml",
     "scripts/marsel_canonical_self_check.py",
