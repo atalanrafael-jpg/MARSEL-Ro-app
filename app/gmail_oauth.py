@@ -10,7 +10,6 @@ Security model:
 
 from __future__ import annotations
 
-import json
 import os
 import secrets
 from dataclasses import dataclass
@@ -21,8 +20,9 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 
+from .config import settings
+
 GMAIL_READONLY_SCOPE = "https://www.googleapis.com/auth/gmail.readonly"
-ACCOUNT_EMAIL = "atalanrafael@gmail.com"
 
 
 @dataclass
@@ -50,6 +50,12 @@ class GmailOAuthService:
                 "redirect_uris": [],
             }
         }
+
+    def _configured_account(self) -> str:
+        account = settings.gmail_account_email.strip().lower()
+        if not account:
+            raise RuntimeError("GMAIL_ACCOUNT_EMAIL не задан")
+        return account
 
     def authorization_url(self, redirect_uri: str) -> str:
         state = secrets.token_urlsafe(32)
@@ -86,8 +92,9 @@ class GmailOAuthService:
         self._credentials = credentials
 
         profile = self._gmail_service().users().getProfile(userId="me").execute()
-        email = profile.get("emailAddress")
-        if email != ACCOUNT_EMAIL:
+        email = str(profile.get("emailAddress") or "").strip().lower()
+        configured_account = self._configured_account()
+        if email != configured_account:
             self._credentials = None
             raise PermissionError("Authorized Google account does not match configured Gmail account")
 
@@ -100,17 +107,20 @@ class GmailOAuthService:
         }
 
     def status(self) -> dict[str, Any]:
+        account = self._configured_account()
         if self._credentials is None:
-            return {"status": "unauthorized", "email": ACCOUNT_EMAIL}
+            return {"status": "unauthorized", "email": account}
         if self._credentials.expired and self._credentials.refresh_token:
             try:
                 self._credentials.refresh(Request())
             except Exception:
                 self._credentials = None
-                return {"status": "token_expired", "email": ACCOUNT_EMAIL}
-        return {"status": "connected", "email": ACCOUNT_EMAIL, "scope": GMAIL_READONLY_SCOPE}
+                return {"status": "token_expired", "email": account}
+        return {"status": "connected", "email": account, "scope": GMAIL_READONLY_SCOPE}
 
     def list_messages(self, max_results: int = 10) -> list[dict[str, Any]]:
+        if not 1 <= max_results <= 100:
+            raise ValueError("max_results должен быть от 1 до 100")
         if self._credentials is None:
             raise PermissionError("Gmail is not connected")
         service = self._gmail_service()

@@ -5,11 +5,21 @@ from typing import Any
 from mcp.server.auth.provider import TokenVerifier
 from mcp.server.auth.settings import AuthSettings
 from mcp.server.fastmcp import FastMCP
+from mcp.server.fastmcp.server import Settings as FastMCPSettings
 from pydantic import AnyHttpUrl
 
 from .audit import audit_order_pages
 from .config import settings
 from .roapp_client import RoAppClient
+
+
+# The MCP v1 FastMCP Settings model can retain an unresolved forward reference
+# for its generic ``lifespan`` field. Recent pydantic-settings versions warn
+# when that incomplete model is instantiated. Rebuild it after the MCP module
+# has finished defining FastMCP; this is the upstream-documented workaround and
+# does not change server lifespan behaviour.
+if not FastMCPSettings.__pydantic_complete__:
+    FastMCPSettings.model_rebuild()
 
 
 MCP_NAME = "MARSEL RO App"

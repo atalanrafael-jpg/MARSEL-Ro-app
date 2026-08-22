@@ -1,7 +1,7 @@
 {
   "name": "ro-app-gpt-integration",
-  "version": "1.0.0",
-  "description": "OpenAI GPT integration for Ro-app",
+  "version": "1.1.0",
+  "description": "OpenAI Responses API integration for Ro-app",
   "main": "gpt-integration.js",
   "type": "module",
   "scripts": {
@@ -9,10 +9,10 @@
     "dev": "node --watch gpt-integration.js"
   },
   "dependencies": {
-    "openai": "^4.0.0",
-    "dotenv": "^16.0.0"
+    "dotenv": "^16.4.7",
+    "openai": "^7.5.0"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.0.0"
   }
 }

@@ -1,0 +1,40 @@
+name: Codex Plugin Validation
+
+on:
+  push:
+    branches: [main, codex-plugin-cleanup]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  plugin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install test dependencies
+        run: python -m pip install --disable-pip-version-check --no-input pytest
+      - name: Validate plugin tests
+        run: python -m pytest -q tests/test_codex_plugin.py
+      - name: Validate JSON and skill structure
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path("plugins/marsel-roapp")
+          manifest = json.loads((root / ".codex-plugin/plugin.json").read_text())
+          assert manifest["skills"] == "./skills/"
+          assert manifest["mcpServers"] == "./.mcp.json"
+          assert (root / "assets/icon.svg").is_file()
+          assert (root / "assets/logo-light.svg").is_file()
+          assert (root / "assets/logo-dark.svg").is_file()
+          config = json.loads((root / ".mcp.json").read_text())
+          assert set(config) == {"mcpServers"}
+          assert "marsel_roapp" in config["mcpServers"]
+          print("PLUGIN_STRUCTURE=PASS")
+          PY

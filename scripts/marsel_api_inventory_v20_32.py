@@ -7,8 +7,13 @@ can discover more of the current RO App v2 reference surface. No write
 methods are executed and parameterized identifiers are never probed.
 """
 from __future__ import annotations
+
 import os
-import marsel_api_inventory_v20_31 as base
+
+try:
+    from . import marsel_api_inventory_v20_31 as base
+except ImportError:
+    import marsel_api_inventory_v20_31 as base
 
 VERSION = "20.32"
 base.VERSION = VERSION
@@ -20,5 +25,12 @@ base.MAX_RETRIES = 0
 base.RETRY_BASE = 0.0
 base.MIN_INTERVAL = max(float(os.environ.get("ROAPP_MIN_REQUEST_INTERVAL", "0.34")), 0.34)
 
+# Re-export the canonical v20.31 helpers used by package-level tests and
+# downstream read-only tooling. This keeps v20.32 as the public entrypoint
+# while preserving the underlying safety implementation.
+clean_preserve_parameters = base.clean_preserve_parameters
+strict_extract_paths = base.strict_extract_paths
+main = base.main
+
 if __name__ == "__main__":
-    raise SystemExit(base.main())
+    raise SystemExit(main())

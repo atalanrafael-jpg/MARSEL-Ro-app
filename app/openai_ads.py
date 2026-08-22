@@ -100,6 +100,7 @@ class OpenAIAdsClient:
                     raise ValueError("source_url обязателен для web-события")
         self._validate_config()
 
+        self._validate_config()
         request = OpenAIAdsEventsRequest(
             validate_only=settings.openai_ads_validate_only if validate_only is None else validate_only,
             integration_source=self.integration_source or None,
