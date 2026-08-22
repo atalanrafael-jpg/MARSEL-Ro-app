@@ -126,7 +126,7 @@ jobs:
           PY
       - name: Upload unified evidence
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: marsel-unified-evidence
           path: |
@@ -144,7 +144,7 @@ jobs:
           printf '%s\n' "run_id=${GITHUB_RUN_ID}" "sha=${GITHUB_SHA}" "workflow=${GITHUB_WORKFLOW}" "event=${GITHUB_EVENT_NAME}" > marsel-unified-run-marker.txt
       - name: Upload immutable run marker
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: marsel-unified-run-marker
           path: marsel-unified-run-marker.txt
