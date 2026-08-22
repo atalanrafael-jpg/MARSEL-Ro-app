@@ -24,8 +24,9 @@ jobs:
         run: |
           set -euo pipefail
           if grep -RInE --exclude-dir=.git --exclude='*.lock' \
-            -e 'ROAPP_API_KEY[[:space:]]*=[[:space:]]*["'"'][^"'"']{12,}["'"']' \
-            -e 'Bearer[[:space:]]+[A-Za-z0-9._-]{20,}' .; then
+            -e "ROAPP_API_KEY[[:space:]]*=[[:space:]]*\"[^\"]{12,}\"" \
+            -e "ROAPP_API_KEY[[:space:]]*=[[:space:]]*'[^']{12,}'" \
+            -e "Bearer[[:space:]]+[A-Za-z0-9._-]{20,}" .; then
             echo 'Credential-like material detected in tracked source.'
             exit 1
           fi
