@@ -98,6 +98,7 @@ class OpenAIAdsClient:
                 event.source_url = self._sanitize_source_url(event.source_url)
                 if not event.source_url:
                     raise ValueError("source_url обязателен для web-события")
+        self._validate_config()
 
         self._validate_config()
         request = OpenAIAdsEventsRequest(
