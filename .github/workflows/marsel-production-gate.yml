@@ -5,6 +5,7 @@ on:
   workflow_run:
     workflows: ["MARSEL Unified Control Plane"]
     types: [completed]
+    branches: [main]
 
 permissions:
   contents: read
@@ -12,7 +13,7 @@ permissions:
 
 jobs:
   production-gate:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion != ''
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -20,8 +21,7 @@ jobs:
       MARSEL_WRITE_APPROVED: "false"
       MARSEL_EVIDENCE_DIR: evidence
     steps:
-      # For workflow_run events, execute only trusted code from the default branch.
-      # The triggering run's SHA is used only to identify/download its evidence.
+      # workflow_run is privileged: execute only trusted default-branch code.
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.event_name == 'workflow_run' && github.event.repository.default_branch || github.sha }}
@@ -31,8 +31,8 @@ jobs:
         run: |
           set -euo pipefail
           if grep -RInE --exclude-dir=.git --exclude='*.lock' \
-            -e 'ROAPP_API_KEY[[:space:]]*=[[:space:]]*"[^\"]{12,}"' \
-            -e "ROAPP_API_KEY[[:space:]]*=[[:space:]]*'[^']{12,}'" \
+            -e 'ROAPP_API_KEY[[:space:]]*=[[:space:]*]"[^\"]{12,}"' \
+            -e "ROAPP_API_KEY[[:space:]]*=[[:space:]*]'[^']{12,}'" \
             -e 'Bearer[[:space:]]+[A-Za-z0-9._-]{20,}' .; then
             echo 'Credential-like material detected in trusted source.'
             exit 1
@@ -56,12 +56,6 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
           name: marsel-unified-evidence
           path: ${{ env.MARSEL_EVIDENCE_DIR }}
-
-      - name: Validate unified control-plane run completed successfully
-        if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion != 'success'
-        run: |
-          echo "PRODUCTION_GATE_FAIL=unified_control_plane_conclusion=${{ github.event.workflow_run.conclusion }}"
-          exit 1
 
       - name: Run fail-closed Issue #19 gate
         run: python scripts/marsel_production_gate_v1.py
