@@ -1,0 +1,83 @@
+name: continuous-verification
+
+on:
+  push:
+    branches: ["main", "automation/**"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+  schedule:
+    - cron: "17 * * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: continuous-verification-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install locked dependencies
+        run: python -m pip install --disable-pip-version-check --no-input -r requirements.lock
+
+      - name: Run tests
+        shell: bash
+        run: |
+          set -o pipefail
+          python -m pytest -vv --tb=long --maxfail=1 --junitxml=pytest-results.xml | tee pytest-output.txt
+
+      - name: Build production container
+        run: docker build --pull --tag marsel-roapp:${GITHUB_SHA} .
+
+      - name: Verify production health
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm -d --name marsel-roapp-ci -p 18000:8000 marsel-roapp:${GITHUB_SHA}
+          trap 'docker logs marsel-roapp-ci || true; docker stop marsel-roapp-ci || true' EXIT
+          for _ in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:18000/health >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
+
+      - name: Build verification manifest
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "commit=${GITHUB_SHA}";
+            echo "run=${GITHUB_RUN_ID}";
+            echo "workflow=${GITHUB_WORKFLOW}";
+            echo "event=${GITHUB_EVENT_NAME}";
+            echo "ref=${GITHUB_REF}";
+            echo "python=$(python --version 2>&1)";
+            echo "pytest=$(python -m pytest --version 2>&1)";
+            echo "docker=$(docker --version 2>&1)";
+          } > verification-manifest.txt
+
+      - name: Upload verification evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: marsel-continuous-verification-${{ github.run_id }}
+          path: |
+            pytest-results.xml
+            pytest-output.txt
+            verification-manifest.txt
+          if-no-files-found: warn
+          retention-days: 90
