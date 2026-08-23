@@ -1,0 +1,9 @@
+# MARSEL / ROAPP canonical ownership
+# Default owner for all repository changes.
+* @atalanrafael-jpg
+
+# Production and security-sensitive controls
+.github/workflows/ @atalanrafael-jpg
+scripts/ @atalanrafael-jpg
+Dockerfile @atalanrafael-jpg
+requirements.lock @atalanrafael-jpg
