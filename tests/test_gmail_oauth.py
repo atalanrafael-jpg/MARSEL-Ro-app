@@ -31,6 +31,20 @@ def test_gmail_oauth_rejects_unknown_state():
         service.handle_callback("code", "unknown-state")
 
 
+def test_gmail_oauth_state_expires(monkeypatch):
+    monkeypatch.setenv("GMAIL_CLIENT_ID", "client-id")
+    monkeypatch.setenv("GMAIL_CLIENT_SECRET", "client-secret")
+    service = GmailOAuthService()
+    service._pending["expired"] = type("Pending", (), {
+        "state": "expired",
+        "redirect_uri": "https://example.test/callback",
+        "created_at": 0.0,
+    })()
+
+    with pytest.raises(ValueError, match="Invalid or expired OAuth state"):
+        service.handle_callback("code", "expired")
+
+
 def test_gmail_oauth_limits_message_count(monkeypatch):
     service = GmailOAuthService()
     service._credentials = object()  # bypass network; validation happens first
