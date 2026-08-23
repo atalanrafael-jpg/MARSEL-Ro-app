@@ -1,4 +1,5 @@
 # Resolved dependency set captured from CI run 32580115127 on 2026-08-22.
+# Updated for the Gmail OAuth integration; Google client/auth packages are pinned.
 # Update intentionally via a reviewed dependency-refresh change; production builds consume this file.
 PyJWT==2.13.0
 annotated-doc==0.0.5
@@ -13,9 +14,14 @@ click==8.4.2
 cryptography==50.0.0
 docstring-parser==0.18.0
 fastapi==0.141.1
+google-api-python-client==2.198.0
+google-auth==2.56.3
+google-auth-httplib2==0.4.0
+google-auth-oauthlib==1.4.0
 h11==0.16.0
 httpcore==1.0.9
 httpcore2==2.12.0
+httplib2==0.32.0
 httptools==0.8.0
 httpx==0.28.1
 httpx-sse==0.4.3
@@ -26,6 +32,7 @@ jiter==0.16.0
 jsonschema==4.26.0
 jsonschema-specifications==2025.9.1
 mcp==1.29.0
+oauthlib==3.3.1
 openai==3.3.1
 packaging==26.3
 pluggy==1.6.0
@@ -42,6 +49,7 @@ python-multipart==0.0.32
 pyyaml==6.0.3
 referencing==0.37.0
 requests==2.34.2
+requests-oauthlib==2.0.0
 rpds-py==2026.6.3
 sniffio==1.3.1
 sse-starlette==3.4.8
@@ -49,6 +57,7 @@ starlette==1.6.0
 truststore==0.10.4
 typing-extensions==4.16.0
 typing-inspection==0.4.4
+uritemplate==4.2.0
 urllib3==2.7.0
 uvicorn==0.52.4
 uvloop==0.22.1
