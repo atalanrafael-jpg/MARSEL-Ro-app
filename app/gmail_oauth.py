@@ -4,6 +4,7 @@ Security model:
 - OAuth client credentials come from environment variables.
 - No Gmail password or token is stored in source control.
 - OAuth state and the resulting credentials are held in process memory only.
+- OAuth state is single-use and expires after a short bounded lifetime.
 - Production deployment should replace the in-memory credential store with an
   encrypted server-side store before enabling multi-worker or multi-instance use.
 """
@@ -12,6 +13,7 @@ from __future__ import annotations
 
 import os
 import secrets
+import time
 from dataclasses import dataclass
 from typing import Any
 
@@ -23,12 +25,14 @@ from googleapiclient.discovery import build
 from .config import settings
 
 GMAIL_READONLY_SCOPE = "https://www.googleapis.com/auth/gmail.readonly"
+OAUTH_STATE_TTL_SECONDS = 600
 
 
 @dataclass
 class PendingOAuth:
     state: str
     redirect_uri: str
+    created_at: float
 
 
 class GmailOAuthService:
@@ -57,7 +61,16 @@ class GmailOAuthService:
             raise RuntimeError("GMAIL_ACCOUNT_EMAIL не задан")
         return account
 
+    def _purge_expired_states(self) -> None:
+        cutoff = time.time() - OAUTH_STATE_TTL_SECONDS
+        self._pending = {
+            state: pending
+            for state, pending in self._pending.items()
+            if pending.created_at >= cutoff
+        }
+
     def authorization_url(self, redirect_uri: str) -> str:
+        self._purge_expired_states()
         state = secrets.token_urlsafe(32)
         flow = Flow.from_client_config(
             self._client_config(),
@@ -73,10 +86,12 @@ class GmailOAuthService:
         self._pending[returned_state] = PendingOAuth(
             state=returned_state,
             redirect_uri=redirect_uri,
+            created_at=time.time(),
         )
         return url
 
     def handle_callback(self, code: str, state: str) -> dict[str, Any]:
+        self._purge_expired_states()
         pending = self._pending.pop(state, None)
         if pending is None:
             raise ValueError("Invalid or expired OAuth state")
