@@ -24,20 +24,24 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
+
       - name: Install dependencies
         run: python -m pip install --disable-pip-version-check --no-input httpx
+
       - name: Verify canonical structure
         run: python scripts/marsel_canonical_self_check.py
+
       - name: Verify RO App secret
         if: github.event_name != 'pull_request'
         env:
           ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
         shell: bash
         run: test -n "$ROAPP_API_KEY"
+
       - name: Canonical READ-ONLY API inventory
+        if: github.event_name != 'pull_request'
         timeout-minutes: 10
         continue-on-error: true
-        if: github.event_name != 'pull_request'
         env:
           ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
           ROAPP_API_BASE: https://api.roapp.io/v2
@@ -49,10 +53,11 @@ jobs:
           ROAPP_MAX_RETRIES: "2"
           ROAPP_MIN_REQUEST_INTERVAL: "0.34"
         run: python scripts/marsel_api_inventory_v20_32.py
+
       - name: Canonical READ-ONLY data quality
+        if: github.event_name != 'pull_request'
         timeout-minutes: 15
         continue-on-error: true
-        if: github.event_name != 'pull_request'
         env:
           ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
           ROAPP_API_BASE: https://api.roapp.io/v2
@@ -62,10 +67,11 @@ jobs:
           ROAPP_MAX_RETRIES: "2"
           ROAPP_MIN_REQUEST_INTERVAL: "0.34"
         run: python scripts/marsel_data_quality_v22_readonly.py
+
       - name: Canonical READ-ONLY entity audit
+        if: github.event_name != 'pull_request'
         timeout-minutes: 10
         continue-on-error: true
-        if: github.event_name != 'pull_request'
         env:
           ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
           ROAPP_API_BASE: https://api.roapp.io/v2
@@ -74,10 +80,11 @@ jobs:
           ROAPP_MAX_RETRIES: "2"
           ROAPP_MIN_REQUEST_INTERVAL: "0.34"
         run: python scripts/marsel_entity_audit_v20_35.py
+
       - name: Canonical READ-ONLY product collision review
+        if: github.event_name != 'pull_request'
         timeout-minutes: 10
         continue-on-error: true
-        if: github.event_name != 'pull_request'
         env:
           ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
           ROAPP_API_BASE: https://api.roapp.io/v2
@@ -86,14 +93,11 @@ jobs:
           ROAPP_MAX_RETRIES: "2"
           ROAPP_MIN_REQUEST_INTERVAL: "0.34"
         run: python scripts/marsel_product_code_collision_audit_v22_3.py
+
       - name: Canonical READ-ONLY warehouse contract audit
+        if: github.event_name != 'pull_request'
         timeout-minutes: 10
         continue-on-error: true
-        if: always()
-        run: python scripts/marsel_warehouse_contract_v20_47.py
-      - name: Enforce unified READ-ONLY gates
-        if: always()
-        if: github.event_name != 'pull_request'
         env:
           ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
           ROAPP_API_BASE: https://api.roapp.io/v2
@@ -102,14 +106,28 @@ jobs:
           ROAPP_MAX_RETRIES: "2"
           ROAPP_MIN_REQUEST_INTERVAL: "0.34"
         run: python scripts/marsel_warehouse_contract_v20_47.py
+
       - name: Build PR-safe incomplete evidence
         if: github.event_name == 'pull_request'
         shell: bash
         run: |
           python - <<'PY'
           import json
-          json.dump({'system':'MARSEL Unified Control Plane','status':'PR_SAFE_REVIEW','readonly':True,'write_requests_made':0,'ro_app_data_mutated':False,'reason':'Live RO App audit is skipped for pull_request events to prevent secret exposure.'}, open('marsel-unified-evidence.json','w',encoding='utf-8'), ensure_ascii=False, indent=2)
+          json.dump(
+              {
+                  'system': 'MARSEL Unified Control Plane',
+                  'status': 'PR_SAFE_REVIEW',
+                  'readonly': True,
+                  'write_requests_made': 0,
+                  'ro_app_data_mutated': False,
+                  'reason': 'Live RO App audit is skipped for pull_request events to prevent secret exposure.'
+              },
+              open('marsel-unified-evidence.json', 'w', encoding='utf-8'),
+              ensure_ascii=False,
+              indent=2,
+          )
           PY
+
       - name: Enforce unified READ-ONLY safety and quality gates
         if: github.event_name != 'pull_request'
         shell: bash
@@ -117,6 +135,7 @@ jobs:
           python - <<'PY'
           import json
           from pathlib import Path
+
           required = [
               'marsel-unified-api-inventory.json',
               'marsel-unified-data-quality.json',
@@ -127,9 +146,7 @@ jobs:
           missing = [x for x in required if not Path(x).exists()]
           if missing:
               raise SystemExit(f'Missing audit evidence: {missing}')
-          required = ['marsel-unified-api-inventory.json','marsel-unified-data-quality.json','marsel-unified-entity-audit.json','marsel-unified-product-collisions.json','marsel-unified-warehouse-contract.json']
-          missing = [x for x in required if not Path(x).exists()]
-          if missing: raise SystemExit(f'Missing audit evidence: {missing}')
+
           inv, dq, ent, col, wh = [json.load(open(x, encoding='utf-8')) for x in required]
           assert inv.get('readonly') is True and inv.get('write_requests_made') == 0 and inv.get('ro_app_data_mutated') is False
           assert dq.get('mode') == 'READ_ONLY' and dq.get('write_requests_made') == 0 and dq.get('ro_app_data_mutated') is False
@@ -137,69 +154,85 @@ jobs:
           assert ent.get('safety', {}).get('identifiers_guessed') is False
           assert col.get('mode') == 'READ_ONLY' and col.get('write_requests_made') == 0 and col.get('ro_app_data_mutated') is False
           assert wh.get('mode') == 'READ_ONLY' and wh.get('readonly') is True and wh.get('write_requests_made') == 0 and wh.get('ro_app_data_mutated') is False
+
           quality = 'PASS' if not dq.get('access_failures') and not dq.get('hard_issues') else 'REVIEW_REQUIRED'
-          eb = [x for x in ent.get('blocked_entities', []) if x.get('entity') != 'warehouse']
-          ef = [x for x in ent.get('failed_entities', []) if x.get('entity') != 'warehouse']
-          entity = 'PASS' if not eb and not ef else 'REVIEW_REQUIRED'
-          collision = 'PASS' if not col.get('error') else 'REVIEW_REQUIRED'
+          blocked = [x for x in ent.get('blocked_entities', []) if x.get('entity') != 'warehouse']
+          failed = [x for x in ent.get('failed_entities', []) if x.get('entity') != 'warehouse']
+          entity = 'PASS' if not blocked and not failed else 'REVIEW_REQUIRED'
           real_collisions = int(col.get('real_collision_group_count') or 0)
           unresolved = int(col.get('unresolved_group_count') or 0)
           collision = 'PASS' if not col.get('error') and real_collisions == 0 and unresolved == 0 else 'REVIEW_REQUIRED'
           warehouse = 'PASS' if wh.get('result') == 'PASS' and bool(wh.get('confirmed_live_gets')) else 'REVIEW_REQUIRED'
           final = 'PASS' if all(x == 'PASS' for x in (quality, entity, collision, warehouse)) else 'REVIEW_REQUIRED'
+
           print(f'DATA_QUALITY_RESULT={quality}')
           print(f'ENTITY_AUDIT_RESULT={entity}')
-          print(f'ENTITY_AUDIT_NON_WAREHOUSE_BLOCKERS={len(eb)}')
+          print(f'ENTITY_AUDIT_NON_WAREHOUSE_BLOCKERS={len(blocked)}')
           print(f'DUPLICATE_CODE_GROUP_COUNT={int(col.get("duplicate_code_group_count") or 0)}')
           print('COLLISION_INTERPRETATION=REVIEW_ONLY; product-code uniqueness is not assumed by this audit')
           print(f'COLLISION_REVIEW_RESULT={collision}')
           print(f'WAREHOUSE_CONTRACT_RESULT={warehouse}')
           print(f'UNIFIED_RESULT={final}')
-          if final != 'PASS':
-              raise SystemExit('Unified quality gate requires review')
           print(f'REAL_COLLISION_GROUP_COUNT={real_collisions}')
           print(f'UNRESOLVED_GROUP_COUNT={unresolved}')
-          print(f'COLLISION_REVIEW_RESULT={collision}')
-          print(f'WAREHOUSE_CONTRACT_RESULT={warehouse}')
-          print(f'UNIFIED_RESULT={final}')
-          if final != 'PASS': raise SystemExit('Unified quality gate requires review')
+
+          if final != 'PASS':
+              raise SystemExit('Unified quality gate requires review')
           PY
+
       - name: Build unified evidence
         if: github.event_name != 'pull_request'
         run: |
           python - <<'PY'
           import json
           from pathlib import Path
-          fs = ['marsel-unified-api-inventory.json','marsel-unified-data-quality.json','marsel-unified-entity-audit.json','marsel-unified-product-collisions.json','marsel-unified-warehouse-contract.json']
-          missing = [x for x in fs if not Path(x).exists()]
-          if missing:
-              out = {'system':'MARSEL Unified Control Plane','status':'INCOMPLETE','readonly':True,'write_requests_made':0,'ro_app_data_mutated':False,'missing_evidence':missing}
-          else:
-              inv,dq,ent,col,wh = [json.load(open(x,encoding='utf-8')) for x in fs]
-          fs=['marsel-unified-api-inventory.json','marsel-unified-data-quality.json','marsel-unified-entity-audit.json','marsel-unified-product-collisions.json','marsel-unified-warehouse-contract.json']
-          missing=[x for x in fs if not Path(x).exists()]
-          out={'system':'MARSEL Unified Control Plane','status':'INCOMPLETE','readonly':True,'write_requests_made':0,'ro_app_data_mutated':False,'missing_evidence':missing}
+
+          files = [
+              'marsel-unified-api-inventory.json',
+              'marsel-unified-data-quality.json',
+              'marsel-unified-entity-audit.json',
+              'marsel-unified-product-collisions.json',
+              'marsel-unified-warehouse-contract.json',
+          ]
+          missing = [x for x in files if not Path(x).exists()]
+          out = {
+              'system': 'MARSEL Unified Control Plane',
+              'status': 'INCOMPLETE',
+              'readonly': True,
+              'write_requests_made': 0,
+              'ro_app_data_mutated': False,
+              'missing_evidence': missing,
+          }
+
           if not missing:
-              inv,dq,ent,col,wh=[json.load(open(x,encoding='utf-8')) for x in fs]
-              q='PASS' if not dq.get('access_failures') and not dq.get('hard_issues') else 'REVIEW_REQUIRED'
-              eb=[x for x in ent.get('blocked_entities',[]) if x.get('entity')!='warehouse']
-              ef=[x for x in ent.get('failed_entities',[]) if x.get('entity')!='warehouse']
-              e='PASS' if not eb and not ef else 'REVIEW_REQUIRED'
-              c='PASS' if not col.get('error') else 'REVIEW_REQUIRED'
-              w='PASS' if wh.get('result')=='PASS' and bool(wh.get('confirmed_live_gets')) else 'REVIEW_REQUIRED'
-              final='PASS' if all(x=='PASS' for x in (q,e,c,w)) else 'REVIEW_REQUIRED'
-              out={'system':'MARSEL Unified Control Plane','status':'VERIFIED' if final=='PASS' else 'REVIEW_REQUIRED','readonly':True,'write_requests_made':0,'ro_app_data_mutated':False,'api_inventory':{'contract_state':inv.get('contract_state',{}),'summary':inv.get('summary',{}),'safety':inv.get('safety',{})},'data_quality':{'result':q,'summary':dq.get('summary',{}),'access_failures':dq.get('access_failures',[]),'hard_issues':dq.get('hard_issues',[])},'entity_audit':{'result':e,'resolved_entities':ent.get('resolved_entities',[]),'blocked_entities':ent.get('blocked_entities',[]),'failed_entities':ent.get('failed_entities',[])},'product_collision_review':{'result':c,'review_only':True,'duplicate_code_group_count':int(col.get('duplicate_code_group_count') or 0),'collisions':col.get('collisions',[]),'error':col.get('error')},'warehouse_contract':{'result':w,'confirmed_live_gets':wh.get('confirmed_live_gets',[]),'explicit_get_contracts':wh.get('explicit_get_contracts',[]),'reference_pages':wh.get('warehouse_reference_pages',[])}}
-              real_collisions=int(col.get('real_collision_group_count') or 0)
-              unresolved=int(col.get('unresolved_group_count') or 0)
-              c='PASS' if not col.get('error') and real_collisions == 0 and unresolved == 0 else 'REVIEW_REQUIRED'
-              w='PASS' if wh.get('result')=='PASS' and bool(wh.get('confirmed_live_gets')) else 'REVIEW_REQUIRED'
-              final='PASS' if all(x=='PASS' for x in (q,e,c,w)) else 'REVIEW_REQUIRED'
-              out={'system':'MARSEL Unified Control Plane','status':'VERIFIED' if final=='PASS' else 'REVIEW_REQUIRED','readonly':True,'write_requests_made':0,'ro_app_data_mutated':False,'warehouse_contract':{'result':w,'confirmed_live_gets':wh.get('confirmed_live_gets',[])}}
-          json.dump(out,open('marsel-unified-evidence.json','w',encoding='utf-8'),ensure_ascii=False,indent=2)
+              inv, dq, ent, col, wh = [json.load(open(x, encoding='utf-8')) for x in files]
+              quality = 'PASS' if not dq.get('access_failures') and not dq.get('hard_issues') else 'REVIEW_REQUIRED'
+              blocked = [x for x in ent.get('blocked_entities', []) if x.get('entity') != 'warehouse']
+              failed = [x for x in ent.get('failed_entities', []) if x.get('entity') != 'warehouse']
+              entity = 'PASS' if not blocked and not failed else 'REVIEW_REQUIRED'
+              real_collisions = int(col.get('real_collision_group_count') or 0)
+              unresolved = int(col.get('unresolved_group_count') or 0)
+              collision = 'PASS' if not col.get('error') and real_collisions == 0 and unresolved == 0 else 'REVIEW_REQUIRED'
+              warehouse = 'PASS' if wh.get('result') == 'PASS' and bool(wh.get('confirmed_live_gets')) else 'REVIEW_REQUIRED'
+              final = 'PASS' if all(x == 'PASS' for x in (quality, entity, collision, warehouse)) else 'REVIEW_REQUIRED'
+              out = {
+                  'system': 'MARSEL Unified Control Plane',
+                  'status': 'VERIFIED' if final == 'PASS' else 'REVIEW_REQUIRED',
+                  'readonly': True,
+                  'write_requests_made': 0,
+                  'ro_app_data_mutated': False,
+                  'api_inventory': {'contract_state': inv.get('contract_state', {}), 'summary': inv.get('summary', {}), 'safety': inv.get('safety', {})},
+                  'data_quality': {'result': quality, 'summary': dq.get('summary', {}), 'access_failures': dq.get('access_failures', []), 'hard_issues': dq.get('hard_issues', [])},
+                  'entity_audit': {'result': entity, 'resolved_entities': ent.get('resolved_entities', []), 'blocked_entities': ent.get('blocked_entities', []), 'failed_entities': ent.get('failed_entities', [])},
+                  'product_collision_review': {'result': collision, 'review_only': True, 'duplicate_code_group_count': int(col.get('duplicate_code_group_count') or 0), 'collisions': col.get('collisions', []), 'error': col.get('error')},
+                  'warehouse_contract': {'result': warehouse, 'confirmed_live_gets': wh.get('confirmed_live_gets', []), 'explicit_get_contracts': wh.get('explicit_get_contracts', []), 'reference_pages': wh.get('warehouse_reference_pages', [])},
+              }
+
+          json.dump(out, open('marsel-unified-evidence.json', 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
           PY
+
       - name: Upload unified evidence
         if: always()
-        uses: actions/upload-artifact@v6
         uses: actions/upload-artifact@v7
         with:
           name: marsel-unified-evidence
@@ -210,16 +243,19 @@ jobs:
             marsel-unified-entity-audit.json
             marsel-unified-product-collisions.json
             marsel-unified-warehouse-contract.json
+          if-no-files-found: warn
           retention-days: 90
+
       - name: Write immutable run marker
         if: always()
         shell: bash
         run: printf '%s\n' "run_id=${GITHUB_RUN_ID}" "sha=${GITHUB_SHA}" "workflow=${GITHUB_WORKFLOW}" "event=${GITHUB_EVENT_NAME}" > marsel-unified-run-marker.txt
+
       - name: Upload immutable run marker
         if: always()
-        uses: actions/upload-artifact@v6
         uses: actions/upload-artifact@v7
         with:
           name: marsel-unified-run-marker
           path: marsel-unified-run-marker.txt
+          if-no-files-found: error
           retention-days: 90
