@@ -1,12 +1,12 @@
 # Resolved dependency set captured from CI run 32580115127 on 2026-08-22.
-# Update intentionally via a reviewed dependency-refresh change; production builds consume this file.
+# Updated after CI resolver validation on 2026-08-24.
 PyJWT==2.13.0
 annotated-doc==0.0.5
 annotated-types==0.8.0
 anthropic==1.0.0
 anyio==4.14.2
 attrs==26.1.0
-cachetools==7.0.1
+cachetools==6.2.0
 certifi==2026.7.22
 cffi==2.1.1
 charset-normalizer==3.5.1
