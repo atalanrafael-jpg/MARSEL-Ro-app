@@ -26,4 +26,4 @@ jobs:
           python-version: '3.12'
       - name: Run control-plane tests
         working-directory: ai_os
-        run: python -m unittest -v test_control_plane.py
+        run: python -m unittest discover -s . -p 'test_control_plane.py' -v
