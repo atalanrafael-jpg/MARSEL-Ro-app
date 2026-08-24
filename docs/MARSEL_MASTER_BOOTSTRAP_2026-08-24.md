@@ -48,6 +48,10 @@ Fresh evidence from the current `main` must replace historical assumptions. A su
 
 `FRESH CONTROL-PLANE RUN → EVIDENCE REVIEW → CLOSE VERIFIED GATES → BACKUP/RESTORE PROOF → DATA RECONCILIATION → DRY-RUN → IDEMPOTENCY/ROLLBACK → SAFETY GATE → ONLY THEN CONSIDER CONTROLLED WRITE`
 
+## Bootstrap execution marker
+
+A documentation-only marker update on 2026-08-24 is intentionally used to trigger the canonical `main` control-plane workflow. It does not authorize or perform any RO App production write.
+
 ## Status
 
 `PARTIAL / REVIEW_REQUIRED`
