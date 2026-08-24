@@ -1,6 +1,6 @@
 # MARSEL ROAPP — ЕДИНАЯ СИСТЕМА
 
-Дата контрольной ревизии: 2026-08-21
+Дата контрольной ревизии: 2026-08-24
 
 MARSEL и ROAPP — единая система ювелирной студии, а не независимые проекты.
 
@@ -23,12 +23,13 @@ MARSEL и ROAPP — единая система ювелирной студии,
 - `scripts/marsel_api_inventory_v20_32.py`
 - `scripts/marsel_data_quality_v22_readonly.py`
 - `scripts/marsel_entity_audit_v20_35.py`
-- `scripts/marsel_product_code_collision_audit_v22_1.py`
-- `scripts/marsel_warehouse_contract_v20_36.py`
+- `scripts/marsel_product_code_collision_audit_v22_3.py`
 - `scripts/marsel_warehouse_contract_v20_47.py`
 - `scripts/marsel_api_v2_probe_v1.py`
 - `scripts/marsel_api_v2_canonical_registry_v1.py`
 - `scripts/marsel_canonical_self_check.py`
+
+Required internal API inventory dependencies are `v20_31` and `v20_29`; they are not legacy candidates until the dependency chain is refactored and verified.
 
 Старые versioned реализации находятся в `старые данные/` и не являются активным control plane.
 
@@ -54,5 +55,4 @@ MARSEL и ROAPP — единая система ювелирной студии,
 
 Каждая задача должна завершаться свежей проверкой. Старый успешный запуск не заменяет проверку текущего `main`.
 
-`старые данные/` — только исторический архив; его содержимое не является текущим источником истины.
 `старые данные/` — только исторический архив; его содержимое не является текущим источником истины.
