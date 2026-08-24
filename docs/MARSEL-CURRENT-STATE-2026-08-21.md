@@ -1,4 +1,4 @@
-# MARSEL / ROAPP — CURRENT STATE — 2026-08-21
+# MARSEL / ROAPP — CURRENT STATE — 2026-08-24
 
 ## Canonical system
 
@@ -17,23 +17,29 @@
 
 ## Canonical audit components
 
+The ACTIVE execution set is defined by `.github/workflows/marsel-unified-control-plane.yml` on `main`:
+
 - API inventory: `scripts/marsel_api_inventory_v20_32.py`.
 - Data quality: `scripts/marsel_data_quality_v22_readonly.py`.
 - Entity audit: `scripts/marsel_entity_audit_v20_35.py`.
-- Product-code review: `scripts/marsel_product_code_collision_audit_v22_1.py`.
-- Warehouse contract: `scripts/marsel_warehouse_contract_v20_36.py`.
+- Product-code review: `scripts/marsel_product_code_collision_audit_v22_3.py`.
+- Warehouse contract: `scripts/marsel_warehouse_contract_v20_47.py`.
 - Structural self-check: `scripts/marsel_canonical_self_check.py`.
 
-## Verified unresolved gates
+Required internal API inventory dependencies remain `v20_31` and `v20_29` until their dependency chain is refactored and reverified.
 
-The repository evidence reviewed on 2026-08-21 does not prove:
+## Current verification status
+
+This document is a repository-state record. It does not claim that the latest live RO App audit has passed.
+
+The following require fresh live evidence before being marked VERIFIED:
 
 1. complete RO App entity/API coverage;
 2. production backup plus successful restore test;
 3. complete warehouse contract coverage;
 4. live Gmail OAuth authorization and mailbox smoke test;
 5. direct official RO App MCP authorization in the current ChatGPT environment;
-6. final classification/reconciliation of the 11 product-code collision groups.
+6. current classification/reconciliation of product-code review groups.
 
 These are blockers to production WRITE, not reasons to guess or force a PASS.
 
