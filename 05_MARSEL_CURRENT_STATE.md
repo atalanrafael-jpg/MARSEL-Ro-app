@@ -3,13 +3,13 @@
 **Role:** single living project checkpoint. Update after every material verified change.
 
 ## DATE
-2026-08-24
+2026-08-25
 
 ## CURRENT VERSION
 MARSEL/ROAPP unified control plane with production-safety hardening, credential-pattern guard, and canonical GitHub governance work in progress.
 
 ## CONTROL CHECKPOINT
-Current `main` checkpoint: `4e63ef8a282ca14bdec7805ef8ab84b2896c60d6` (this checkpoint update). The preceding material security commit is `3b7f626cc3aeaeaa0b11b1a6d437f96f293d935f`.
+Current `main` checkpoint: `4912c78ade07b9b8252571caf1bdd76296f32fc3`. The preceding material security checkpoint is `4e63ef8a282ca14bdec7805ef8ab84b2896c60d6`.
 
 ## SYSTEM MODEL
 **MARSEL = business contour + ROAPP = technical contour → one unified system → one canonical `main` control plane.**
@@ -27,7 +27,7 @@ Current `main` checkpoint: `4e63ef8a282ca14bdec7805ef8ab84b2896c60d6` (this chec
 - Unit-test and audit workflows exist on the canonical `main` control plane.
 - Production mutation remains fail-closed.
 - A repository-level `MARSEL Secret Guard` workflow is present and scans tracked text files for high-risk credential patterns with `contents: read` permissions only.
-- Fresh CI PASS for the newest secret-guard commit is **NOT VERIFIED** because the connected GitHub status endpoint returned no status entries.
+- Fresh CI PASS for the newest secret-guard commit is **NOT VERIFIED** because the connected GitHub status endpoint returned no status entries for `4912c78`.
 
 ## RO APP STATUS
 🟢 **VERIFIED / PARTIAL**
