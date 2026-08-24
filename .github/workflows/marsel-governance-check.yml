@@ -56,10 +56,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if git grep -nE '(ROAPP_API_KEY|OPENAI_API_KEY|GMAIL_TOKEN_ENCRYPTION_KEY|OPENAI_ADS_CONVERSIONS_API_KEY)[[:space:]]*=[[:space:]]*["'"''][^"'"'']{12,}["'"'']' -- ':!00_PROJECT_CONTROL/**' ':!.env.example' ':!*.md'; then
-            echo "Possible hardcoded credential assignment detected"
-            exit 1
-          fi
+          patterns=(
+            'ROAPP_API_KEY[[:space:]]*=[[:space:]]*['"'"'][^'"'"']{12,}['"'"']'
+            'OPENAI_API_KEY[[:space:]]*=[[:space:]]*['"'"'][^'"'"']{12,}['"'"']'
+            'GMAIL_TOKEN_ENCRYPTION_KEY[[:space:]]*=[[:space:]]*['"'"'][^'"'"']{12,}['"'"']'
+            'OPENAI_ADS_CONVERSIONS_API_KEY[[:space:]]*=[[:space:]]*['"'"'][^'"'"']{12,}['"'"']'
+          )
+          for pattern in "${patterns[@]}"; do
+            if git grep -nE "$pattern" -- ':!00_PROJECT_CONTROL/**' ':!.env.example' ':!*.md'; then
+              echo "Possible hardcoded credential assignment detected"
+              exit 1
+            fi
+          done
 
       - name: Verify production WRITE remains explicitly gated
         shell: bash
