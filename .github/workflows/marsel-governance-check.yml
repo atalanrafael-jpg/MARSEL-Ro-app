@@ -1,0 +1,81 @@
+name: MARSEL Governance Check
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: marsel-governance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  governance:
+    name: Governance invariants
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Verify canonical control documents
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=(
+            "README.md"
+            "SECURITY.md"
+            "AGENTS.md"
+            "00_PROJECT_CONTROL/GITHUB_GOVERNANCE.md"
+            "00_PROJECT_CONTROL/REPOSITORY_REGISTRY.md"
+            "00_PROJECT_CONTROL/PROJECT_DATA_STRUCTURE.md"
+            "00_PROJECT_CONTROL/WORKFLOW.md"
+            ".github/CODEOWNERS"
+            ".github/dependabot.yml"
+          )
+          for f in "${required[@]}"; do
+            test -f "$f" || { echo "MISSING: $f"; exit 1; }
+          done
+
+      - name: Verify no tracked environment files
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git ls-files | grep -E '(^|/)(\.env|\.env\.[^/]+)$' | grep -v '^\.env\.example$'; then
+            echo "Tracked environment file detected"
+            exit 1
+          fi
+
+      - name: Verify no obvious hardcoded credential assignments
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git grep -nE '(ROAPP_API_KEY|OPENAI_API_KEY|GMAIL_TOKEN_ENCRYPTION_KEY|OPENAI_ADS_CONVERSIONS_API_KEY)[[:space:]]*=[[:space:]]*["'"''][^"'"'']{12,}["'"'']' -- ':!00_PROJECT_CONTROL/**' ':!.env.example' ':!*.md'; then
+            echo "Possible hardcoded credential assignment detected"
+            exit 1
+          fi
+
+      - name: Verify production WRITE remains explicitly gated
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f .github/workflows/marsel-production-gate.yml
+          grep -RqiE 'write|blocked|fail.closed|fail-closed' .github/workflows/marsel-production-gate.yml
+
+      - name: Publish governance summary
+        shell: bash
+        run: |
+          {
+            echo "## MARSEL Governance"
+            echo "- canonical branch: main"
+            echo "- governance docs: present"
+            echo "- tracked .env files: none"
+            echo "- obvious hardcoded credential assignments: none detected"
+            echo "- production gate: present"
+          } >> "$GITHUB_STEP_SUMMARY"
