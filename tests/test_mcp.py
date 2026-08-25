@@ -6,6 +6,13 @@ from app.mcp_auth import JWTTokenVerifier
 from app.mcp_server import create_local_mcp_server
 
 
+def test_fastmcp_settings_model_is_complete():
+    from mcp.server.fastmcp.server import Settings as FastMCPSettings
+
+    assert FastMCPSettings.__pydantic_complete__ is True
+    assert FastMCPSettings.model_fields["lifespan"]._complete is True
+
+
 def test_local_mcp_registers_only_read_tools():
     server = create_local_mcp_server()
     tools = server._tool_manager._tools  # FastMCP registry; public protocol is verified by the client.

@@ -6,18 +6,18 @@
 ## Canonical state
 - Repository: `atalanrafael-jpg/Ro-app`
 - Branch: `main`
-- Current HEAD before this control update: `85ee71598c1f2c93ac4d1a0ab09c6ca547a6ac3a` (`ci: run warehouse contract audit v20.36`).
+- Control record synchronized against: `f4e213ec6eaf3f4d58bccf037015a6d7e38694a3`.
 - Current integration mode: READ-ONLY.
 - Production WRITE: DISABLED.
-- Current warehouse audit: V20.36, explicit-contract-only, no guessed identifiers.
-- Latest repository review confirms the warehouse contract workflow and script exist on `main`.
+- Canonical warehouse implementation: `scripts/marsel_warehouse_contract_v20_36.py`.
+- Warehouse audit is controlled by the Unified Control Plane; the previously separate warehouse workflow has been removed to avoid duplicate control paths.
 
-## Verified external facts
-- RO App documents Public API v2 and states that API requests are performed on behalf of the employee whose API key is used; access to a warehouse/location depends on that employee's permissions.
-- RO App states that if an endpoint is not available in the latest API documentation, the previous API version may be used until September 1, 2026.
-- RO App's current API update adds additional v2 endpoints/events for calls, orders, estimates, employees and webhooks; this means the API registry must be refreshed against current documentation rather than treated as static.
-- RO App documents stock/product-price synchronization with websites, but explicitly notes that a website sale does not automatically write off RO App inventory or automatically create a sale in RO App. This must be accounted for in any MARSEL ecommerce synchronization design.
-- RO App documents warehouse stock operations and requires a real warehouse selection for stock-related operations; parameterized identifiers must therefore be obtained from verified data and never guessed.
+## Evidence precedence
+1. Current `main` repository state.
+2. Current GitHub workflow/run evidence tied to the current `main` HEAD.
+3. Direct live API evidence with timestamps/artifacts.
+4. Current official RO App documentation.
+5. Older project documents are historical only and must not override current evidence.
 
 ## 100% completion gates
 
@@ -70,11 +70,11 @@
 - [ ] Lead attribution and conversion tracking prepared
 
 ## Current blockers
-1. Current CI/live results for the latest `main` HEAD must be directly verified; older successful runs do not prove current state.
+1. Current CI/live results for the current `main` HEAD must be directly verified; older successful runs do not prove current state.
 2. Warehouse/stock contract requires direct evidence and safe verification with real permitted identifiers; identifiers must never be guessed.
 3. Duplicate/anomaly and reconciliation gates remain open until current evidence is attached.
 4. Backup/restore evidence is not yet proven by this control record.
-5. Production WRITE remains prohibited by issue #19 until all required gates are evidenced.
+5. Production WRITE remains prohibited until all required gates are evidenced.
 
 ## Status rule
 A gate is `PASS` only when current evidence exists. `PLANNED`, `CODED`, `NOT_TESTED`, `ASSUMED`, `OLD_PASS`, or `UNVERIFIED` are not PASS.
@@ -83,4 +83,4 @@ A gate is `PASS` only when current evidence exists. `PLANNED`, `CODED`, `NOT_TES
 Never claim backup, restore, reconciliation, security, rotation, or WRITE readiness without direct evidence. Never guess an API endpoint or identifier. Never execute a production mutation merely to make a test green.
 
 ## Continuation rule
-Every future execution starts from this file and the current `main` HEAD, verifies the current CI/live evidence, closes the next open gate, records the result, and repeats until either all gates are PASS or a technically unresolvable external blocker is documented.
+Every future execution starts from this file and the current `main` HEAD, verifies current CI/live evidence, closes the next open gate, records the result, and repeats until either all gates are PASS or a technically unresolvable external blocker is documented.
