@@ -2,6 +2,11 @@ name: MARSEL Production Gate
 
 on:
   workflow_dispatch:
+    inputs:
+      unified_control_plane_run_id:
+        description: 'Successful MARSEL Unified Control Plane run ID to use for evidence'
+        required: false
+        type: string
   workflow_run:
     workflows: ["MARSEL Unified Control Plane"]
     types: [completed]
@@ -20,8 +25,8 @@ jobs:
       ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
       MARSEL_WRITE_APPROVED: "false"
       MARSEL_EVIDENCE_DIR: evidence
+      UNIFIED_CONTROL_PLANE_RUN_ID: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || inputs.unified_control_plane_run_id }}
     steps:
-      # workflow_run is privileged: execute only trusted default-branch code.
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.event_name == 'workflow_run' && github.event.repository.default_branch || github.sha }}
@@ -51,12 +56,20 @@ jobs:
         shell: bash
         run: mkdir -p "$MARSEL_EVIDENCE_DIR"
 
+      - name: Validate unified control-plane run ID
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${UNIFIED_CONTROL_PLANE_RUN_ID:-}"
+          case "$UNIFIED_CONTROL_PLANE_RUN_ID" in
+            *[!0-9]*) echo 'unified_control_plane_run_id must be numeric.'; exit 1 ;;
+          esac
+
       - name: Download unified control-plane evidence
-        if: github.event_name == 'workflow_run'
         uses: actions/download-artifact@v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          run-id: ${{ github.event.workflow_run.id }}
+          run-id: ${{ env.UNIFIED_CONTROL_PLANE_RUN_ID }}
           name: marsel-unified-evidence
           path: ${{ env.MARSEL_EVIDENCE_DIR }}
 

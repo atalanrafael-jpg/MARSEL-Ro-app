@@ -1,5 +1,5 @@
-# Resolved dependency set captured from CI run 32580115127 on 2026-08-22.
-# Update intentionally via a reviewed dependency-refresh change; production builds consume this file.
+# Resolved dependency set; refreshed 2026-08-26 for Gmail OAuth runtime imports.
+# Production builds consume this file; direct Google dependencies are pinned here.
 PyJWT==2.13.0
 annotated-doc==0.0.5
 annotated-types==0.8.0
@@ -13,6 +13,9 @@ click==8.4.2
 cryptography==50.0.0
 docstring-parser==0.18.0
 fastapi==0.141.1
+google-api-python-client==2.199.0
+google-auth==2.56.3
+google-auth-oauthlib==1.4.0
 h11==0.16.0
 httpcore==1.0.9
 httpcore2==2.12.0

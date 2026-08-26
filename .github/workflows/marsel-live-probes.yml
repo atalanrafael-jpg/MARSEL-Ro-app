@@ -1,0 +1,37 @@
+name: MARSEL Live Integration Probes
+
+on:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '37 */6 * * *'
+
+permissions:
+  contents: read
+
+env:
+  MARSEL_ENVIRONMENT: staging
+
+jobs:
+  live-probes:
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run read-only probes
+        env:
+          MARSEL_PR_SAFE: ${{ github.event_name == 'pull_request' && 'true' || 'false' }}
+          ROAPP_HEALTH_URL: ${{ vars.ROAPP_HEALTH_URL }}
+          SUPABASE_HEALTH_URL: ${{ vars.SUPABASE_HEALTH_URL }}
+          VERCEL_HEALTH_URL: ${{ vars.VERCEL_HEALTH_URL }}
+          OPENAI_HEALTH_URL: ${{ vars.OPENAI_HEALTH_URL }}
+          WIX_HEALTH_URL: ${{ vars.WIX_HEALTH_URL }}
+        run: python scripts/marsel_live_probe_v1.py
+      - name: Upload probe report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: marsel-live-probes
+          path: artifacts/marsel-live-probes.json
+          if-no-files-found: error
