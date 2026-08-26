@@ -9,9 +9,14 @@ on:
 permissions:
   contents: read
 
+env:
+  MARSEL_ENVIRONMENT: staging
+
 jobs:
   live-probes:
     runs-on: ubuntu-latest
+    environment:
+      name: staging
     steps:
       - uses: actions/checkout@v4
       - name: Run read-only probes
