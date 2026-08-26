@@ -1,0 +1,31 @@
+name: MARSEL Safe Control Tests
+
+on:
+  push:
+    branches: ["main", "automation/vscode-marsel-agent"]
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 */6 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  safe-controls:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run deterministic local control tests
+        run: python scripts/marsel_safe_control_tests_v1.py
+      - name: Upload safe-control artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: marsel-safe-control-tests
+          path: artifacts/marsel-safe-controls/
+          if-no-files-found: error
