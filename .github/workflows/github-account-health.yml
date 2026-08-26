@@ -1,0 +1,97 @@
+name: GitHub Account Health
+
+on:
+  schedule:
+    - cron: '23 3 * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/github-account-health.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-account-health
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Audit public repositories for hygiene and CI signals
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: atalanrafael-jpg
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p report
+          gh api --paginate \
+            -H 'Accept: application/vnd.github+json' \
+            "/users/${OWNER}/repos?per_page=100&type=owner&sort=updated" \
+            > report/repos.ndjson
+
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          raw = Path('report/repos.ndjson').read_text(encoding='utf-8')
+          repos = []
+          for line in raw.splitlines():
+              line = line.strip()
+              if not line:
+                  continue
+              value = json.loads(line)
+              repos.extend(value if isinstance(value, list) else [value])
+
+          out = []
+          for r in repos:
+              out.append({
+                  'name': r.get('full_name'),
+                  'visibility': r.get('visibility'),
+                  'archived': r.get('archived'),
+                  'fork': r.get('fork'),
+                  'default_branch': r.get('default_branch'),
+                  'size_kb': r.get('size'),
+                  'has_issues': r.get('has_issues'),
+                  'has_actions': r.get('has_actions'),
+                  'updated_at': r.get('updated_at'),
+                  'open_issues_count': r.get('open_issues_count'),
+              })
+
+          public = [x for x in out if x['visibility'] == 'public']
+          findings = []
+          for r in public:
+              if not r['default_branch']:
+                  findings.append({'repo': r['name'], 'severity': 'HIGH', 'finding': 'missing_default_branch'})
+              if r['archived'] and r['has_issues']:
+                  findings.append({'repo': r['name'], 'severity': 'LOW', 'finding': 'archived_repo_with_issues_enabled'})
+              if r['size_kb'] == 0:
+                  findings.append({'repo': r['name'], 'severity': 'INFO', 'finding': 'empty_repository'})
+
+          report = {
+              'schema': 'marsel-github-account-health/v1',
+              'owner': 'atalanrafael-jpg',
+              'scope': 'public repositories returned by GitHub user repository API',
+              'repository_count': len(out),
+              'public_repository_count': len(public),
+              'findings_count': len(findings),
+              'findings': findings,
+              'repositories': out,
+          }
+          Path('report/account-health.json').write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + '\n', encoding='utf-8'
+          )
+          print(f"PUBLIC_REPOSITORIES={len(public)}")
+          print(f"FINDINGS={len(findings)}")
+          PY
+
+      - name: Upload account health report
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: github-account-health
+          path: report/account-health.json
+          if-no-files-found: error
+          retention-days: 30
