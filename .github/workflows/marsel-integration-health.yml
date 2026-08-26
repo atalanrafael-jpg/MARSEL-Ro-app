@@ -1,0 +1,29 @@
+name: MARSEL Integration Health
+on:
+  push:
+    branches: [main, 'automation/**']
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 */6 * * *'
+permissions:
+  contents: read
+jobs:
+  integration-health:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run read-only integration health check
+        env:
+          MARSEL_ROAPP_HEALTH_URL: ${{ vars.MARSEL_ROAPP_HEALTH_URL }}
+          MARSEL_SUPABASE_HEALTH_URL: ${{ vars.MARSEL_SUPABASE_HEALTH_URL }}
+          MARSEL_VERCEL_HEALTH_URL: ${{ vars.MARSEL_VERCEL_HEALTH_URL }}
+          MARSEL_OPENAI_HEALTH_URL: ${{ vars.MARSEL_OPENAI_HEALTH_URL }}
+          MARSEL_WIX_HEALTH_URL: ${{ vars.MARSEL_WIX_HEALTH_URL }}
+        run: python scripts/marsel_integration_health_v1.py
+      - name: Upload health report
+        uses: actions/upload-artifact@v4
+        with:
+          name: marsel-integration-health
+          path: artifacts/marsel-integration-health.json
+          if-no-files-found: error
