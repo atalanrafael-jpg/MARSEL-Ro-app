@@ -18,8 +18,7 @@ permissions:
 
 jobs:
   production-gate:
-    # Always evaluate a completed control-plane run. The gate itself remains fail-closed;
-    # this prevents a failed/skipped upstream run from hiding the actual evidence blocker.
+    # Always evaluate a completed control-plane run. The gate itself remains fail-closed.
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_run'
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -30,7 +29,7 @@ jobs:
       UNIFIED_CONTROL_PLANE_RUN_ID: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || inputs.unified_control_plane_run_id }}
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event_name == 'workflow_run' && github.event.repository.default_branch || github.sha }}
 
@@ -69,7 +68,7 @@ jobs:
           esac
 
       - name: Download unified control-plane evidence
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ env.UNIFIED_CONTROL_PLANE_RUN_ID }}
