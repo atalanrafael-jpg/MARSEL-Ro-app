@@ -13,6 +13,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Report endpoint configuration state
+        env:
+          ROAPP: ${{ vars.MARSEL_ROAPP_HEALTH_URL }}
+          SUPABASE: ${{ vars.MARSEL_SUPABASE_HEALTH_URL }}
+          VERCEL: ${{ vars.MARSEL_VERCEL_HEALTH_URL }}
+          OPENAI: ${{ vars.MARSEL_OPENAI_HEALTH_URL }}
+          WIX: ${{ vars.MARSEL_WIX_HEALTH_URL }}
+        run: |
+          for name in ROAPP SUPABASE VERCEL OPENAI WIX; do
+            if [ -n "${!name}" ]; then
+              echo "${name}_HEALTH_URL=CONFIGURED"
+            else
+              echo "${name}_HEALTH_URL=NOT_CONFIGURED"
+            fi
+          done
       - name: Run read-only integration health check
         env:
           MARSEL_INTEGRATION_HEALTH_MODE: ${{ github.event_name == 'pull_request' && 'pr' || 'production' }}
