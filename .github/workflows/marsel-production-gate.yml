@@ -18,7 +18,6 @@ permissions:
 
 jobs:
   production-gate:
-    # Always evaluate a completed control-plane run. The gate itself remains fail-closed.
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_run'
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -31,7 +30,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ github.event_name == 'workflow_run' && github.event.repository.default_branch || github.sha }}
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
       - name: Verify production secret is not exposed in source
         shell: bash
