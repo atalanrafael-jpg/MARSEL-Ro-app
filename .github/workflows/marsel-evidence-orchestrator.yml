@@ -1,0 +1,123 @@
+name: MARSEL Evidence Orchestrator
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '41 */6 * * *'
+  workflow_run:
+    workflows: ["MARSEL Unified Control Plane"]
+    types: [completed]
+
+concurrency:
+  group: marsel-evidence-orchestrator-${{ github.event.workflow_run.head_sha || github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  collect:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion != 'cancelled' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Download unified control-plane evidence
+        if: ${{ github.event_name == 'workflow_run' }}
+        uses: actions/download-artifact@v8
+        with:
+          run-id: ${{ github.event.workflow_run.id }}
+          name: marsel-unified-evidence
+          path: evidence/unified
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build evidence inventory
+        env:
+          UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
+          UPSTREAM_SHA: ${{ github.event.workflow_run.head_sha }}
+          EVENT_NAME: ${{ github.event_name }}
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib, json, os
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          required = [
+              'backup_evidence.json',
+              'restore_evidence.json',
+              'wix_roapp_reconciliation.json',
+              'marsel-unified-evidence.json',
+              'duplicate_reference_evidence.json',
+              'write_dry_run.json',
+              'idempotency_evidence.json',
+              'rollback_evidence.json',
+          ]
+
+          candidates = list(Path('evidence').rglob('*.json'))
+          by_name = {p.name: p for p in candidates}
+          missing = [name for name in required if name not in by_name]
+          entries = []
+          for name in required:
+              p = by_name.get(name)
+              if not p:
+                  entries.append({'name': name, 'status': 'MISSING'})
+                  continue
+              raw = p.read_bytes()
+              try:
+                  data = json.loads(raw)
+              except Exception as exc:
+                  entries.append({'name': name, 'status': 'INVALID_JSON', 'error': str(exc)})
+                  continue
+              entries.append({
+                  'name': name,
+                  'status': 'PRESENT',
+                  'sha256': hashlib.sha256(raw).hexdigest(),
+                  'readonly': data.get('readonly'),
+                  'write_requests_made': data.get('write_requests_made'),
+                  'ro_app_data_mutated': data.get('ro_app_data_mutated'),
+                  'generated_at': data.get('generated_at'),
+              })
+
+          report = {
+              'system': 'MARSEL Evidence Orchestrator',
+              'generated_at': datetime.now(timezone.utc).isoformat(),
+              'event': os.environ.get('EVENT_NAME'),
+              'upstream_run_id': os.environ.get('UPSTREAM_RUN_ID') or None,
+              'upstream_sha': os.environ.get('UPSTREAM_SHA') or os.environ.get('GITHUB_SHA'),
+              'required_count': len(required),
+              'present_count': sum(x['status'] == 'PRESENT' for x in entries),
+              'missing': missing,
+              'entries': entries,
+              'production_write_enabled': False,
+          }
+          Path('evidence').mkdir(exist_ok=True)
+          Path('evidence/evidence-index.json').write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')
+          print(json.dumps(report, ensure_ascii=False, indent=2))
+          PY
+
+      - name: Upload evidence index
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: marsel-evidence-index
+          path: evidence/evidence-index.json
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Fail closed when production evidence is incomplete
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path('evidence/evidence-index.json').read_text(encoding='utf-8'))
+          if report['missing']:
+              print('PRODUCTION_EVIDENCE=INCOMPLETE')
+              print('MISSING=' + ','.join(report['missing']))
+              raise SystemExit(1)
+          print('PRODUCTION_EVIDENCE=COMPLETE')
+          PY
