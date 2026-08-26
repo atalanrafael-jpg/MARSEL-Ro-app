@@ -21,6 +21,9 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
@@ -113,10 +116,12 @@ jobs:
         run: |
           python - <<'PY'
           import json
+          from datetime import datetime, timezone
           json.dump(
               {
                   'system': 'MARSEL Unified Control Plane',
                   'status': 'PR_SAFE_REVIEW',
+                  'generated_at': datetime.now(timezone.utc).isoformat(),
                   'readonly': True,
                   'write_requests_made': 0,
                   'ro_app_data_mutated': False,
@@ -128,8 +133,10 @@ jobs:
           )
           PY
 
-      - name: Enforce unified READ-ONLY safety and quality gates
+      - name: Evaluate unified READ-ONLY safety and quality
         if: github.event_name != 'pull_request'
+        id: quality_gate
+        continue-on-error: true
         shell: bash
         run: |
           python - <<'PY'
@@ -180,11 +187,16 @@ jobs:
               raise SystemExit('Unified quality gate requires review')
           PY
 
-      - name: Build unified evidence
-        if: github.event_name != 'pull_request'
+      - name: Build unified evidence with failure provenance
+        if: always() && github.event_name != 'pull_request'
+        shell: bash
+        env:
+          QUALITY_GATE_OUTCOME: ${{ steps.quality_gate.outcome }}
         run: |
           python - <<'PY'
           import json
+          import os
+          from datetime import datetime, timezone
           from pathlib import Path
 
           files = [
@@ -198,9 +210,11 @@ jobs:
           out = {
               'system': 'MARSEL Unified Control Plane',
               'status': 'INCOMPLETE',
+              'generated_at': datetime.now(timezone.utc).isoformat(),
               'readonly': True,
               'write_requests_made': 0,
               'ro_app_data_mutated': False,
+              'quality_gate_outcome': os.environ.get('QUALITY_GATE_OUTCOME', 'unknown'),
               'missing_evidence': missing,
           }
 
@@ -215,18 +229,14 @@ jobs:
               collision = 'PASS' if not col.get('error') and real_collisions == 0 and unresolved == 0 else 'REVIEW_REQUIRED'
               warehouse = 'PASS' if wh.get('result') == 'PASS' and bool(wh.get('confirmed_live_gets')) else 'REVIEW_REQUIRED'
               final = 'PASS' if all(x == 'PASS' for x in (quality, entity, collision, warehouse)) else 'REVIEW_REQUIRED'
-              out = {
-                  'system': 'MARSEL Unified Control Plane',
+              out.update({
                   'status': 'VERIFIED' if final == 'PASS' else 'REVIEW_REQUIRED',
-                  'readonly': True,
-                  'write_requests_made': 0,
-                  'ro_app_data_mutated': False,
                   'api_inventory': {'contract_state': inv.get('contract_state', {}), 'summary': inv.get('summary', {}), 'safety': inv.get('safety', {})},
                   'data_quality': {'result': quality, 'summary': dq.get('summary', {}), 'access_failures': dq.get('access_failures', []), 'hard_issues': dq.get('hard_issues', [])},
                   'entity_audit': {'result': entity, 'resolved_entities': ent.get('resolved_entities', []), 'blocked_entities': ent.get('blocked_entities', []), 'failed_entities': ent.get('failed_entities', [])},
                   'product_collision_review': {'result': collision, 'review_only': True, 'duplicate_code_group_count': int(col.get('duplicate_code_group_count') or 0), 'collisions': col.get('collisions', []), 'error': col.get('error')},
                   'warehouse_contract': {'result': warehouse, 'confirmed_live_gets': wh.get('confirmed_live_gets', []), 'explicit_get_contracts': wh.get('explicit_get_contracts', []), 'reference_pages': wh.get('warehouse_reference_pages', [])},
-              }
+              })
 
           json.dump(out, open('marsel-unified-evidence.json', 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
           PY
@@ -259,3 +269,7 @@ jobs:
           path: marsel-unified-run-marker.txt
           if-no-files-found: error
           retention-days: 90
+
+      - name: Enforce unified quality gate result
+        if: always() && github.event_name != 'pull_request'
+        run: test "${{ steps.quality_gate.outcome }}" = "success"
