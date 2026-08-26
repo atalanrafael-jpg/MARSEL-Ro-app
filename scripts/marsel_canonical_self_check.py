@@ -13,7 +13,7 @@ CANONICAL_SCRIPTS = {
     "scripts/marsel_api_inventory_v20_32.py",
     "scripts/marsel_data_quality_v22_readonly.py",
     "scripts/marsel_entity_audit_v20_35.py",
-    "scripts/marsel_product_code_collision_audit_v22_1.py",
+    "scripts/marsel_product_code_collision_audit_v22_3.py",
     "scripts/marsel_warehouse_contract_v20_47.py",
 }
 FORBIDDEN_LIVE_WORKFLOW_NAMES = {
