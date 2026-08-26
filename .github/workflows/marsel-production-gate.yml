@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       unified_control_plane_run_id:
-        description: 'Successful MARSEL Unified Control Plane run ID to use for evidence'
+        description: 'Successful or completed MARSEL Unified Control Plane run ID to use for evidence'
         required: false
         type: string
   workflow_run:
@@ -18,7 +18,9 @@ permissions:
 
 jobs:
   production-gate:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    # Always evaluate a completed control-plane run. The gate itself remains fail-closed;
+    # this prevents a failed/skipped upstream run from hiding the actual evidence blocker.
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_run'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -26,6 +28,7 @@ jobs:
       MARSEL_WRITE_APPROVED: "false"
       MARSEL_EVIDENCE_DIR: evidence
       UNIFIED_CONTROL_PLANE_RUN_ID: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || inputs.unified_control_plane_run_id }}
+
     steps:
       - uses: actions/checkout@v7
         with:
@@ -72,6 +75,16 @@ jobs:
           run-id: ${{ env.UNIFIED_CONTROL_PLANE_RUN_ID }}
           name: marsel-unified-evidence
           path: ${{ env.MARSEL_EVIDENCE_DIR }}
+
+      - name: Record upstream control-plane conclusion
+        if: github.event_name == 'workflow_run'
+        shell: bash
+        run: |
+          printf '%s\n' \
+            "upstream_run_id=${{ github.event.workflow_run.id }}" \
+            "upstream_conclusion=${{ github.event.workflow_run.conclusion }}" \
+            "upstream_sha=${{ github.event.workflow_run.head_sha }}" \
+            > "$MARSEL_EVIDENCE_DIR/unified-upstream-run.txt"
 
       - name: Run fail-closed Issue #19 gate
         if: github.event_name != 'pull_request'
