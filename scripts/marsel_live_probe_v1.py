@@ -5,7 +5,7 @@ Only probes endpoints explicitly supplied through environment variables.
 No credentials are printed or persisted. No write methods are used.
 """
 from __future__ import annotations
-import json, os, time
+import json, os, sys, time
 from pathlib import Path
 from urllib.request import Request, urlopen
 
@@ -44,9 +44,15 @@ def main() -> int:
                "mode":"READ_ONLY","credentials_exposed":False,
                "production_write":False,"results":results}
     OUT.write_text(json.dumps(payload, ensure_ascii=False, indent=2)+"\n", encoding="utf-8")
-    print("MARSEL_LIVE_PROBES=PASS")
+    missing = [r["system"] for r in results if r["status"] == "NOT_CONFIGURED"]
+    failed = [r["system"] for r in results if r["status"] == "NOT_VERIFIED"]
+    print("MARSEL_LIVE_PROBES=PASS" if not missing and not failed else "MARSEL_LIVE_PROBES=BLOCKED")
     print("MODE=READ_ONLY")
     print("PRODUCTION_WRITE=false")
-    return 0
+    if missing:
+        print("NOT_CONFIGURED=" + ",".join(missing))
+    if failed:
+        print("NOT_VERIFIED=" + ",".join(failed))
+    return 1 if missing or failed else 0
 
 if __name__ == "__main__": raise SystemExit(main())
