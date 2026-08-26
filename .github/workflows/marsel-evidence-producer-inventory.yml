@@ -1,0 +1,35 @@
+name: MARSEL evidence producer inventory
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '47 */6 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: marsel-evidence-producer-inventory-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Run producer inventory
+        run: python scripts/marsel_evidence_producer_inventory_v1.py
+      - name: Upload inventory
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: marsel-evidence-producer-inventory
+          path: marsel-evidence-producer-inventory.json
+          if-no-files-found: warn
+          retention-days: 90
