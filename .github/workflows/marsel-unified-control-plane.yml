@@ -113,10 +113,13 @@ jobs:
         run: |
           python - <<'PY'
           import json
+          from datetime import datetime, timezone
           json.dump(
               {
                   'system': 'MARSEL Unified Control Plane',
                   'status': 'PR_SAFE_REVIEW',
+                  'observed_at': datetime.now(timezone.utc).isoformat(),
+                  'source': 'github-actions:MARSEL Unified Control Plane',
                   'readonly': True,
                   'write_requests_made': 0,
                   'ro_app_data_mutated': False,
@@ -185,6 +188,7 @@ jobs:
         run: |
           python - <<'PY'
           import json
+          from datetime import datetime, timezone
           from pathlib import Path
 
           files = [
@@ -198,6 +202,8 @@ jobs:
           out = {
               'system': 'MARSEL Unified Control Plane',
               'status': 'INCOMPLETE',
+              'observed_at': datetime.now(timezone.utc).isoformat(),
+              'source': 'github-actions:MARSEL Unified Control Plane',
               'readonly': True,
               'write_requests_made': 0,
               'ro_app_data_mutated': False,
@@ -217,7 +223,9 @@ jobs:
               final = 'PASS' if all(x == 'PASS' for x in (quality, entity, collision, warehouse)) else 'REVIEW_REQUIRED'
               out = {
                   'system': 'MARSEL Unified Control Plane',
-                  'status': 'VERIFIED' if final == 'PASS' else 'REVIEW_REQUIRED',
+                  'status': final,
+                  'observed_at': datetime.now(timezone.utc).isoformat(),
+                  'source': 'github-actions:MARSEL Unified Control Plane',
                   'readonly': True,
                   'write_requests_made': 0,
                   'ro_app_data_mutated': False,
