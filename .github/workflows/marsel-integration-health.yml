@@ -1,0 +1,26 @@
+name: MARSEL Integration Health
+
+on:
+  push:
+    branches: [main, 'automation/**']
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 */6 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  integration-health:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run read-only integration health check
+        run: python scripts/marsel_integration_health_v1.py
+      - name: Upload health report
+        uses: actions/upload-artifact@v4
+        with:
+          name: marsel-integration-health
+          path: artifacts/marsel-integration-health.json
+          if-no-files-found: error
