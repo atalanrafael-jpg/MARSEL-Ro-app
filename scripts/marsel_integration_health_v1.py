@@ -3,7 +3,8 @@
 
 A service is marked LIVE_VERIFIED only after a real HTTP GET/HEAD probe returns
 an allowed 2xx/3xx response. No credential value is printed or persisted.
-Missing endpoint/credential configuration remains NOT_VERIFIED.
+Missing endpoint configuration remains NOT_VERIFIED and makes the check fail
+closed; failed configured probes also make the check fail closed.
 """
 from __future__ import annotations
 import json, os, urllib.request, urllib.error
@@ -26,9 +27,10 @@ SYSTEMS = [
     ("Wix", "NOT_VERIFIED", "MARSEL_WIX_HEALTH_URL"),
 ]
 
+
 def probe(url: str) -> dict:
     try:
-        req = urllib.request.Request(url, method="GET", headers={"User-Agent":"MARSEL-ROAPP-Health/1.0"})
+        req = urllib.request.Request(url, method="GET", headers={"User-Agent": "MARSEL-ROAPP-Health/1.0"})
         with urllib.request.urlopen(req, timeout=10) as r:
             return {"live_verified": 200 <= r.status < 400, "http_status": r.status}
     except urllib.error.HTTPError as e:
@@ -36,28 +38,51 @@ def probe(url: str) -> dict:
     except Exception as e:
         return {"live_verified": False, "error_class": type(e).__name__}
 
+
 def main() -> int:
-    if not REGISTRY.exists(): raise SystemExit("MARSEL_INTEGRATION_REGISTRY.md missing")
+    if not REGISTRY.exists():
+        raise SystemExit("MARSEL_INTEGRATION_REGISTRY.md missing")
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    results=[]
+    results = []
+    blocking = []
     for name, status, env_name in SYSTEMS:
-        item={"system":name,"registry_status":status,"live_verified":status=="CONNECTED"}
+        item = {"system": name, "registry_status": status, "live_verified": status == "CONNECTED"}
         if env_name:
-            url=os.getenv(env_name)
+            url = os.getenv(env_name)
             if url:
                 item["probe"] = probe(url)
                 item["live_verified"] = item["probe"]["live_verified"]
+                if not item["live_verified"]:
+                    blocking.append(f"{name}: live probe failed")
             else:
-                item["probe"]={"status":"NOT_CONFIGURED"}
+                item["probe"] = {"status": "NOT_CONFIGURED"}
+                blocking.append(f"{name}: endpoint not configured")
         results.append(item)
-    payload={"schema":"marsel-integration-health/v2","project":"MARSEL ROAPP",
-             "observed_at":datetime.now(timezone.utc).isoformat(),"mode":"READ_ONLY",
-             "credentials_exposed":False,"production_write":False,"integrations":results}
-    OUT.write_text(json.dumps(payload,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
-    print("MARSEL_INTEGRATION_HEALTH=PASS")
+
+    overall = "PASS" if not blocking else "REVIEW_REQUIRED"
+    payload = {
+        "schema": "marsel-integration-health/v3",
+        "project": "MARSEL ROAPP",
+        "observed_at": datetime.now(timezone.utc).isoformat(),
+        "mode": "READ_ONLY",
+        "status": overall,
+        "credentials_exposed": False,
+        "production_write": False,
+        "blocking_reasons": blocking,
+        "integrations": results,
+    }
+    OUT.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(f"MARSEL_INTEGRATION_HEALTH={overall}")
     print("MODE=READ_ONLY")
     print("PRODUCTION_WRITE=false")
     print("CREDENTIALS_EXPOSED=false")
     print(f"OUTPUT={OUT}")
+    if blocking:
+        for reason in blocking:
+            print(f"BLOCKING={reason}")
+        return 1
+    return 0
 
-if __name__ == "__main__": raise SystemExit(main())
+
+if __name__ == "__main__":
+    raise SystemExit(main())
