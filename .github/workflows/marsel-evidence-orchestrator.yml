@@ -58,45 +58,83 @@ jobs:
               'rollback_evidence.json',
           ]
 
+          event = os.environ.get('EVENT_NAME')
           candidates = list(Path('evidence').rglob('*.json'))
           by_name = {p.name: p for p in candidates}
-          missing = [name for name in required if name not in by_name]
           entries = []
+          missing = []
+          invalid = []
+          unsafe = []
+
           for name in required:
               p = by_name.get(name)
               if not p:
+                  missing.append(name)
                   entries.append({'name': name, 'status': 'MISSING'})
                   continue
+
               raw = p.read_bytes()
               try:
                   data = json.loads(raw)
               except Exception as exc:
+                  invalid.append(name)
                   entries.append({'name': name, 'status': 'INVALID_JSON', 'error': str(exc)})
                   continue
+
+              if not isinstance(data, dict):
+                  invalid.append(name)
+                  entries.append({'name': name, 'status': 'INVALID_SCHEMA'})
+                  continue
+
+              safety_errors = []
+              if data.get('readonly') is not True:
+                  safety_errors.append('readonly must be true')
+              if data.get('write_requests_made') != 0:
+                  safety_errors.append('write_requests_made must be 0')
+              if data.get('ro_app_data_mutated') is not False:
+                  safety_errors.append('ro_app_data_mutated must be false')
+
+              status = 'UNSAFE' if safety_errors else 'PRESENT'
+              if safety_errors:
+                  unsafe.append(name)
+
               entries.append({
                   'name': name,
-                  'status': 'PRESENT',
+                  'status': status,
                   'sha256': hashlib.sha256(raw).hexdigest(),
                   'readonly': data.get('readonly'),
                   'write_requests_made': data.get('write_requests_made'),
                   'ro_app_data_mutated': data.get('ro_app_data_mutated'),
                   'generated_at': data.get('generated_at'),
+                  'safety_errors': safety_errors,
               })
 
+          # Manual and scheduled runs do not have a linked upstream artifact.
+          # They remain fail-closed instead of being treated as production evidence.
+          trigger_policy_error = None
+          if event != 'workflow_run':
+              trigger_policy_error = 'No linked MARSEL Unified Control Plane run; manual/scheduled execution cannot establish production evidence.'
+
           report = {
+              'schema': 'marsel-evidence-index/v2',
               'system': 'MARSEL Evidence Orchestrator',
               'generated_at': datetime.now(timezone.utc).isoformat(),
-              'event': os.environ.get('EVENT_NAME'),
+              'event': event,
               'upstream_run_id': os.environ.get('UPSTREAM_RUN_ID') or None,
               'upstream_sha': os.environ.get('UPSTREAM_SHA') or os.environ.get('GITHUB_SHA'),
               'required_count': len(required),
               'present_count': sum(x['status'] == 'PRESENT' for x in entries),
               'missing': missing,
+              'invalid': invalid,
+              'unsafe': unsafe,
+              'trigger_policy_error': trigger_policy_error,
               'entries': entries,
               'production_write_enabled': False,
           }
           Path('evidence').mkdir(exist_ok=True)
-          Path('evidence/evidence-index.json').write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')
+          Path('evidence/evidence-index.json').write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + '\n', encoding='utf-8'
+          )
           print(json.dumps(report, ensure_ascii=False, indent=2))
           PY
 
@@ -109,15 +147,24 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
-      - name: Fail closed when production evidence is incomplete
+      - name: Fail closed when production evidence is incomplete or unsafe
         run: |
           python - <<'PY'
           import json
           from pathlib import Path
           report = json.loads(Path('evidence/evidence-index.json').read_text(encoding='utf-8'))
+          problems = []
           if report['missing']:
-              print('PRODUCTION_EVIDENCE=INCOMPLETE')
-              print('MISSING=' + ','.join(report['missing']))
+              problems.append('MISSING=' + ','.join(report['missing']))
+          if report['invalid']:
+              problems.append('INVALID=' + ','.join(report['invalid']))
+          if report['unsafe']:
+              problems.append('UNSAFE=' + ','.join(report['unsafe']))
+          if report['trigger_policy_error']:
+              problems.append('TRIGGER_POLICY=' + report['trigger_policy_error'])
+          if problems:
+              print('PRODUCTION_EVIDENCE=BLOCKED')
+              print('\n'.join(problems))
               raise SystemExit(1)
-          print('PRODUCTION_EVIDENCE=COMPLETE')
+          print('PRODUCTION_EVIDENCE=COMPLETE_AND_SAFE')
           PY
