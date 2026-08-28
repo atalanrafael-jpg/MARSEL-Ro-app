@@ -1,23 +1,25 @@
 #!/usr/bin/env python3
 """MARSEL full read-only backup controller.
 
-Consumes canonical V20.31 inventory and reads only explicitly documented GET
-endpoints. Collection responses are paginated to the first short page; valid
+Consumes the canonical V20.32 inventory and reads only explicitly documented
+GET endpoints. RO App documents pagination by page number with up to 50 entries
+per page; the exporter therefore sends only the documented ``page`` parameter.
+Collection responses are paginated to the first short page; valid
 singleton/object responses are captured as one record. Any HTTP/schema/
 pagination failure makes the backup incomplete. No write request is possible
 in this program.
 """
 from __future__ import annotations
-import hashlib, json, os, sys, time
+import hashlib, json, os, time
 from datetime import datetime, timezone
 from pathlib import Path
 import httpx
 
 BASE = os.environ.get("ROAPP_API_BASE", "https://api.roapp.io/v2").rstrip("/")
 KEY = os.environ.get("ROAPP_API_KEY", "")
-INVENTORY = Path(os.environ.get("MARSEL_INVENTORY_INPUT", "marsel-api-inventory-v20-31.json"))
+INVENTORY = Path(os.environ.get("MARSEL_INVENTORY_INPUT", "marsel-api-inventory-v20-32.json"))
 OUT = Path(os.environ.get("MARSEL_FULL_BACKUP_OUTPUT", "marsel-full-readonly-backup-v1.json"))
-PAGE_SIZE = min(max(int(os.environ.get("ROAPP_PAGE_SIZE", "50")), 1), 50)
+PAGE_SIZE = 50
 MAX_PAGES = int(os.environ.get("MARSEL_MAX_PAGES_PER_ENDPOINT", "10000"))
 INTERVAL = max(float(os.environ.get("ROAPP_MIN_REQUEST_INTERVAL", "0.34")), 0.34)
 if not KEY:
@@ -60,12 +62,12 @@ for x in items:
 headers = {
     "Authorization": f"Bearer {KEY}",
     "Accept": "application/json",
-    "User-Agent": "MARSEL-Full-Readonly-Backup-v4",
+    "User-Agent": "MARSEL-Full-Readonly-Backup-v5",
 }
 results = []
 write_requests = 0
 
-with httpx.Client(timeout=20) as c:
+with httpx.Client(timeout=30) as c:
     for p in sorted(paths):
         rows = []
         page = 1
@@ -75,7 +77,9 @@ with httpx.Client(timeout=20) as c:
         pages_read = 0
         while page <= MAX_PAGES:
             try:
-                r = c.get(BASE + p, headers=headers, params={"page": page, "limit": PAGE_SIZE})
+                # RO App documents page pagination; it does not document a
+                # caller-supplied limit parameter on the getting-started page.
+                r = c.get(BASE + p, headers=headers, params={"page": page})
                 if r.status_code != 200:
                     endpoint_ok = False
                     endpoint_error = f"HTTP {r.status_code}: {r.text[:500]}"
@@ -130,7 +134,7 @@ with httpx.Client(timeout=20) as c:
 failed = [x for x in results if not x["ok"]]
 complete = bool(paths) and not failed
 report = {
-    "version": "4",
+    "version": "5",
     "generated_at_utc": datetime.now(timezone.utc).isoformat(),
     "readonly": True,
     "inventory": str(INVENTORY),
