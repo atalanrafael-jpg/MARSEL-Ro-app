@@ -1,0 +1,40 @@
+name: Sync OpenAPI to ReadMe
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/openapi/**'
+      - '.github/workflows/readme-openapi-sync.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: readme-openapi-sync-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify OpenAPI source exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f docs/openapi/roapp.yaml || {
+            echo 'ERROR: docs/openapi/roapp.yaml is missing.'
+            echo 'Create and independently verify the OpenAPI specification before enabling ReadMe sync.'
+            exit 1
+          }
+
+      - name: Validate and sync OpenAPI to ReadMe
+        uses: readmeio/rdme@v10
+        with:
+          rdme: openapi upload ./docs/openapi/roapp.yaml --key=${{ secrets.README_API_KEY }} --slug=${{ vars.README_API_DEFINITION_SLUG }}
