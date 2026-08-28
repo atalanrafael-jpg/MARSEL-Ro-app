@@ -1,0 +1,42 @@
+name: MARSEL ROAPP Official API Discovery
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 3 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Discover official RO App API metadata (read-only)
+        run: python scripts/marsel_official_roapp_discovery_v1.py
+
+      - name: Upload discovery evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: marsel-official-roapp-discovery
+          path: marsel-official-roapp-discovery-v1.json
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Fail closed if no official machine-readable inventory is reachable
+        shell: python
+        run: |
+          import json
+          from pathlib import Path
+          data = json.loads(Path('marsel-official-roapp-discovery-v1.json').read_text())
+          if not data.get('official_llms_available') and not data.get('openapi_available'):
+              raise SystemExit('BLOCKED: official RO App llms.txt/OpenAPI is not reachable')
