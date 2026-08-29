@@ -11,15 +11,17 @@ permissions:
 jobs:
   integration-health:
     runs-on: ubuntu-latest
+    environment:
+      name: staging
     steps:
       - uses: actions/checkout@v4
       - name: Report endpoint configuration state
         env:
-          ROAPP: ${{ vars.MARSEL_ROAPP_HEALTH_URL }}
-          SUPABASE: ${{ vars.MARSEL_SUPABASE_HEALTH_URL }}
-          VERCEL: ${{ vars.MARSEL_VERCEL_HEALTH_URL }}
-          OPENAI: ${{ vars.MARSEL_OPENAI_HEALTH_URL }}
-          WIX: ${{ vars.MARSEL_WIX_HEALTH_URL }}
+          ROAPP: ${{ vars.ROAPP_HEALTH_URL }}
+          SUPABASE: ${{ vars.SUPABASE_HEALTH_URL }}
+          VERCEL: ${{ vars.VERCEL_HEALTH_URL }}
+          OPENAI: ${{ vars.OPENAI_HEALTH_URL }}
+          WIX: ${{ vars.WIX_HEALTH_URL }}
         run: |
           for name in ROAPP SUPABASE VERCEL OPENAI WIX; do
             if [ -n "${!name}" ]; then
@@ -31,13 +33,14 @@ jobs:
       - name: Run read-only integration health check
         env:
           MARSEL_INTEGRATION_HEALTH_MODE: ${{ github.event_name == 'pull_request' && 'pr' || 'production' }}
-          MARSEL_ROAPP_HEALTH_URL: ${{ vars.MARSEL_ROAPP_HEALTH_URL }}
-          MARSEL_SUPABASE_HEALTH_URL: ${{ vars.MARSEL_SUPABASE_HEALTH_URL }}
-          MARSEL_VERCEL_HEALTH_URL: ${{ vars.MARSEL_VERCEL_HEALTH_URL }}
-          MARSEL_OPENAI_HEALTH_URL: ${{ vars.MARSEL_OPENAI_HEALTH_URL }}
-          MARSEL_WIX_HEALTH_URL: ${{ vars.MARSEL_WIX_HEALTH_URL }}
+          MARSEL_ROAPP_HEALTH_URL: ${{ vars.ROAPP_HEALTH_URL }}
+          MARSEL_SUPABASE_HEALTH_URL: ${{ vars.SUPABASE_HEALTH_URL }}
+          MARSEL_VERCEL_HEALTH_URL: ${{ vars.VERCEL_HEALTH_URL }}
+          MARSEL_OPENAI_HEALTH_URL: ${{ vars.OPENAI_HEALTH_URL }}
+          MARSEL_WIX_HEALTH_URL: ${{ vars.WIX_HEALTH_URL }}
         run: python scripts/marsel_integration_health_v1.py
       - name: Upload health report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: marsel-integration-health
