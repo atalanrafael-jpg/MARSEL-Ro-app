@@ -1,4 +1,4 @@
-# Resolved dependency set; refreshed 2026-08-26 for Gmail OAuth runtime imports.
+# Resolved dependency set; refreshed 2026-08-29 for MCP SDK v2 migration.
 # Production builds consume this file; direct Google dependencies are pinned here.
 PyJWT==2.13.0
 annotated-doc==0.0.5
@@ -28,7 +28,7 @@ iniconfig==2.3.0
 jiter==0.16.0
 jsonschema==4.26.0
 jsonschema-specifications==2025.9.1
-mcp==1.29.0
+mcp==2.1.0
 openai==3.3.1
 packaging==26.3
 pluggy==1.6.0

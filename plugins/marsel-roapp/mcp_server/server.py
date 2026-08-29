@@ -6,7 +6,7 @@ from collections import Counter
 from typing import Any
 
 import httpx
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
 
 BASE_URL = os.getenv("ROAPP_BASE_URL", "https://api.roapp.io/v2").rstrip("/")
 MAX_RETRIES = 3
@@ -63,14 +63,12 @@ CONNECTOR_OUTPUT_SCHEMA = {
     "additionalProperties": False,
 }
 
-mcp = FastMCP(
+mcp = MCPServer(
     "MARSEL RO App",
     instructions=(
         "Read-only MARSEL RO App inspection. Fetch orders, run bounded data-quality audits, "
         "and report connector readiness. Never mutate upstream data."
     ),
-    json_response=True,
-    stateless_http=True,
 )
 
 
@@ -81,7 +79,7 @@ def _headers() -> dict[str, str]:
     return {
         "Authorization": f"Bearer {token}",
         "Accept": "application/json",
-        "User-Agent": "MARSEL-RoApp-Plugin/1.1",
+        "User-Agent": "MARSEL-RoApp-Plugin/1.2",
     }
 
 
@@ -189,4 +187,4 @@ def connector_readiness() -> dict[str, Any]:
 
 
 if __name__ == "__main__":
-    mcp.run()
+    mcp.run(transport="streamable-http", stateless_http=True, json_response=True)

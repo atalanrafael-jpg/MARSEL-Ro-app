@@ -25,8 +25,32 @@ jobs:
         run: python -m compileall -q scripts
       - name: Canonical self-check
         run: python scripts/marsel_canonical_self_check.py
-      - name: Release readiness check
+      - name: Verify repository release controls
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          required = [
+              '.github/workflows/mcp-production.yml',
+              'scripts/marsel_canonical_self_check.py',
+              'scripts/marsel_production_gate_v1.py',
+              'docs/MARSEL-PRODUCTION-GO-LIVE-GATES.md',
+              'docs/MARSEL_ROAPP_TASK_REGISTRY.md',
+              'SECURITY.md',
+          ]
+          missing = [p for p in required if not Path(p).exists()]
+          if missing:
+              raise SystemExit(f'Missing required controls: {missing}')
+          print('REPOSITORY_CONTROLS=PASS')
+          PY
+      - name: Release readiness check with real external evidence
+        if: github.event_name != 'pull_request'
         run: python scripts/marsel_release_readiness_v1.py
+      - name: PR-safe release evidence policy
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "EXTERNAL_EVIDENCE=NOT_REQUIRED_FOR_PR_REVIEW"
+          echo "PRODUCTION_WRITE_AUTHORIZED=false"
+          echo "RESULT=PR_SAFE_REVIEW"
       - name: Production gate must remain fail-closed
         env:
           MARSEL_WRITE_APPROVED: "true"
