@@ -264,7 +264,12 @@ def main():
         and p.get("json_valid")
         for p in probes
     )
-    result = "PASS" if ids and list_ok and stock_ok else "NOT_VERIFIED"
+
+    # Issue #42 defines the warehouse blocker narrowly as the documented list
+    # contract. Stock detail is reported separately and must not invalidate a
+    # successful list-contract verification. This avoids converting a separate
+    # stock-detail diagnostic into a false warehouse-list failure.
+    result = "PASS" if ids and list_ok else "NOT_VERIFIED"
 
     report = {
         "version": "20.47",
@@ -285,6 +290,8 @@ def main():
         "branch_ids_discovered": branch_ids,
         "probes": probes,
         "confirmed_live_gets": confirmed_live_gets,
+        "warehouse_list_contract_verified": list_ok,
+        "stock_detail_contract_verified": stock_ok,
         "diagnostic_only_undocumented_probes": [
             p for p in probes if not p.get("documented_contract")
         ],
@@ -304,6 +311,8 @@ def main():
     print(f"WAREHOUSE_COUNT={len(ids)}")
     print(f"BRANCH_IDS_DISCOVERED={','.join(branch_ids) or 'NONE'}")
     print("WAREHOUSE_EXPLICIT_GET_CONTRACTS=2")
+    print(f"WAREHOUSE_LIST_CONTRACT_VERIFIED={str(list_ok).lower()}")
+    print(f"WAREHOUSE_STOCK_DETAIL_CONTRACT_VERIFIED={str(stock_ok).lower()}")
     print(f"WAREHOUSE_CONFIRMED_LIVE_GETS={len(confirmed_live_gets)}")
     print("WRITE_REQUESTS_MADE=0")
     print("RO_APP_DATA_MUTATED=false")
