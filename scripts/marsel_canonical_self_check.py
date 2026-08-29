@@ -2,6 +2,7 @@
 """Fail-closed static check for the single MARSEL ROAPP control plane."""
 from __future__ import annotations
 from pathlib import Path
+
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github" / "workflows" / "marsel-unified-control-plane.yml"
 GENERIC_TEST = ROOT / ".github" / "workflows" / "test.yml"
@@ -9,6 +10,7 @@ API_REGISTRY = ROOT / "scripts" / "marsel_api_v2_canonical_registry_v1.py"
 API_REGISTRY_DOC = ROOT / "docs" / "MARSEL-API-REGISTRY.md"
 TASK_REGISTRY = ROOT / "docs" / "MARSEL_ROAPP_TASK_REGISTRY.md"
 ARCH = ROOT / "MARSEL_ROAPP_UNIFIED_SYSTEM.md"
+MASTER_CORE = ROOT / "MARSEL_ROAPP_MASTER_CORE.md"
 CANONICAL_SCRIPTS = {
     "scripts/marsel_api_inventory_v20_32.py",
     "scripts/marsel_data_quality_v22_readonly.py",
@@ -22,12 +24,20 @@ FORBIDDEN_LIVE_WORKFLOW_NAMES = {
 LIVE_MARKERS = ("ROAPP_API_KEY", "api.roapp.io/v2", "MARSEL read-only orders audit")
 STALE_API_REGISTRY_MARKERS = ("marsel-live-probe-v20-27.yml", "marsel-readonly-integrity-v21.yml")
 FORBIDDEN_WRITE_METHODS = ("POST", "PUT", "PATCH", "DELETE")
+REQUIRED_CORE_MARKERS = (
+    "MARSEL ROAPP MASTER CORE",
+    "CANONICAL PROJECT CORE",
+    "event → action → result → verification → checkpoint → next task",
+    "NOT_VERIFIED",
+    "Production safety gate",
+    "ChatGPT Core integration",
+)
 
 def fail(message: str) -> None:
     raise SystemExit(f"CANONICAL_SELF_CHECK_FAIL: {message}")
 
 def main() -> int:
-    required = [WORKFLOW, GENERIC_TEST, API_REGISTRY, API_REGISTRY_DOC, TASK_REGISTRY, ARCH]
+    required = [WORKFLOW, GENERIC_TEST, API_REGISTRY, API_REGISTRY_DOC, TASK_REGISTRY, ARCH, MASTER_CORE]
     missing = [str(p.relative_to(ROOT)) for p in required if not p.exists()]
     if missing: fail("missing canonical files: " + ", ".join(missing))
     workflow_text = WORKFLOW.read_text(encoding="utf-8")
@@ -36,6 +46,9 @@ def main() -> int:
     registry_doc_text = API_REGISTRY_DOC.read_text(encoding="utf-8")
     task_text = TASK_REGISTRY.read_text(encoding="utf-8")
     arch_text = ARCH.read_text(encoding="utf-8")
+    core_text = MASTER_CORE.read_text(encoding="utf-8")
+    for marker in REQUIRED_CORE_MARKERS:
+        if marker not in core_text: fail(f"MASTER CORE marker missing: {marker}")
     for rel in CANONICAL_SCRIPTS:
         if not (ROOT / rel).exists(): fail(f"canonical script missing: {rel}")
         if rel not in workflow_text: fail(f"canonical script is not wired into unified workflow: {rel}")
@@ -54,6 +67,7 @@ def main() -> int:
     print("SYSTEM=MARSEL_ROAPP")
     print("CANONICAL_LIVE_AUDIT=ONE")
     print("GENERIC_TEST_LIVE_AUDIT=NONE")
+    print("MASTER_CORE=CANONICAL_AND_VERIFIED")
     print("API_REGISTRY=NON_EMPTY_READ_ONLY")
     print("PRODUCTION_WRITE=DISABLED")
     print("RO_APP_DATA_MUTATION=NOT_PERFORMED")
