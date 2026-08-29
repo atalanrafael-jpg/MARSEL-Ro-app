@@ -1,4 +1,5 @@
 import asyncio
+import inspect
 
 import pytest
 
@@ -6,27 +7,29 @@ from app.mcp_auth import JWTTokenVerifier
 from app.mcp_server import create_local_mcp_server
 
 
-def test_fastmcp_settings_model_is_complete():
-    from mcp.server.fastmcp.server import Settings as FastMCPSettings
+def test_mcpserver_v2_transport_options_are_app_level():
+    server = create_local_mcp_server()
+    parameters = inspect.signature(server.streamable_http_app).parameters
 
-    assert FastMCPSettings.__pydantic_complete__ is True
-    assert FastMCPSettings.model_fields["lifespan"]._complete is True
+    assert "stateless_http" in parameters
+    assert "json_response" in parameters
+    assert parameters["stateless_http"].kind is inspect.Parameter.KEYWORD_ONLY
+    assert parameters["json_response"].kind is inspect.Parameter.KEYWORD_ONLY
+
+    # MCP SDK v2 moved transport settings off the server constructor and onto
+    # the HTTP app builder. Verify the production configuration is accepted.
+    app = server.streamable_http_app(stateless_http=True, json_response=True)
+    assert app is not None
 
 
 def test_local_mcp_registers_only_read_tools():
     server = create_local_mcp_server()
-    tools = server._tool_manager._tools  # FastMCP registry; public protocol is verified by the client.
+    tools = server._tool_manager._tools
     assert set(tools) == {"get_orders", "audit_orders", "connector_readiness"}
     for tool in tools.values():
         assert tool.annotations is not None
         assert tool.annotations.readOnlyHint is True
         assert tool.annotations.openWorldHint is False
-
-
-def test_mcp_http_defaults_to_stateless_mode():
-    server = create_local_mcp_server()
-    assert server.settings.stateless_http is True
-    assert server.settings.json_response is True
 
 
 def test_jwt_verifier_requires_https():
