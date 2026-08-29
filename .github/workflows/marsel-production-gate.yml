@@ -25,6 +25,7 @@ jobs:
       ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
       MARSEL_WRITE_APPROVED: "false"
       MARSEL_EVIDENCE_DIR: evidence
+      MARSEL_EVIDENCE_INDEX: evidence/marsel-evidence-index.json
       UNIFIED_CONTROL_PLANE_RUN_ID: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || inputs.unified_control_plane_run_id }}
 
     steps:
@@ -83,6 +84,10 @@ jobs:
             "upstream_conclusion=${{ github.event.workflow_run.conclusion }}" \
             "upstream_sha=${{ github.event.workflow_run.head_sha }}" \
             > "$MARSEL_EVIDENCE_DIR/unified-upstream-run.txt"
+
+      - name: Validate evidence inventory (fail-closed)
+        shell: bash
+        run: python scripts/marsel_evidence_builder_v1.py
 
       - name: Run fail-closed Issue #19 gate
         if: github.event_name != 'pull_request'
