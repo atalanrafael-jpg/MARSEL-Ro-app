@@ -3,13 +3,13 @@
 **Role:** single living project checkpoint. Update after every material verified change.
 
 ## DATE
-2026-08-25
+2026-08-29
 
 ## CURRENT VERSION
-MARSEL/ROAPP unified control plane with production-safety hardening, credential-pattern guard, and canonical GitHub governance work in progress.
+MARSEL/ROAPP unified control plane with production-safety hardening, canonical GitHub governance, and warehouse-contract diagnostic separation.
 
 ## CONTROL CHECKPOINT
-Current `main` checkpoint: `4912c78ade07b9b8252571caf1bdd76296f32fc3`. The preceding material security checkpoint is `4e63ef8a282ca14bdec7805ef8ab84b2896c60d6`.
+Current `main` checkpoint: `740402b6904e19ac889763b928f99a3452926a65` — `fix: separate warehouse list contract from stock detail diagnostic`.
 
 ## SYSTEM MODEL
 **MARSEL = business contour + ROAPP = technical contour → one unified system → one canonical `main` control plane.**
@@ -24,10 +24,11 @@ Current `main` checkpoint: `4912c78ade07b9b8252571caf1bdd76296f32fc3`. The prece
 - Production container runs as a non-root user and has an HTTP healthcheck.
 
 ## CI / DELIVERY
-- Unit-test and audit workflows exist on the canonical `main` control plane.
+- Canonical unit-test and audit workflows exist on `main`.
 - Production mutation remains fail-closed.
-- A repository-level `MARSEL Secret Guard` workflow is present and scans tracked text files for high-risk credential patterns with `contents: read` permissions only.
-- Fresh CI PASS for the newest secret-guard commit is **NOT VERIFIED** because the connected GitHub status endpoint returned no status entries for `4912c78`.
+- Repository-level secret guard is present with read-only repository permissions.
+- Unified Control Plane runs on push to `main`, pull requests, manual dispatch, and schedule; live RO App checks are skipped on pull requests to avoid secret exposure.
+- The latest warehouse-contract code change is committed, but a new CI result for commit `740402b` is **NOT VERIFIED** because the commit-specific workflow lookup returned no run.
 
 ## RO APP STATUS
 🟢 **VERIFIED / PARTIAL**
@@ -39,13 +40,14 @@ Current `main` checkpoint: `4912c78ade07b9b8252571caf1bdd76296f32fc3`. The prece
 
 🟡 **PARTIAL**
 - Full API/entity completeness is not proven by the historical inventory alone.
-- Fresh live warehouse evidence remains a separate acceptance gate (#42).
+- Warehouse list-contract logic has been corrected to evaluate the documented list contract independently from stock-detail diagnostics.
 
 🔴 **BLOCKED / NOT VERIFIED**
 - Full backup is not proven.
 - Restore test is not proven.
 - Production WRITE is not authorized by the current safety gate.
-- Credential exposure remediation in Issue #23 is not closed; rotation/history/log/artifact evidence must be directly verified.
+- Credential exposure remediation in Issue #23 is not closed until direct rotation/history/log/artifact evidence is verified.
+- Fresh warehouse live evidence for the latest code is not yet verified.
 
 ## API STATUS
 🟢 Live READ-only orders endpoint verified historically.
@@ -64,6 +66,10 @@ Current `main` checkpoint: `4912c78ade07b9b8252571caf1bdd76296f32fc3`. The prece
 🟡 11 product-code collision groups were identified; they require classification as legitimate reuse vs real collision/unresolved finding before any mutation.
 🟡 Current completeness across all entity families is not proven.
 
+## WAREHOUSE
+🟡 The latest code separates the documented warehouse list contract from stock-detail diagnostics. A warehouse PASS now requires discovered warehouse IDs plus a successful documented `/v2/warehouse/` list contract; stock detail is reported separately. This code change is committed in `740402b`.
+⚪ Fresh CI/live evidence for `740402b` is not yet verified.
+
 ## INTEGRATIONS
 - GitHub: 🟢 repository access and `main` control confirmed.
 - ROAPP API: 🟢 READ-only live access confirmed historically.
@@ -81,8 +87,7 @@ Current `main` checkpoint: `4912c78ade07b9b8252571caf1bdd76296f32fc3`. The prece
 
 ## GITHUB GOVERNANCE
 🟢 `main` is the canonical branch.
-🟡 PR #65 (`chore/marsel-github-governance-v1`) is open/draft and proposes canonical repository governance, branch lifecycle rules, and automated governance checks. It has not been merged.
-🟡 Multiple older/open remediation PRs remain and must be compared with current `main` before merge or cleanup. No branch deletion is authorized from age/name alone.
+🟡 Governance/remediation PRs and branches must be compared with current `main` before merge or cleanup. No branch deletion is authorized from age/name alone.
 
 ## OPEN BLOCKERS
 1. Complete API/entity verification.
@@ -95,33 +100,6 @@ Current `main` checkpoint: `4912c78ade07b9b8252571caf1bdd76296f32fc3`. The prece
 8. Close credential-exposure remediation only after direct rotation and repository/history/log/artifact verification (Issue #23).
 9. Re-run final read-only audit after blockers are addressed.
 10. Reconcile overlapping open PRs before merging governance/remediation changes.
-
-## COMPLETED SOFTWARE TASKS
-- Unified project/control-plane architecture documented.
-- GitHub repository `main` established as canonical branch.
-- ROAPP API READ-only smoke test proven by historical evidence.
-- Orders READ-only audit completed in historical runs.
-- Deep detail audit completed without writes.
-- Master documentation layer added.
-- Legal/tax master updated with official-source checkpoints.
-- Production MCP workflow hardened.
-- Release-readiness fail-closed controller added.
-- Production container hardened: non-root runtime + healthcheck.
-- CI production-container build and `/health` smoke validation added.
-- Credential-handling/incident-response controls added.
-- Repository-level read-only secret-pattern guard added.
-
-## UNVERIFIED ITEMS
-- Fresh CI PASS for the newest secret-guard workflow.
-- Full live API completeness.
-- Current full database totals across all entities.
-- Fresh warehouse contract evidence.
-- Complete backup and independently tested restore.
-- Production WRITE readiness.
-- Live Gmail OAuth authorization.
-- Live MCP authorization.
-- Final reconciliation of overlapping PRs/branches.
-- MARSEL-specific legal/tax applicability where business-form facts are required.
 
 ## REQUIRED UPDATE RULE
 After every material change:
