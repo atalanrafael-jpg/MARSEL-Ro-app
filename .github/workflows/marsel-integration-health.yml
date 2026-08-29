@@ -11,6 +11,7 @@ permissions:
 jobs:
   integration-health:
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - name: Report endpoint configuration state
@@ -38,6 +39,7 @@ jobs:
           MARSEL_WIX_HEALTH_URL: ${{ vars.MARSEL_WIX_HEALTH_URL }}
         run: python scripts/marsel_integration_health_v1.py
       - name: Upload health report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: marsel-integration-health
