@@ -28,8 +28,8 @@ def test_local_mcp_registers_only_read_tools():
     assert set(tools) == {"get_orders", "audit_orders", "connector_readiness"}
     for tool in tools.values():
         assert tool.annotations is not None
-        assert tool.annotations.readOnlyHint is True
-        assert tool.annotations.openWorldHint is False
+        assert tool.annotations.read_only_hint is True
+        assert tool.annotations.open_world_hint is False
 
 
 def test_jwt_verifier_requires_https():
