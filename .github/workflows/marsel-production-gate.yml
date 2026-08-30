@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       unified_control_plane_run_id:
-        description: 'Successful or completed MARSEL Unified Control Plane run ID to use for evidence'
+        description: 'Successful Unified Control Plane run ID to use for evidence'
         required: false
         type: string
   workflow_run:
@@ -18,7 +18,11 @@ permissions:
 
 jobs:
   production-gate:
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_run'
+    # Never run the production gate from a cancelled/failed upstream audit.
+    # Manual dispatch remains available for an explicitly supplied run ID.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -46,7 +50,6 @@ jobs:
           fi
 
       - name: Verify API key is only supplied by GitHub secret
-        if: github.event_name != 'pull_request'
         env:
           ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
         shell: bash
@@ -90,14 +93,9 @@ jobs:
         run: python scripts/marsel_evidence_builder_v1.py
 
       - name: Run fail-closed Issue #19 gate
-        if: github.event_name != 'pull_request'
         env:
           ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
         run: python scripts/marsel_production_gate_v1.py
-
-      - name: Skip live secret gate for pull requests
-        if: github.event_name == 'pull_request'
-        run: echo 'Live production secret gate is intentionally skipped for pull_request events.'
 
       - name: Explicitly assert no production WRITE authorization
         run: |
