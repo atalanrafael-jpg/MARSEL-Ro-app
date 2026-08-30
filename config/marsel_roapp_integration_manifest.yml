@@ -1,0 +1,50 @@
+version: 1
+name: MARSEL ROAPP
+architecture: unified-integration-control-plane
+source_of_truth: main
+api:
+  provider: RO App
+  target: public-api-v2
+  legacy_api_allowed: false
+  authentication: bearer
+mcp:
+  provider: RO App
+  endpoint: https://roapp.readme.io/mcp
+  production_authorization_required: true
+webhooks:
+  required: true
+  idempotency_required: true
+  audit_required: true
+domains:
+  catalog:
+    mode: contract-first
+  inventory:
+    mode: read-only-until-write-gate
+  orders:
+    mode: contract-first
+  invoices:
+    mode: contract-first
+  marketplace:
+    mode: connector-contract
+  social_commerce:
+    mode: connector-contract
+  analytics:
+    mode: read-only-preferred
+  ai:
+    mode: mcp-assisted
+production_write:
+  enabled: false
+  prerequisites:
+    - backup_export
+    - restore_integrity
+    - schema_reconciliation
+    - read_only_inventory
+    - duplicate_orphan_reference_analysis
+    - dry_run
+    - idempotency
+    - rollback
+    - controlled_write
+    - post_write_verification
+verification:
+  unknown_state: REVIEW_REQUIRED
+  no_guessing: true
