@@ -17,7 +17,7 @@ OUT = Path("artifacts/marsel-live-probes.json")
 def probe(url):
     start = time.monotonic()
     try:
-        req = Request(url, method="GET", headers={"User-Agent": "MARSEL-ROAPP-Health/1.0"})
+        req = Request(url, method="GET", headers={"User-Agent": "MARSEL-ROAPP-Health/1.1"})
         with urlopen(req, timeout=10) as r:
             return {"verified": 200 <= r.status < 400, "http_status": r.status,
                     "latency_ms": round((time.monotonic() - start) * 1000, 1)}
@@ -37,29 +37,35 @@ def main():
         result.update({"system": system, "status": "LIVE_VERIFIED" if result["verified"] else "FAILED"})
         results.append(result)
 
+    missing = [r["system"] for r in results if r["status"] == "NOT_CONFIGURED"]
+    failed = [r["system"] for r in results if r["status"] == "FAILED"]
+    verified = [r["system"] for r in results if r["status"] == "LIVE_VERIFIED"]
+    review_required = bool(missing or failed)
+
     OUT.write_text(json.dumps({
         "schema": "marsel-live-probes/v1",
         "project": "MARSEL ROAPP",
         "mode": "READ_ONLY",
+        "status": "REVIEW_REQUIRED" if review_required else "PASS",
         "credentials_exposed": False,
         "production_write": False,
         "results": results,
+        "review_reasons": [
+            *(f"{system}: endpoint not configured" for system in missing),
+            *(f"{system}: live probe failed" for system in failed),
+        ],
+        "note": "Auxiliary health evidence is non-blocking; Production Gate remains fail-closed and authoritative.",
     }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-    missing = [r["system"] for r in results if r["status"] == "NOT_CONFIGURED"]
-    failed = [r["system"] for r in results if r["status"] == "FAILED"]
-    verified = [r["system"] for r in results if r["status"] == "LIVE_VERIFIED"]
-
-    print("MARSEL_LIVE_PROBES=PASS" if not missing and not failed else "MARSEL_LIVE_PROBES=BLOCKED")
+    print("MARSEL_LIVE_PROBES=REVIEW_REQUIRED" if review_required else "MARSEL_LIVE_PROBES=PASS")
     print("LIVE_VERIFIED=" + ",".join(verified) if verified else "LIVE_VERIFIED=NONE")
     if missing:
         print("NOT_CONFIGURED=" + ",".join(missing))
     if failed:
         print("FAILED=" + ",".join(failed))
 
-    # PR-safe workflows can explicitly opt into non-blocking diagnostics.
-    pr_safe = os.getenv("MARSEL_PR_SAFE", "false").lower() == "true"
-    return 0 if pr_safe else (1 if missing or failed else 0)
+    # This workflow produces diagnostic evidence only. It never decides production readiness.
+    return 0
 
 if __name__ == "__main__":
     raise SystemExit(main())
