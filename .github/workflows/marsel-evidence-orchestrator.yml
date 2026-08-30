@@ -1,0 +1,170 @@
+name: MARSEL Evidence Orchestrator
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '41 */6 * * *'
+  workflow_run:
+    workflows: ["MARSEL Unified Control Plane"]
+    types: [completed]
+
+concurrency:
+  group: marsel-evidence-orchestrator-${{ github.event.workflow_run.head_sha || github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  collect:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion != 'cancelled' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Download unified control-plane evidence
+        if: ${{ github.event_name == 'workflow_run' }}
+        uses: actions/download-artifact@v8
+        with:
+          run-id: ${{ github.event.workflow_run.id }}
+          name: marsel-unified-evidence
+          path: evidence/unified
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build evidence inventory
+        env:
+          UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
+          UPSTREAM_SHA: ${{ github.event.workflow_run.head_sha }}
+          EVENT_NAME: ${{ github.event_name }}
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib, json, os
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          required = [
+              'backup_evidence.json',
+              'restore_evidence.json',
+              'wix_roapp_reconciliation.json',
+              'marsel-unified-evidence.json',
+              'duplicate_reference_evidence.json',
+              'write_dry_run.json',
+              'idempotency_evidence.json',
+              'rollback_evidence.json',
+          ]
+
+          event = os.environ.get('EVENT_NAME')
+          candidates = list(Path('evidence').rglob('*.json'))
+          by_name = {p.name: p for p in candidates}
+          entries = []
+          missing = []
+          invalid = []
+          unsafe = []
+
+          for name in required:
+              p = by_name.get(name)
+              if not p:
+                  missing.append(name)
+                  entries.append({'name': name, 'status': 'MISSING'})
+                  continue
+
+              raw = p.read_bytes()
+              try:
+                  data = json.loads(raw)
+              except Exception as exc:
+                  invalid.append(name)
+                  entries.append({'name': name, 'status': 'INVALID_JSON', 'error': str(exc)})
+                  continue
+
+              if not isinstance(data, dict):
+                  invalid.append(name)
+                  entries.append({'name': name, 'status': 'INVALID_SCHEMA'})
+                  continue
+
+              safety_errors = []
+              if data.get('readonly') is not True:
+                  safety_errors.append('readonly must be true')
+              if data.get('write_requests_made') != 0:
+                  safety_errors.append('write_requests_made must be 0')
+              if data.get('ro_app_data_mutated') is not False:
+                  safety_errors.append('ro_app_data_mutated must be false')
+
+              status = 'UNSAFE' if safety_errors else 'PRESENT'
+              if safety_errors:
+                  unsafe.append(name)
+
+              entries.append({
+                  'name': name,
+                  'status': status,
+                  'sha256': hashlib.sha256(raw).hexdigest(),
+                  'readonly': data.get('readonly'),
+                  'write_requests_made': data.get('write_requests_made'),
+                  'ro_app_data_mutated': data.get('ro_app_data_mutated'),
+                  'generated_at': data.get('generated_at'),
+                  'safety_errors': safety_errors,
+              })
+
+          # Manual and scheduled runs do not have a linked upstream artifact.
+          # They remain fail-closed instead of being treated as production evidence.
+          trigger_policy_error = None
+          if event != 'workflow_run':
+              trigger_policy_error = 'No linked MARSEL Unified Control Plane run; manual/scheduled execution cannot establish production evidence.'
+
+          report = {
+              'schema': 'marsel-evidence-index/v2',
+              'system': 'MARSEL Evidence Orchestrator',
+              'generated_at': datetime.now(timezone.utc).isoformat(),
+              'event': event,
+              'upstream_run_id': os.environ.get('UPSTREAM_RUN_ID') or None,
+              'upstream_sha': os.environ.get('UPSTREAM_SHA') or os.environ.get('GITHUB_SHA'),
+              'required_count': len(required),
+              'present_count': sum(x['status'] == 'PRESENT' for x in entries),
+              'missing': missing,
+              'invalid': invalid,
+              'unsafe': unsafe,
+              'trigger_policy_error': trigger_policy_error,
+              'entries': entries,
+              'production_write_enabled': False,
+          }
+          Path('evidence').mkdir(exist_ok=True)
+          Path('evidence/evidence-index.json').write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + '\n', encoding='utf-8'
+          )
+          print(json.dumps(report, ensure_ascii=False, indent=2))
+          PY
+
+      - name: Upload evidence index
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: marsel-evidence-index
+          path: evidence/evidence-index.json
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Fail closed when production evidence is incomplete or unsafe
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path('evidence/evidence-index.json').read_text(encoding='utf-8'))
+          problems = []
+          if report['missing']:
+              problems.append('MISSING=' + ','.join(report['missing']))
+          if report['invalid']:
+              problems.append('INVALID=' + ','.join(report['invalid']))
+          if report['unsafe']:
+              problems.append('UNSAFE=' + ','.join(report['unsafe']))
+          if report['trigger_policy_error']:
+              problems.append('TRIGGER_POLICY=' + report['trigger_policy_error'])
+          if problems:
+              print('PRODUCTION_EVIDENCE=BLOCKED')
+              print('\n'.join(problems))
+              raise SystemExit(1)
+          print('PRODUCTION_EVIDENCE=COMPLETE_AND_SAFE')
+          PY
