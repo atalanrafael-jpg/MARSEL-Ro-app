@@ -22,7 +22,9 @@ MIN_INTERVAL = max(float(os.getenv("ROAPP_MIN_REQUEST_INTERVAL", "0.34")), 0.34)
 WAREHOUSE_DOC = "https://roappua.readme.io/reference/get-warehouses"
 STOCK_DOC = "https://roappua.readme.io/reference/get-stock"
 LOCATIONS_DOC = "https://roappua.readme.io/reference/get-locations"
-EXPLICIT_GET_CONTRACTS = ["/v2/warehouse/", "/warehouse/goods/{warehouse_id}"]
+DOCUMENTED_WAREHOUSE_PATH = "/v2/warehouse/"
+DOCUMENTED_STOCK_PATH = "/warehouse/goods/{warehouse_id}"
+EXPLICIT_GET_CONTRACTS = [DOCUMENTED_WAREHOUSE_PATH, DOCUMENTED_STOCK_PATH]
 REFERENCE_PAGES = [WAREHOUSE_DOC, STOCK_DOC, LOCATIONS_DOC]
 
 
@@ -32,15 +34,7 @@ def get(url: str):
         if attempt:
             time.sleep(min(2 ** (attempt - 1), 4))
         time.sleep(MIN_INTERVAL)
-        req = Request(
-            url,
-            headers={
-                "Authorization": f"Bearer {KEY}",
-                "Accept": "application/json",
-                "User-Agent": "MARSEL-Warehouse-Contract-V20.47",
-            },
-            method="GET",
-        )
+        req = Request(url, headers={"Authorization": f"Bearer {KEY}", "Accept": "application/json", "User-Agent": "MARSEL-Warehouse-Contract-V20.47"}, method="GET")
         started = time.time()
         try:
             with urlopen(req, timeout=TIMEOUT) as response:
@@ -122,7 +116,6 @@ def extract_location_ids(payload):
             rows = []
     else:
         rows = []
-
     ids = []
     for row in rows:
         if isinstance(row, dict) and row.get("id") is not None:
@@ -147,21 +140,7 @@ def probe(path: str, query: dict | None, source: str, documented: bool):
     status, body, elapsed, error = get(url)
     payload, valid_json = parse_json(body) if status == 200 else (None, False)
     rows = extract_rows(payload) if valid_json else []
-    return {
-        "method": "GET",
-        "path": url.replace(API_ROOT, ""),
-        "url": url,
-        "source": source,
-        "documented_contract": documented,
-        "query": query or {},
-        "http": status,
-        "elapsed_s": elapsed,
-        "json_valid": valid_json,
-        "error": error,
-        "response_top_level_type": type(payload).__name__ if valid_json else None,
-        "response_keys": sorted(payload.keys()) if isinstance(payload, dict) else None,
-        "rows_discovered": len(rows),
-    }, rows
+    return {"method": "GET", "path": url.replace(API_ROOT, ""), "url": url, "source": source, "documented_contract": documented, "query": query or {}, "http": status, "elapsed_s": elapsed, "json_valid": valid_json, "error": error, "response_top_level_type": type(payload).__name__ if valid_json else None, "response_keys": sorted(payload.keys()) if isinstance(payload, dict) else None, "rows_discovered": len(rows)}, rows
 
 
 def main():
@@ -171,35 +150,20 @@ def main():
     branch_id = os.getenv("ROAPP_BRANCH_ID", "").strip()
     probes = []
     branch_ids = [branch_id] if branch_id else []
-
     if not branch_ids:
         location_url = f"{API_ROOT}/branches/"
         status, body, elapsed, error = get(location_url)
         payload, valid = parse_json(body) if status == 200 else (None, False)
         branch_ids = extract_location_ids(payload) if valid else []
-        probes.append({
-            "method": "GET",
-            "path": "/branches/",
-            "url": location_url,
-            "source": LOCATIONS_DOC,
-            "documented_contract": True,
-            "http": status,
-            "elapsed_s": elapsed,
-            "json_valid": valid,
-            "error": error,
-            "rows_discovered": len(branch_ids),
-            "real_branch_ids_used": branch_ids,
-        })
+        probes.append({"method": "GET", "path": "/branches/", "url": location_url, "source": LOCATIONS_DOC, "documented_contract": True, "http": status, "elapsed_s": elapsed, "json_valid": valid, "error": error, "rows_discovered": len(branch_ids), "real_branch_ids_used": branch_ids})
 
     list_query_variants = [{"type": "product"}]
     if branch_ids:
-        list_query_variants.extend(
-            {"type": "product", "branch_id": bid} for bid in branch_ids
-        )
+        list_query_variants.extend({"type": "product", "branch_id": bid} for bid in branch_ids)
 
     rows = []
     for query in list_query_variants:
-        list_probe, candidate_rows = probe(f"{API_BASE}/warehouse/", query, WAREHOUSE_DOC, True)
+        list_probe, candidate_rows = probe(f"{API_BASE}{DOCUMENTED_WAREHOUSE_PATH.removeprefix('/v2')}", query, WAREHOUSE_DOC, True)
         probes.append(list_probe)
         rows.extend(candidate_rows)
 
@@ -220,80 +184,14 @@ def main():
         url = f"{API_ROOT}/warehouse/goods/{wid}"
         status, body, elapsed, error = get(url)
         payload, valid_json = parse_json(body) if status == 200 else (None, False)
-        probes.append({
-            "method": "GET",
-            "path": "/warehouse/goods/{warehouse_id}",
-            "warehouse_id": wid,
-            "url": url,
-            "source": STOCK_DOC,
-            "documented_contract": True,
-            "http": status,
-            "elapsed_s": elapsed,
-            "json_valid": valid_json,
-            "error": error,
-            "response_top_level_type": type(payload).__name__ if valid_json else None,
-            "response_keys": sorted(payload.keys()) if isinstance(payload, dict) else None,
-        })
+        probes.append({"method": "GET", "path": DOCUMENTED_STOCK_PATH, "warehouse_id": wid, "url": url, "source": STOCK_DOC, "documented_contract": True, "http": status, "elapsed_s": elapsed, "json_valid": valid_json, "error": error, "response_top_level_type": type(payload).__name__ if valid_json else None, "response_keys": sorted(payload.keys()) if isinstance(payload, dict) else None})
 
-    confirmed_live_gets = [
-        probe_result
-        for probe_result in probes
-        if probe_result.get("documented_contract")
-        and probe_result.get("http") == 200
-        and probe_result.get("json_valid")
-        and (
-            probe_result.get("rows_discovered", 0) > 0
-            or probe_result.get("path") == "/warehouse/goods/{warehouse_id}"
-        )
-    ]
-    list_ok = any(
-        p.get("documented_contract")
-        and p.get("path") == "/v2/warehouse/"
-        and p.get("http") == 200
-        and p.get("json_valid")
-        and p.get("rows_discovered", 0) > 0
-        for p in probes
-    )
-    stock_ok = any(
-        p.get("documented_contract")
-        and p.get("path") == "/warehouse/goods/{warehouse_id}"
-        and p.get("http") == 200
-        and p.get("json_valid")
-        for p in probes
-    )
-
+    confirmed_live_gets = [p for p in probes if p.get("documented_contract") and p.get("http") == 200 and p.get("json_valid") and (p.get("rows_discovered", 0) > 0 or p.get("path") == DOCUMENTED_STOCK_PATH)]
+    list_ok = any(p.get("documented_contract") and p.get("path") == DOCUMENTED_WAREHOUSE_PATH and p.get("http") == 200 and p.get("json_valid") and p.get("rows_discovered", 0) > 0 for p in probes)
+    stock_ok = any(p.get("documented_contract") and p.get("path") == DOCUMENTED_STOCK_PATH and p.get("http") == 200 and p.get("json_valid") for p in probes)
     result = "PASS" if ids and list_ok else "NOT_VERIFIED"
 
-    report = {
-        "version": "20.47",
-        "mode": "READ_ONLY",
-        "result": result,
-        "readonly": True,
-        "write_requests_made": 0,
-        "ro_app_data_mutated": False,
-        "explicit_get_contracts": EXPLICIT_GET_CONTRACTS,
-        "warehouse_reference_pages": REFERENCE_PAGES,
-        "official_documentation": {
-            "warehouse_list": WAREHOUSE_DOC,
-            "stock": STOCK_DOC,
-            "locations": LOCATIONS_DOC,
-        },
-        "warehouse_count": len(ids),
-        "warehouse_ids_discovered": ids,
-        "branch_ids_discovered": branch_ids,
-        "probes": probes,
-        "confirmed_live_gets": confirmed_live_gets,
-        "warehouse_list_contract_verified": list_ok,
-        "stock_detail_contract_verified": stock_ok,
-        "diagnostic_only_undocumented_probes": [
-            p for p in probes if not p.get("documented_contract")
-        ],
-        "retry_policy": {
-            "max_retries": MAX_RETRIES,
-            "timeout_seconds": TIMEOUT,
-            "retryable_http": [408, 429, 500, 502, 503, 504],
-        },
-    }
+    report = {"version": "20.47", "mode": "READ_ONLY", "result": result, "readonly": True, "write_requests_made": 0, "ro_app_data_mutated": False, "explicit_get_contracts": EXPLICIT_GET_CONTRACTS, "warehouse_reference_pages": REFERENCE_PAGES, "official_documentation": {"warehouse_list": WAREHOUSE_DOC, "stock": STOCK_DOC, "locations": LOCATIONS_DOC}, "warehouse_count": len(ids), "warehouse_ids_discovered": ids, "branch_ids_discovered": branch_ids, "probes": probes, "confirmed_live_gets": confirmed_live_gets, "warehouse_list_contract_verified": list_ok, "stock_detail_contract_verified": stock_ok, "diagnostic_only_undocumented_probes": [p for p in probes if not p.get("documented_contract")], "retry_policy": {"max_retries": MAX_RETRIES, "timeout_seconds": TIMEOUT, "retryable_http": [408, 429, 500, 502, 503, 504]}}
     raw = json.dumps(report, ensure_ascii=False, indent=2).encode()
     report["report_sha256"] = hashlib.sha256(raw).hexdigest()
     output = os.getenv("WAREHOUSE_CONTRACT_OUTPUT", "marsel-unified-warehouse-contract.json")
