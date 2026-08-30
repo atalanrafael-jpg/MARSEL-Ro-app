@@ -1,0 +1,55 @@
+version: 1
+name: marsel-roapp-execution
+mode: fail-closed
+
+# This manifest describes repeatable work that may run outside a ChatGPT session.
+# It does not authorize production mutation.
+
+defaults:
+  timeout_minutes: 20
+  max_attempts: 3
+  backoff_seconds: 15
+  permissions: read-only
+  production_write: false
+  evidence_required: true
+
+tasks:
+  readonly_audit:
+    enabled: true
+    trigger: [workflow_dispatch, schedule]
+    command: python scripts/marsel_live_probe_v1.py
+    timeout_minutes: 20
+    max_attempts: 3
+    backoff_seconds: 15
+    permissions: read-only
+    production_write: false
+    evidence: marsel-executor-readonly.json
+
+  canonical_tests:
+    enabled: true
+    trigger: [pull_request, push]
+    command: python scripts/marsel_canonical_self_check.py
+    timeout_minutes: 10
+    max_attempts: 2
+    backoff_seconds: 10
+    permissions: read-only
+    production_write: false
+    evidence: marsel-executor-tests.json
+
+  production_mutation:
+    enabled: false
+    trigger: []
+    command: null
+    timeout_minutes: 0
+    max_attempts: 0
+    backoff_seconds: 0
+    permissions: none
+    production_write: false
+    evidence: null
+
+security:
+  secrets_from_github_only: true
+  never_log_secret_values: true
+  pull_request_live_secrets: false
+  mutation_requires_existing_production_gate: true
+  synthetic_evidence_forbidden: true
