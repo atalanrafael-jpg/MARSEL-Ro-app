@@ -1,0 +1,23 @@
+name: MARSEL RO App API v2 Guard
+
+on:
+  push:
+    branches: [main, 'marsel/**']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  roapp-api-v2-guard:
+    name: Reject deprecated RO App API usage
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Run fail-closed API v2 guard
+        run: python scripts/marsel_roapp_api_v2_guard.py
