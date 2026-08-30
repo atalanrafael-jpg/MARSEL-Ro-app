@@ -2,9 +2,8 @@
 """Fail-closed guard against accidental use of RO App's deprecated API.
 
 RO App states that the deprecated API version is supported only until
-2026-09-01. This guard intentionally checks source/configuration files and
-fails on legacy versioned API paths or legacy header authentication markers.
-It does not inspect documentation files, evidence, or lockfiles.
+2026-09-01. This guard checks source/configuration files and fails on legacy
+versioned API paths or legacy header authentication markers.
 """
 from __future__ import annotations
 
@@ -13,13 +12,11 @@ import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+GUARD_PATH = pathlib.Path(__file__).resolve()
 EXCLUDED_DIRS = {".git", ".venv", "venv", "node_modules", "dist", "build", "evidence"}
 EXCLUDED_SUFFIXES = {".lock", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".pdf"}
 EXCLUDED_DOC_NAMES = {"README.md"}
 
-# These are intentionally narrow. They target executable/configuration source,
-# not historical documentation. Expand only when a confirmed legacy marker is
-# found in production code.
 PATTERNS = [
     (re.compile(r"(?:https?://[^\s'\"]+)?/api/v1(?:[/\"'\s?#]|$)", re.I), "legacy /api/v1 path"),
     (re.compile(r"https?://[^\s'\"]*roapp[^\s'\"]*/v1(?:[/\"'\s?#]|$)", re.I), "legacy RO App /v1 URL"),
@@ -33,6 +30,8 @@ TEXT_SUFFIXES = {
 
 
 def should_scan(path: pathlib.Path) -> bool:
+    if path.resolve() == GUARD_PATH:
+        return False
     if any(part in EXCLUDED_DIRS for part in path.parts):
         return False
     if path.name in EXCLUDED_DOC_NAMES:
