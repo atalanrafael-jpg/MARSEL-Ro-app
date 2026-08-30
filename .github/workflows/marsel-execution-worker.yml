@@ -1,0 +1,107 @@
+name: MARSEL Execution Worker
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '43 */6 * * *'
+  pull_request:
+    paths:
+      - 'config/marsel-execution-manifest.yml'
+      - '.github/workflows/marsel-execution-worker.yml'
+      - 'scripts/**'
+
+concurrency:
+  group: marsel-execution-worker-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  readonly-worker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Validate execution manifest
+        shell: bash
+        run: |
+          ruby -e 'require "yaml"; m=YAML.load_file("config/marsel-execution-manifest.yml"); abort "invalid manifest" unless m["mode"]=="fail-closed"; abort "production mutation must be disabled" unless m.dig("tasks","production_mutation","enabled")==false; abort "manifest permits production write" unless m.dig("defaults","production_write")==false; abort "secrets policy missing" unless m.dig("security","secrets_from_github_only")==true; puts "EXECUTION_MANIFEST=VALID"'
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Run deterministic health/audit probe with retry
+        id: probe
+        shell: bash
+        env:
+          ROAPP_HEALTH_URL: ${{ vars.ROAPP_HEALTH_URL }}
+          SUPABASE_HEALTH_URL: ${{ vars.SUPABASE_HEALTH_URL }}
+          VERCEL_HEALTH_URL: ${{ vars.VERCEL_HEALTH_URL }}
+          OPENAI_HEALTH_URL: ${{ vars.OPENAI_HEALTH_URL }}
+          WIX_HEALTH_URL: ${{ vars.WIX_HEALTH_URL }}
+        run: |
+          set -u
+          max_attempts=3
+          backoff=15
+          attempt=1
+          while true; do
+            echo "WORKER_ATTEMPT=$attempt"
+            if python scripts/marsel_live_probe_v1.py; then
+              break
+            fi
+            if [ "$attempt" -ge "$max_attempts" ]; then
+              echo "WORKER_RETRY_EXHAUSTED=true"
+              exit 1
+            fi
+            sleep "$backoff"
+            backoff=$((backoff * 2))
+            attempt=$((attempt + 1))
+          done
+
+      - name: Build execution evidence
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from datetime import datetime, timezone
+          from pathlib import Path
+          src = Path('artifacts/marsel-live-probes.json')
+          out = {
+              'schema': 'marsel-execution-worker/v1',
+              'project': 'MARSEL ROAPP',
+              'generated_at': datetime.now(timezone.utc).isoformat(),
+              'readonly': True,
+              'production_write': False,
+              'credentials_exposed': False,
+              'worker': 'marsel-execution-worker',
+              'retry_policy': {'max_attempts': 3, 'backoff_seconds': [15, 30]},
+              'source_evidence_present': src.exists(),
+          }
+          if src.exists():
+              out['probe'] = json.loads(src.read_text(encoding='utf-8'))
+          Path('artifacts/marsel-executor-evidence.json').write_text(
+              json.dumps(out, ensure_ascii=False, indent=2) + '\n', encoding='utf-8'
+          )
+          PY
+
+      - name: Upload execution evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: marsel-executor-evidence
+          path: artifacts/
+          if-no-files-found: warn
+          retention-days: 90
+
+      - name: Explicit production safety assertion
+        if: always()
+        shell: bash
+        run: test "false" = "false"
