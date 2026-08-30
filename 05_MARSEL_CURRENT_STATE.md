@@ -3,103 +3,62 @@
 **Role:** single living project checkpoint. Update after every material verified change.
 
 ## DATE
-2026-08-29
+2026-08-30
 
 ## CURRENT VERSION
-MARSEL/ROAPP unified control plane with production-safety hardening, canonical GitHub governance, and warehouse-contract diagnostic separation.
+MARSEL/ROAPP unified control plane with production-safety hardening, canonical GitHub governance, automated evidence orchestration, and fail-closed production gating.
 
 ## CONTROL CHECKPOINT
-Current `main` checkpoint: `740402b6904e19ac889763b928f99a3452926a65` — `fix: separate warehouse list contract from stock detail diagnostic`.
+Current `main` checkpoint: `1ee6e6027fea72ffafbd9044c6253666ebadbe55` — `ci: automate MARSEL evidence collection and fail-closed inventory` (merged PR #72).
 
 ## SYSTEM MODEL
 **MARSEL = business contour + ROAPP = technical contour → one unified system → one canonical `main` control plane.**
 
-## APPLICATION
-- FastAPI connector service is present under `app/`.
-- Health endpoint: `GET /health`.
-- Configuration readiness endpoint: `GET /ready`.
-- ROAPP order read endpoint: `GET /roapp/orders`.
-- ROAPP read-only audit endpoint: `GET /roapp/audit/orders`.
-- MCP HTTP mode is explicitly configuration-gated and JWT-protected when enabled.
-- Production container runs as a non-root user and has an HTTP healthcheck.
-
-## CI / DELIVERY
-- Canonical unit-test and audit workflows exist on `main`.
-- Production mutation remains fail-closed.
-- Repository-level secret guard is present with read-only repository permissions.
-- Unified Control Plane runs on push to `main`, pull requests, manual dispatch, and schedule; live RO App checks are skipped on pull requests to avoid secret exposure.
-- The latest warehouse-contract code change is committed, but a new CI result for commit `740402b` is **NOT VERIFIED** because the commit-specific workflow lookup returned no run.
+## VERIFIED LIVE / REPOSITORY FACTS
+- Repository `atalanrafael-jpg/Ro-app` is accessible with admin/maintain/push permissions through the connected GitHub integration.
+- The repository is public, active, and `main` is the default branch.
+- The Unified Control Plane is configured for push to `main`, pull requests, manual dispatch, and a 6-hour schedule.
+- The Production Gate is fail-closed and runs automatically only after a successful Unified Control Plane run, or manually when an explicit upstream run ID is supplied.
+- The Evidence Orchestrator is now automated and fail-closed; it requires eight named evidence artifacts and verifies read-only invariants before accepting production evidence.
 
 ## RO APP STATUS
-🟢 **VERIFIED / PARTIAL**
-- Real READ-ONLY API access has been proven in project evidence.
-- `GET /v2/orders` returned HTTP 200 in a live smoke test.
+🟢 **VERIFIED HISTORICAL LIVE ACCESS**
+- `GET /v2/orders` has previously returned HTTP 200 in a real read-only smoke test.
 - Historical order audit: 4,373 orders; 4,373 unique IDs; 0 duplicate IDs; 0 missing IDs; 0 missing client IDs; 0 missing statuses for that run.
-- V20.8 historical detail audit: 6,820 detail requests; 0 detail failures; 0 writes.
-- Historical API inventory documented 124 operations and 45 GET probes.
+- Historical V20.8 detail audit: 6,820 detail requests; 0 detail failures; 0 writes.
 
 🟡 **PARTIAL**
-- Full API/entity completeness is not proven by the historical inventory alone.
-- Warehouse list-contract logic has been corrected to evaluate the documented list contract independently from stock-detail diagnostics.
+- Historical API inventory: 124 operations / 45 GET probes.
+- Full current API/entity completeness is not yet proven by a fresh complete evidence set.
+- Product-code collision review remains a data-quality classification task; historical audit identified 11 duplicate-code groups without assuming uniqueness or performing deletion.
 
 🔴 **BLOCKED / NOT VERIFIED**
-- Full backup is not proven.
+- Complete production backup is not proven.
 - Restore test is not proven.
-- Production WRITE is not authorized by the current safety gate.
-- Credential exposure remediation in Issue #23 is not closed until direct rotation/history/log/artifact evidence is verified.
-- Fresh warehouse live evidence for the latest code is not yet verified.
+- Production WRITE is not authorized.
+- Credential-exposure remediation in Issue #23 is not closed until direct rotation and repository/history/log/artifact verification is proven.
+- Fresh live warehouse evidence for the current control-plane revision is not yet verified.
+- Gmail OAuth user-authorized verification is not complete.
+- Official RO App MCP authorization is not complete.
 
-## API STATUS
-🟢 Live READ-only orders endpoint verified historically.
-🟡 Full contract/schema completeness not verified.
-🔴 Do not infer undocumented endpoints, fields, or identifiers.
+## SAFETY
+- Production mutation remains explicitly disabled: `MARSEL_WRITE_APPROVED=false` in the Production Gate.
+- Unified Control Plane live checks are GET-only/read-only.
+- Production Gate requires a successful upstream Unified Control Plane run and fail-closed evidence validation.
+- Evidence Orchestrator validates `readonly=true`, `write_requests_made=0`, and `ro_app_data_mutated=false` for required evidence.
+- No synthetic evidence is accepted as production evidence.
 
-## DATABASE STATUS
-🟡 Read-only audits have been performed against live ROAPP data.
-🔴 No claim of a fresh complete current database inventory is made without new complete audit evidence.
-
-## BACKUP / RESTORE
-🔴 Complete production backup and independently tested restore remain unverified.
-
-## DATA QUALITY
-🟡 Historical audits show strong order-ID integrity in audited runs.
-🟡 11 product-code collision groups were identified; they require classification as legitimate reuse vs real collision/unresolved finding before any mutation.
-🟡 Current completeness across all entity families is not proven.
-
-## WAREHOUSE
-🟡 The latest code separates the documented warehouse list contract from stock-detail diagnostics. A warehouse PASS now requires discovered warehouse IDs plus a successful documented `/v2/warehouse/` list contract; stock detail is reported separately. This code change is committed in `740402b`.
-⚪ Fresh CI/live evidence for `740402b` is not yet verified.
-
-## INTEGRATIONS
-- GitHub: 🟢 repository access and `main` control confirmed.
-- ROAPP API: 🟢 READ-only live access confirmed historically.
-- ROAPP MCP: 🟡 technical integration exists; production authorization/write remains blocked.
-- Gmail / Google Workspace: 🟡/🔴 not considered connected without live user-authorized OAuth verification.
-- Website / e-commerce / marketplaces / payments / analytics / accounting: 🔵 proposed unless live verification is recorded.
-
-## SECURITY
-🟢 READ/WRITE separation is a project invariant.
-🟢 Repository-level secret guard is present on `main`.
-🟢 Secrets are intended to remain in secure secret storage, not code/logs.
-🟢 Production container runs as non-root.
-🔴 Historical credential exposure remediation remains open until direct rotation and exposure-cleanup evidence is verified (Issue #23).
-🔴 Production mutation remains gated.
-
-## GITHUB GOVERNANCE
-🟢 `main` is the canonical branch.
-🟡 Governance/remediation PRs and branches must be compared with current `main` before merge or cleanup. No branch deletion is authorized from age/name alone.
-
-## OPEN BLOCKERS
-1. Complete API/entity verification.
-2. Obtain fresh live warehouse evidence for Issue #42.
-3. Prove complete backup.
-4. Prove restore from backup.
-5. Resolve/classify 11 product-code collision groups without automatic deletion.
-6. Complete required Gmail OAuth user-authorized verification.
-7. Verify official RO App MCP authorization separately.
-8. Close credential-exposure remediation only after direct rotation and repository/history/log/artifact verification (Issue #23).
-9. Re-run final read-only audit after blockers are addressed.
-10. Reconcile overlapping open PRs before merging governance/remediation changes.
+## CURRENT OPEN BLOCKERS
+1. Generate and verify a fresh successful Unified Control Plane evidence set on current `main`.
+2. Prove complete backup/export and independently tested restore/integrity.
+3. Complete current API/entity verification from authoritative contracts and verified identifiers.
+4. Obtain fresh documented warehouse live evidence.
+5. Classify the 11 product-code collision groups; no automatic deletion/merge.
+6. Complete Gmail OAuth read-only user authorization test.
+7. Complete official RO App MCP authorization verification.
+8. Complete credential-exposure remediation evidence for Issue #23.
+9. Reconcile overlapping governance/remediation PRs against current `main`.
+10. Only after all required evidence passes: evaluate production safety gate; production WRITE remains disabled until explicit authorization.
 
 ## REQUIRED UPDATE RULE
 After every material change:
