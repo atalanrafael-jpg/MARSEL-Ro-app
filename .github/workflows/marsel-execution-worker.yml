@@ -37,6 +37,10 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Run canonical self-check
+        shell: bash
+        run: python scripts/marsel_canonical_self_check.py
+
       - name: Run deterministic health/audit probe with retry
         id: probe
         shell: bash
