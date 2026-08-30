@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """MARSEL warehouse contract audit — READ ONLY.
 
-Canonical version 20.48. Verifies documented RO App warehouse GET contracts.
+Canonical version 20.47. Verifies documented RO App warehouse GET contracts.
 Never invents warehouse or branch IDs and never performs writes.
 """
 from __future__ import annotations
@@ -37,7 +37,7 @@ def get(url: str):
             headers={
                 "Authorization": f"Bearer {KEY}",
                 "Accept": "application/json",
-                "User-Agent": "MARSEL-Warehouse-Contract-V20.48",
+                "User-Agent": "MARSEL-Warehouse-Contract-V20.47",
             },
             method="GET",
         )
@@ -191,10 +191,6 @@ def main():
             "real_branch_ids_used": branch_ids,
         })
 
-    # branch_id is optional in the documented contract. Always test the
-    # documented default form first; the previous implementation skipped this
-    # when a branch ID was discovered and could therefore produce a false 404
-    # blocker when only the branch-scoped variant was unavailable.
     list_query_variants = [{"type": "product"}]
     if branch_ids:
         list_query_variants.extend(
@@ -269,7 +265,7 @@ def main():
     result = "PASS" if ids and list_ok else "NOT_VERIFIED"
 
     report = {
-        "version": "20.48",
+        "version": "20.47",
         "mode": "READ_ONLY",
         "result": result,
         "readonly": True,
