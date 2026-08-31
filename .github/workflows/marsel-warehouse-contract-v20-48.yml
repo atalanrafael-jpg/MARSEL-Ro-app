@@ -1,0 +1,50 @@
+name: MARSEL Warehouse Contract V20.48
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  diagnostic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: "3.12"
+      - name: Verify RO App secret
+        env:
+          ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+        run: test -n "$ROAPP_API_KEY"
+      - name: Run documented warehouse-list diagnostic
+        env:
+          ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+          ROAPP_API_BASE: https://api.roapp.io/v2
+          ROAPP_TIMEOUT: "30"
+          ROAPP_MIN_REQUEST_INTERVAL: "0.34"
+          WAREHOUSE_DIAGNOSTIC_OUTPUT: marsel-warehouse-contract-v20-48.json
+        run: python scripts/marsel_warehouse_contract_v20_48.py
+      - name: Verify read-only invariant
+        run: |
+          test "$(python - <<'PY'
+          import json
+          print(json.load(open('marsel-warehouse-contract-v20-48.json', encoding='utf-8'))['write_requests_made'])
+          PY
+          )" = "0"
+          test "$(python - <<'PY'
+          import json
+          print(json.load(open('marsel-warehouse-contract-v20-48.json', encoding='utf-8'))['ro_app_data_mutated'])
+          PY
+          )" = "False"
+      - name: Upload evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: marsel-warehouse-contract-v20-48
+          path: marsel-warehouse-contract-v20-48.json
+          if-no-files-found: error
+          retention-days: 90
