@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """MARSEL warehouse contract audit — READ ONLY.
 
-Canonical version 20.47. Verifies documented RO App warehouse GET contracts.
+Canonical version 20.48. Verifies documented RO App warehouse GET contracts.
 Never invents warehouse or branch IDs and never performs writes.
 """
 from __future__ import annotations
@@ -19,10 +19,13 @@ API_ROOT = API_BASE.removesuffix("/v2")
 TIMEOUT = float(os.getenv("ROAPP_WAREHOUSE_TIMEOUT", os.getenv("ROAPP_TIMEOUT", "15")))
 MAX_RETRIES = max(int(os.getenv("ROAPP_MAX_RETRIES", "2")), 0)
 MIN_INTERVAL = max(float(os.getenv("ROAPP_MIN_REQUEST_INTERVAL", "0.34")), 0.34)
-WAREHOUSE_DOC = "https://roappua.readme.io/reference/get-warehouses"
-STOCK_DOC = "https://roappua.readme.io/reference/get-stock"
-LOCATIONS_DOC = "https://roappua.readme.io/reference/get-locations"
-DOCUMENTED_WAREHOUSE_PATH = "/v2/warehouse/"
+WAREHOUSE_DOC = "https://roapp.readme.io/reference/get-warehouses"
+STOCK_DOC = "https://roapp.readme.io/reference/get-stock"
+LOCATIONS_DOC = "https://roapp.readme.io/reference/get-locations"
+# Verified live diagnostic V20.48: https://api.roapp.io/v2/warehouse/ returns 404,
+# while the documented/native warehouse route at https://api.roapp.io/warehouse/
+# is the route that must be used for this contract.
+DOCUMENTED_WAREHOUSE_PATH = "/warehouse/"
 DOCUMENTED_STOCK_PATH = "/warehouse/goods/{warehouse_id}"
 EXPLICIT_GET_CONTRACTS = [DOCUMENTED_WAREHOUSE_PATH, DOCUMENTED_STOCK_PATH]
 REFERENCE_PAGES = [WAREHOUSE_DOC, STOCK_DOC, LOCATIONS_DOC]
@@ -34,7 +37,7 @@ def get(url: str):
         if attempt:
             time.sleep(min(2 ** (attempt - 1), 4))
         time.sleep(MIN_INTERVAL)
-        req = Request(url, headers={"Authorization": f"Bearer {KEY}", "Accept": "application/json", "User-Agent": "MARSEL-Warehouse-Contract-V20.47"}, method="GET")
+        req = Request(url, headers={"Authorization": f"Bearer {KEY}", "Accept": "application/json", "User-Agent": "MARSEL-Warehouse-Contract-V20.48"}, method="GET")
         started = time.time()
         try:
             with urlopen(req, timeout=TIMEOUT) as response:
@@ -163,16 +166,9 @@ def main():
 
     rows = []
     for query in list_query_variants:
-        list_probe, candidate_rows = probe(f"{API_BASE}{DOCUMENTED_WAREHOUSE_PATH.removeprefix('/v2')}", query, WAREHOUSE_DOC, True)
+        list_probe, candidate_rows = probe(f"{API_ROOT}{DOCUMENTED_WAREHOUSE_PATH}", query, WAREHOUSE_DOC, True)
         probes.append(list_probe)
         rows.extend(candidate_rows)
-
-    if not rows:
-        for candidate in (f"{API_ROOT}/warehouse/", f"{API_BASE}/warehouses"):
-            candidate_probe, candidate_rows = probe(candidate, {"type": "product"}, WAREHOUSE_DOC, False)
-            candidate_probe["reason"] = "undocumented compatibility probe"
-            probes.append(candidate_probe)
-            rows.extend(candidate_rows)
 
     ids = []
     for row in rows:
@@ -184,14 +180,14 @@ def main():
         url = f"{API_ROOT}/warehouse/goods/{wid}"
         status, body, elapsed, error = get(url)
         payload, valid_json = parse_json(body) if status == 200 else (None, False)
-        probes.append({"method": "GET", "path": DOCUMENTED_STOCK_PATH, "warehouse_id": wid, "url": url, "source": STOCK_DOC, "documented_contract": True, "http": status, "elapsed_s": elapsed, "json_valid": valid_json, "error": error, "response_top_level_type": type(payload).__name__ if valid_json else None, "response_keys": sorted(payload.keys()) if isinstance(payload, dict) else None})
+        probes.append({"method": "GET", "path": DOCUMENTED_STOCK_PATH, "warehouse_id": wid, "url": url, "source": STOCK_DOC, "documented_contract": True, "http": status, "elapsed_s": elapsed, "error": error, "response_top_level_type": type(payload).__name__ if valid_json else None, "response_keys": sorted(payload.keys()) if isinstance(payload, dict) else None})
 
     confirmed_live_gets = [p for p in probes if p.get("documented_contract") and p.get("http") == 200 and p.get("json_valid") and (p.get("rows_discovered", 0) > 0 or p.get("path") == DOCUMENTED_STOCK_PATH)]
     list_ok = any(p.get("documented_contract") and p.get("path") == DOCUMENTED_WAREHOUSE_PATH and p.get("http") == 200 and p.get("json_valid") and p.get("rows_discovered", 0) > 0 for p in probes)
     stock_ok = any(p.get("documented_contract") and p.get("path") == DOCUMENTED_STOCK_PATH and p.get("http") == 200 and p.get("json_valid") for p in probes)
     result = "PASS" if ids and list_ok else "NOT_VERIFIED"
 
-    report = {"version": "20.47", "mode": "READ_ONLY", "result": result, "readonly": True, "write_requests_made": 0, "ro_app_data_mutated": False, "explicit_get_contracts": EXPLICIT_GET_CONTRACTS, "warehouse_reference_pages": REFERENCE_PAGES, "official_documentation": {"warehouse_list": WAREHOUSE_DOC, "stock": STOCK_DOC, "locations": LOCATIONS_DOC}, "warehouse_count": len(ids), "warehouse_ids_discovered": ids, "branch_ids_discovered": branch_ids, "probes": probes, "confirmed_live_gets": confirmed_live_gets, "warehouse_list_contract_verified": list_ok, "stock_detail_contract_verified": stock_ok, "diagnostic_only_undocumented_probes": [p for p in probes if not p.get("documented_contract")], "retry_policy": {"max_retries": MAX_RETRIES, "timeout_seconds": TIMEOUT, "retryable_http": [408, 429, 500, 502, 503, 504]}}
+    report = {"version": "20.48", "mode": "READ_ONLY", "result": result, "readonly": True, "write_requests_made": 0, "ro_app_data_mutated": False, "explicit_get_contracts": EXPLICIT_GET_CONTRACTS, "warehouse_reference_pages": REFERENCE_PAGES, "official_documentation": {"warehouse_list": WAREHOUSE_DOC, "stock": STOCK_DOC, "locations": LOCATIONS_DOC}, "warehouse_count": len(ids), "warehouse_ids_discovered": ids, "branch_ids_discovered": branch_ids, "probes": probes, "confirmed_live_gets": confirmed_live_gets, "warehouse_list_contract_verified": list_ok, "stock_detail_contract_verified": stock_ok, "retry_policy": {"max_retries": MAX_RETRIES, "timeout_seconds": TIMEOUT, "retryable_http": [408, 429, 500, 502, 503, 504]}}
     raw = json.dumps(report, ensure_ascii=False, indent=2).encode()
     report["report_sha256"] = hashlib.sha256(raw).hexdigest()
     output = os.getenv("WAREHOUSE_CONTRACT_OUTPUT", "marsel-unified-warehouse-contract.json")
