@@ -1,6 +1,6 @@
 # MARSEL ROAPP — ЕДИНЫЙ РЕЕСТР ЗАДАЧ
 
-Дата контрольной точки: 2026-08-21
+Дата контрольной точки: 2026-08-31
 
 ## Правило
 
@@ -8,36 +8,48 @@ MARSEL и ROAPP — один проект. Issue, PR, workflow, документ
 
 Статус `DONE` допускается только при прямом evidence. Старые CI-запуски и исторические документы не закрывают текущие задачи.
 
-## Реестр текущих контуров
+## Текущий подтверждённый реестр
 
 | ID | Контур | Статус | Следующее действие |
 |---|---|---|---|
-| #19 | Production go-live | BLOCKED | backup → restore → reconciliation → dry-run → idempotency → rollback → post-write verification |
-| #25 | Automation Health | REVIEW_REQUIRED | закрыть API completeness и свежий evidence |
-| #27 | Gmail OAuth | REVIEW_REQUIRED | использовать актуальную реализацию и выполнить live read-only OAuth test |
-| #30 | API/entity coverage | REVIEW_REQUIRED | подтвердить оставшиеся entities без угадывания ID |
-| #31 | Control Protocol | CONSOLIDATED | правила перенесены в canonical control plane |
-| #35 | Product-code collisions | REVIEW_REQUIRED | классифицировать 11 групп; не удалять автоматически |
-| Warehouse | Warehouse API | NOT_VERIFIED | получить прямое доказательство официального GET-контракта |
-| MCP | ChatGPT/Codex MCP | AUTH PENDING | пройти реальную authorization verification |
-| Ads CAPI | OpenAI Ads | CODE CONSOLIDATED | production configuration требует внешних credentials/verification |
-| PR #38 | Unified Gmail hardening | DRAFT / NOT MERGEABLE | пройти текущие CI, OAuth smoke test, secret/history scan и warehouse gate |
-| PR #39 | RAFAEL AI OS runtime | DRAFT / NOT MERGEABLE | отдельная review/CI-проверка перед интеграцией в MARSEL control plane |
+| #19 | Production go-live | BLOCKED / NOT READY | собрать 8 обязательных production evidence; WRITE остаётся 0 |
+| #91 | GitHub account/security controls | OPEN / MANUAL | исправить target ruleset, secret scanning/push protection, production environment и Copilot controls через GitHub account UI/API |
+| PR #89 | Limits-resilient execution worker | OPEN / DRAFT / MERGEABLE | пройти review и текущий CI; затем снять Draft и merge только после проверки |
+| Warehouse | Warehouse API | NOT VERIFIED | получить прямое доказательство официального GET-контракта |
+| MCP | ChatGPT/Codex MCP | AUTH PENDING | выполнить реальную authorization verification |
+| Credentials | ROAPP API key | SECURITY GATE | подтвердить rotation/history scan при подозрении или подтверждённом exposure |
+| Gmail OAuth | Live read-only OAuth | NOT VERIFIED | выполнить реальный OAuth smoke test |
+| Evidence | Production evidence bundle | 1/8 | отсутствуют backup, restore, reconciliation, duplicate/reference, dry-run, idempotency, rollback evidence |
 
-## Закрытые / superseded
+## Что уже подтверждено
 
-- PR #28 — CLOSED, not merged; superseded Gmail implementation.
-- PR #32 — закрыт как устаревшая/дублирующая Ads CAPI реализация.
-- PR #36 — закрыт после переноса актуальной реализации в `main`.
-- PR #37 — закрыт как superseded: canonical unified workflow уже находится в `main`.
+- Базовый repository CI на последнем проверенном запуске проходит.
+- Production WRITE не включён.
+- Execution Worker спроектирован как read-only/fail-closed и не получает production secrets.
+- Production Evidence Orchestrator корректно блокирует gate при неполном evidence.
+- Security issue, ранее ошибочно закрытая при состоянии NOT READY, была возвращена в OPEN.
+
+## Текущие ограничения
+
+Следующие действия нельзя честно выполнить только repository file/API connector:
+
+- изменить account-level GitHub ruleset configuration;
+- создать/защитить GitHub production environment;
+- подтвердить account-level secret scanning/push protection;
+- подтвердить Copilot account controls;
+- выполнить пользовательский Gmail OAuth;
+- выполнить пользовательскую RO App MCP authorization;
+- создать реальные backup/restore/rollback доказательства без доступа к соответствующим production systems.
+
+Никакие фиктивные evidence, credentials, OAuth tokens или production WRITE операции не создаются.
+
+## Linear
+
+В доступном Linear workspace не обнаружены проекты. Обнаружены только стандартные onboarding issues `RAF-1`–`RAF-4` (знакомство с Linear, команды, импорт данных, подключение инструментов). Они не являются подтверждёнными задачами MARSEL ROAPP и не закрываются автоматически без фактического выполнения соответствующих workspace-операций.
 
 ## Production gate
 
 `WRITE=0` является обязательным до полного прохождения safety gates. Наличие кода, документации, CI или PR не является доказательством production readiness.
-
-## Архив
-
-Исторические snapshots, старые control documents и заменённые changelog-файлы находятся в `старые данные/`. Архив не является текущим источником истины.
 
 ## Конечная цель
 
