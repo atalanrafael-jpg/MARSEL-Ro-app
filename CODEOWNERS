@@ -1,0 +1,5 @@
+# MARSEL ROAPP CODEOWNERS
+* @atalanrafael-jpg
+/.github/ @atalanrafael-jpg
+/scripts/ @atalanrafael-jpg
+/evidence/ @atalanrafael-jpg
