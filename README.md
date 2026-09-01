@@ -1,11 +1,10 @@
-
 # MARSEL ROAPP
 
-**Единая система ювелирной студии MARSEL.** MARSEL — бизнес-контур; ROAPP — технологический контур той же системы.
+**Единая система Ювелирной студии MARSEL.** MARSEL — бизнес-контур; ROAPP — технологический контур той же системы.
 
 ## Canonical source
 
-- Repository: `atalanrafael-jpg/Ro-app`
+- Repository: `atalanrafael-jpg/MARSEL-Ro-app`
 - Branch: `main`
 - Canonical control plane: `.github/workflows/marsel-unified-control-plane.yml`
 - Canonical documentation: `MARSEL_ROAPP_UNIFIED_SYSTEM.md` and `docs/PROJECT_MASTER_CONTROL.md`
