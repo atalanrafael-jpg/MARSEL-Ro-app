@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Fail-closed static check for the single MARSEL ROAPP control plane."""
 from __future__ import annotations
+import os
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+EXPECTED_REPOSITORY = "atalanrafael-jpg/MARSEL-Ro-app"
 WORKFLOW = ROOT / ".github" / "workflows" / "marsel-unified-control-plane.yml"
 GENERIC_TEST = ROOT / ".github" / "workflows" / "test.yml"
 API_REGISTRY = ROOT / "scripts" / "marsel_api_v2_canonical_registry_v1.py"
@@ -37,6 +39,9 @@ def fail(message: str) -> None:
     raise SystemExit(f"CANONICAL_SELF_CHECK_FAIL: {message}")
 
 def main() -> int:
+    runtime_repository = os.getenv("GITHUB_REPOSITORY")
+    if runtime_repository and runtime_repository != EXPECTED_REPOSITORY:
+        fail(f"unexpected canonical repository: {runtime_repository}; expected {EXPECTED_REPOSITORY}")
     required = [WORKFLOW, GENERIC_TEST, API_REGISTRY, API_REGISTRY_DOC, TASK_REGISTRY, ARCH, MASTER_CORE]
     missing = [str(p.relative_to(ROOT)) for p in required if not p.exists()]
     if missing: fail("missing canonical files: " + ", ".join(missing))
@@ -65,6 +70,7 @@ def main() -> int:
     if "`WRITE=0`" not in task_text: fail("production WRITE gate is missing from task registry")
     print("CANONICAL_SELF_CHECK=PASS")
     print("SYSTEM=MARSEL_ROAPP")
+    print(f"CANONICAL_REPOSITORY={EXPECTED_REPOSITORY}")
     print("CANONICAL_LIVE_AUDIT=ONE")
     print("GENERIC_TEST_LIVE_AUDIT=NONE")
     print("MASTER_CORE=CANONICAL_AND_VERIFIED")
