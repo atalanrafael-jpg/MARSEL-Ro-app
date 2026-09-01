@@ -2,7 +2,7 @@
 
 ## Единый источник
 
-**Repository:** `atalanrafael-jpg/Ro-app`
+**Repository:** `atalanrafael-jpg/MARSEL-Ro-app`
 
 Repository является единственным техническим проектом MARSEL ROAPP. Внутри него связаны:
 
@@ -20,13 +20,13 @@ Repository является единственным техническим пр
 
 ## Текущие ключевые ссылки
 
-- Repository: https://github.com/atalanrafael-jpg/Ro-app
-- Issues: https://github.com/atalanrafael-jpg/Ro-app/issues
-- Pull Requests: https://github.com/atalanrafael-jpg/Ro-app/pulls
-- Actions: https://github.com/atalanrafael-jpg/Ro-app/actions
-- Production Gates: https://github.com/atalanrafael-jpg/Ro-app/blob/main/docs/MARSEL-PRODUCTION-GO-LIVE-GATES.md
-- Write Gate: https://github.com/atalanrafael-jpg/Ro-app/blob/main/docs/WRITE-GATE.md
-- Task Registry: https://github.com/atalanrafael-jpg/Ro-app/blob/main/docs/MARSEL_ROAPP_TASK_REGISTRY.md
+- Repository: https://github.com/atalanrafael-jpg/MARSEL-Ro-app
+- Issues: https://github.com/atalanrafael-jpg/MARSEL-Ro-app/issues
+- Pull Requests: https://github.com/atalanrafael-jpg/MARSEL-Ro-app/pulls
+- Actions: https://github.com/atalanrafael-jpg/MARSEL-Ro-app/actions
+- Production Gates: https://github.com/atalanrafael-jpg/MARSEL-Ro-app/blob/main/docs/MARSEL-PRODUCTION-GO-LIVE-GATES.md
+- Write Gate: https://github.com/atalanrafael-jpg/MARSEL-Ro-app/blob/main/docs/WRITE-GATE.md
+- Task Registry: https://github.com/atalanrafael-jpg/MARSEL-Ro-app/blob/main/docs/MARSEL_ROAPP_TASK_REGISTRY.md
 
 ## Безопасность
 
