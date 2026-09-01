@@ -1,7 +1,7 @@
 # MARSEL ROAPP — Agent Control Rules
 
 1. Treat MARSEL and ROAPP as one system and one project.
-2. Use `main` and the canonical repository `atalanrafael-jpg/Ro-app` as the source of truth.
+2. Use `main` and the canonical repository `atalanrafael-jpg/MARSEL-Ro-app` as the source of truth.
 3. Prefer existing canonical implementations over creating versioned duplicates.
 4. Default all live data operations to READ-ONLY.
 5. Never claim live verification, backup, restore, OAuth, MCP authorization or WRITE readiness without direct evidence.
