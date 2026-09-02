@@ -25,7 +25,13 @@ REQUIRED = (
     "SECURITY.md",
     "Dockerfile",
 )
-FORBIDDEN_MARKERS = re.compile(r"(?i)\b(TODO|FIXME|XXX|HACK|NotImplementedError)\b")
+# Detect unfinished implementation markers without self-matching this verifier
+# or known negative-marker assertions in the test suite.
+UNFINISHED_MARKER = re.compile(r"(?i)\b(TODO|FIXME|XXX|HACK|NotImplementedError)\b")
+MARKER_SCAN_EXCLUSIONS = {
+    "scripts/marsel_final_verification.py",
+    "tests/test_codex_plugin.py",
+}
 
 
 def git_files() -> list[str]:
@@ -44,7 +50,7 @@ def main() -> int:
             failures.append(f"missing_required_file:{path}")
 
     for path in files:
-        if path.startswith(".git/"):
+        if path in MARKER_SCAN_EXCLUSIONS or path.startswith(".git/"):
             continue
         p = ROOT / path
         if not p.is_file() or p.stat().st_size > 2_000_000:
@@ -53,7 +59,7 @@ def main() -> int:
             text = p.read_text(encoding="utf-8")
         except UnicodeDecodeError:
             continue
-        if FORBIDDEN_MARKERS.search(text):
+        if UNFINISHED_MARKER.search(text):
             failures.append(f"unfinished_marker:{path}")
 
     gate = ROOT / "scripts/marsel_production_gate_v1.py"
