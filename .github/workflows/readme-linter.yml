@@ -1,0 +1,44 @@
+name: MARSEL ReadMe Docs Lint
+
+on:
+  pull_request:
+    paths:
+      - "readme/**"
+      - ".github/workflows/readme-linter.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "readme/**"
+      - ".github/workflows/readme-linter.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: readme-linter-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: ReadMe structural lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: readme
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Verify ReadMe docs directory
+        run: test -d .
+
+      - name: Run ReadMe CLI lint
+        run: npx --yes @readme/cli lint
