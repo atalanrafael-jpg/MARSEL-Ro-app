@@ -1,0 +1,109 @@
+name: ReadMe ROAPP API Sync
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/marsel_official_roapp_discovery_v1.py"
+      - ".github/workflows/readme-roapp-sync.yml"
+      - "02_ROAPP/**"
+      - "02_ROAPP_TECHNICAL_MASTER.md"
+      - "API.md"
+  pull_request:
+    branches: [main]
+    paths:
+      - "scripts/marsel_official_roapp_discovery_v1.py"
+      - ".github/workflows/readme-roapp-sync.yml"
+      - "02_ROAPP/**"
+      - "02_ROAPP_TECHNICAL_MASTER.md"
+      - "API.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: readme-roapp-sync-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ROAPP_OPENAPI_JSON_URL: https://roapp.readme.io/openapi.json
+  ROAPP_OPENAPI_YAML_URL: https://roapp.readme.io/openapi.yaml
+  ROAPP_LLMS_URL: https://roapp.readme.io/llms.txt
+  README_API_KEY: ${{ secrets.README_API_KEY }}
+  README_API_DEFINITION_SLUG: ${{ secrets.README_API_DEFINITION_SLUG }}
+
+jobs:
+  validate-roapp-contract:
+    name: Validate official ROAPP OpenAPI contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Discover official ROAPP documentation endpoints
+        run: |
+          python scripts/marsel_official_roapp_discovery_v1.py
+
+      - name: Download official OpenAPI JSON
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .artifacts
+          curl --fail --location --retry 3 --retry-all-errors \
+            --header 'User-Agent: MARSEL-ROApp-CI/1.0' \
+            --output .artifacts/roapp.openapi.json \
+            "$ROAPP_OPENAPI_JSON_URL"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path('.artifacts/roapp.openapi.json')
+          data = json.loads(p.read_text(encoding='utf-8'))
+          if not isinstance(data, dict) or not str(data.get('openapi', '')).strip():
+              raise SystemExit('Downloaded document is not a valid OpenAPI JSON document')
+          print(f"OpenAPI version: {data['openapi']}")
+          print(f"Title: {data.get('info', {}).get('title', '<missing>')}")
+          print(f"Paths: {len(data.get('paths', {}))}")
+          PY
+
+      - name: Validate OpenAPI with official ReadMe CLI
+        uses: readmeio/rdme@v10
+        with:
+          rdme: openapi validate .artifacts/roapp.openapi.json
+
+      - name: Upload validation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: roapp-readme-contract-${{ github.run_id }}
+          path: |
+            marsel-official-roapp-discovery-v1.json
+            .artifacts/roapp.openapi.json
+          if-no-files-found: warn
+          retention-days: 30
+
+  sync-readme:
+    name: Sync validated ROAPP OpenAPI to ReadMe
+    needs: validate-roapp-contract
+    if: ${{ needs.validate-roapp-contract.result == 'success' && env.README_API_KEY != '' && env.README_API_DEFINITION_SLUG != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download official OpenAPI JSON
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .artifacts
+          curl --fail --location --retry 3 --retry-all-errors \
+            --header 'User-Agent: MARSEL-ROApp-CI/1.0' \
+            --output .artifacts/roapp.openapi.json \
+            "$ROAPP_OPENAPI_JSON_URL"
+
+      - name: Sync OpenAPI to ReadMe
+        uses: readmeio/rdme@v10
+        with:
+          rdme: openapi upload .artifacts/roapp.openapi.json --key=${{ secrets.README_API_KEY }} --slug=${{ secrets.README_API_DEFINITION_SLUG }}
