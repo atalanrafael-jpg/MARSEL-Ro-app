@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -29,6 +30,14 @@ PROVENANCE = (
     "source_system", "environment", "producing_job_or_run", "source_version",
     "generated_at", "sha256", "producer_identity", "scope",
 )
+CREDENTIAL_KEYS = {
+    "api_key", "apikey", "authorization", "access_token", "refresh_token",
+    "client_secret", "password", "passwd", "private_key", "secret",
+}
+TOKEN_PATTERNS = (
+    re.compile(r"-----BEGIN [A-Z0-9 ]+ PRIVATE KEY-----"),
+    re.compile(r"\bBearer\s+[A-Za-z0-9._~+/=-]{12,}\b", re.IGNORECASE),
+)
 
 
 def _is_iso_timestamp(value: object) -> bool:
@@ -46,6 +55,27 @@ def _canonical_sha256(data: dict[str, object]) -> str:
     canonical["sha256"] = ""
     payload = json.dumps(canonical, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return hashlib.sha256(payload).hexdigest()
+
+
+def _credential_like_material(value: object, key: str = "") -> str | None:
+    normalized_key = key.strip().lower().replace("-", "_")
+    if normalized_key in CREDENTIAL_KEYS:
+        return normalized_key
+    if isinstance(value, dict):
+        for child_key, child_value in value.items():
+            marker = _credential_like_material(child_value, str(child_key))
+            if marker:
+                return marker
+    elif isinstance(value, list):
+        for child in value:
+            marker = _credential_like_material(child)
+            if marker:
+                return marker
+    elif isinstance(value, str):
+        for pattern in TOKEN_PATTERNS:
+            if pattern.search(value):
+                return pattern.pattern
+    return None
 
 
 def validate_file(path: Path) -> list[str]:
@@ -71,11 +101,9 @@ def validate_file(path: Path) -> list[str]:
             errors.append(f"{path.name}: missing_provenance:{key}")
     if data.get("sha256") != _canonical_sha256(data):
         errors.append(f"{path.name}: sha256_mismatch")
-    serialized = json.dumps(data, ensure_ascii=False).lower()
-    for marker in ("api_key", "authorization", "bearer ", "secret", "password"):
-        if marker in serialized:
-            errors.append(f"{path.name}: credential_like_material_detected:{marker}")
-            break
+    marker = _credential_like_material(data)
+    if marker:
+        errors.append(f"{path.name}: credential_like_material_detected:{marker}")
     return errors
 
 
