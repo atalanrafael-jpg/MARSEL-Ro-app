@@ -29,8 +29,9 @@ REQUIRED = (
 PASS_STATUSES = {"PASS", "PASSED", "VERIFIED"}
 PROVENANCE = (
     "source_system", "environment", "producing_job_or_run", "source_version",
-    "generated_at", "sha256", "producer_identity", "scope",
+    "sha256", "producer_identity", "scope",
 )
+TIMESTAMP_KEYS = ("generated_at", "verified_at", "timestamp")
 CREDENTIAL_KEYS = {
     "api_key", "apikey", "authorization", "access_token", "refresh_token",
     "client_secret", "password", "passwd", "private_key", "secret",
@@ -125,6 +126,8 @@ def validate_file(path: Path) -> list[str]:
     for key in PROVENANCE:
         if not data.get(key):
             errors.append(f"{path.name}: missing_provenance:{key}")
+    if not any(data.get(key) for key in TIMESTAMP_KEYS):
+        errors.append(f"{path.name}: missing_provenance_timestamp")
     if data.get("sha256") != _canonical_sha256(data):
         errors.append(f"{path.name}: sha256_mismatch")
     marker = _credential_like_material(data)
