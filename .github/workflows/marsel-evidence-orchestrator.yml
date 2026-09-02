@@ -1,15 +1,13 @@
 name: MARSEL Evidence Orchestrator
 
 on:
-  workflow_dispatch:
-  schedule:
-    - cron: '41 */6 * * *'
   workflow_run:
     workflows: ["MARSEL Unified Control Plane"]
     types: [completed]
+    branches: [main]
 
 concurrency:
-  group: marsel-evidence-orchestrator-${{ github.event.workflow_run.head_sha || github.ref }}
+  group: marsel-evidence-orchestrator-${{ github.event.workflow_run.head_sha }}
   cancel-in-progress: false
 
 permissions:
@@ -18,16 +16,15 @@ permissions:
 
 jobs:
   collect:
-    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion != 'cancelled' }}
+    if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Download unified control-plane evidence
-        if: ${{ github.event_name == 'workflow_run' }}
         uses: actions/download-artifact@v8
         with:
           run-id: ${{ github.event.workflow_run.id }}
@@ -109,12 +106,6 @@ jobs:
                   'safety_errors': safety_errors,
               })
 
-          # Manual and scheduled runs do not have a linked upstream artifact.
-          # They remain fail-closed instead of being treated as production evidence.
-          trigger_policy_error = None
-          if event != 'workflow_run':
-              trigger_policy_error = 'No linked MARSEL Unified Control Plane run; manual/scheduled execution cannot establish production evidence.'
-
           report = {
               'schema': 'marsel-evidence-index/v2',
               'system': 'MARSEL Evidence Orchestrator',
@@ -127,7 +118,7 @@ jobs:
               'missing': missing,
               'invalid': invalid,
               'unsafe': unsafe,
-              'trigger_policy_error': trigger_policy_error,
+              'trigger_policy_error': None,
               'entries': entries,
               'production_write_enabled': False,
           }
@@ -160,8 +151,6 @@ jobs:
               problems.append('INVALID=' + ','.join(report['invalid']))
           if report['unsafe']:
               problems.append('UNSAFE=' + ','.join(report['unsafe']))
-          if report['trigger_policy_error']:
-              problems.append('TRIGGER_POLICY=' + report['trigger_policy_error'])
           if problems:
               print('PRODUCTION_EVIDENCE=BLOCKED')
               print('\n'.join(problems))
