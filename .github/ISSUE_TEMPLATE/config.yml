@@ -1,5 +1,5 @@
 blank_issues_enabled: false
 contact_links:
   - name: Security vulnerability
-    url: https://github.com/atalanrafael-jpg/Ro-app/security
+    url: https://github.com/atalanrafael-jpg/MARSEL-Ro-app/security
     about: Do not disclose credentials or exploitable vulnerabilities in public issues. Use GitHub's private security reporting when available.
