@@ -1,0 +1,45 @@
+name: MARSEL Master Agent
+
+on:
+  pull_request:
+    paths:
+      - 'app/master_agent.py'
+      - 'tests/test_master_agent.py'
+      - '.github/workflows/marsel-master-agent.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'app/master_agent.py'
+      - 'tests/test_master_agent.py'
+      - '.github/workflows/marsel-master-agent.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: marsel-master-agent-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install test dependency
+        run: python -m pip install --disable-pip-version-check 'pytest>=7.4.0'
+      - name: Run Master Agent tests
+        run: python -m pytest -q tests/test_master_agent.py
+      - name: Verify write remains disabled in runtime
+        run: |
+          python - <<'PY'
+          from app.master_agent import AgentRequest, Mode, Status, execute
+          state, _ = execute(AgentRequest('ci-write-guard', 'sync', mode=Mode.WRITE))
+          assert state.status is Status.BLOCKED
+          assert state.current_step == 'SAFETY_GATE'
+          print('PRODUCTION_WRITE_AUTHORIZED=false')
+          PY
