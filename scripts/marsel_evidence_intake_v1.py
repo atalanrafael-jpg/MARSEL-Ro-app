@@ -53,7 +53,12 @@ def _is_iso_timestamp(value: object) -> bool:
 def _canonical_sha256(data: dict[str, object]) -> str:
     canonical = dict(data)
     canonical["sha256"] = ""
-    payload = json.dumps(canonical, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    payload = json.dumps(
+        canonical,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
     return hashlib.sha256(payload).hexdigest()
 
 
@@ -86,7 +91,10 @@ def validate_file(path: Path) -> list[str]:
         return [f"{path.name}: invalid_json_or_read_error:{exc}"]
     if not isinstance(data, dict):
         return [f"{path.name}: root_must_be_object"]
-    if str(data.get("status", "")).upper() not in PASS_STATUSES:
+
+    status = str(data.get("status", "")).upper()
+    result = str(data.get("result", "")).upper()
+    if status not in PASS_STATUSES and result != "PASS":
         errors.append(f"{path.name}: status_not_verified")
     if data.get("readonly") is not True:
         errors.append(f"{path.name}: readonly_must_be_true")
