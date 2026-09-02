@@ -1,0 +1,53 @@
+name: ReadMe Documentation Validation
+
+on:
+  pull_request:
+    paths:
+      - 'docs/**'
+      - '.github/workflows/readme-docs-validation.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/**'
+      - '.github/workflows/readme-docs-validation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-readme-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Markdown frontmatter used by ReadMe
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          import sys
+
+          failures = []
+          for path in Path('docs').rglob('*.md'):
+              text = path.read_text(encoding='utf-8')
+              if not text.startswith('---\n'):
+                  continue
+              end = text.find('\n---\n', 4)
+              if end == -1:
+                  failures.append(f'{path}: malformed YAML frontmatter delimiter')
+                  continue
+              frontmatter = text[4:end]
+              if not re.search(r'^title:\s*.+$', frontmatter, re.M):
+                  failures.append(f'{path}: missing title frontmatter')
+              if not re.search(r'^(summary|content):', frontmatter, re.M):
+                  failures.append(f'{path}: missing summary/content frontmatter')
+
+          if failures:
+              print('\n'.join(failures))
+              sys.exit(1)
+          print('ReadMe documentation frontmatter validation passed.')
+          PY
