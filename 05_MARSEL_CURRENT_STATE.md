@@ -9,9 +9,9 @@
 MARSEL/ROAPP unified control plane with production-safety hardening, canonical GitHub governance, automated evidence orchestration, and fail-closed production gating.
 
 ## CONTROL CHECKPOINT
-Current `main` checkpoint: `7fa5d296e595bfe7fb51309a92a284794fe3334c`.
+Last independently observed `main` HEAD before this state-document synchronization: `7fa5d296e595bfe7fb51309a92a284794fe3334c`.
 
-The previous documented checkpoint `ec74ed92f5f4f203d7bb69748d286242bb8542c2` is no longer the current `main` HEAD. `main` has advanced to `7fa5d296e595bfe7fb51309a92a284794fe3334c` with the latest documented warehouse-implementation alignment. A fresh Unified Control Plane result for this exact checkpoint is still required before any readiness conclusion.
+The previous documented checkpoint `ec74ed92f5f4f203d7bb69748d286242bb8542c2` was superseded by `7fa5d296e595bfe7fb51309a92a284794fe3334c`. This state correction was then committed to `main` as `7ab91cab1ed9060f1b2467a81b2d5c22f5683439`. A fresh Unified Control Plane result for the resulting current `main` is still required before any readiness conclusion.
 
 ## SYSTEM MODEL
 **MARSEL = business contour + ROAPP = technical contour → one unified system → one canonical `main` control plane.**
@@ -19,8 +19,8 @@ The previous documented checkpoint `ec74ed92f5f4f203d7bb69748d286242bb8542c2` is
 ## VERIFIED LIVE / REPOSITORY FACTS
 - Canonical repository: `atalanrafael-jpg/MARSEL-Ro-app`.
 - The repository is public, active, and `main` is the default branch.
-- The current `main` HEAD is `7fa5d296e595bfe7fb51309a92a284794fe3334c`.
-- Recent verified changes include canonical repository-identity corrections, MCP workflow alignment, RO App smoke-test configuration alignment, and MARSEL ROAPP workflow/project registry updates.
+- The last independently observed `main` HEAD before this documentation correction was `7fa5d296e595bfe7fb51309a92a284794fe3334c`.
+- The documentation synchronization itself was committed as `7ab91cab1ed9060f1b2467a81b2d5c22f5683439`.
 - The latest observed GitHub Actions activity includes a `MARSEL Production Gate` run on `main` at commit `7fa5d296e595bfe7fb51309a92a284794fe3334c`; that observed run concluded `skipped`.
 - Production Gate remains fail-closed and production WRITE remains disabled.
 - Historical RO App evidence remains valid only for the runs that produced it.
@@ -61,7 +61,7 @@ The previous documented checkpoint `ec74ed92f5f4f203d7bb69748d286242bb8542c2` is
 - Production Gate requires successful upstream control-plane evidence and complete required external evidence.
 
 ## CURRENT OPEN BLOCKERS
-1. Verify fresh Unified Control Plane result on current canonical `main`.
+1. Verify fresh Unified Control Plane result on the resulting current canonical `main`.
 2. Prove complete backup/export and independently tested restore/integrity.
 3. Complete current API/entity verification from authoritative contracts and verified identifiers.
 4. Resolve the documented warehouse-list contract discrepancy with authoritative evidence.
