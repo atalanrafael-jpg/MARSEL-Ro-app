@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 from datetime import datetime, timezone
 from pathlib import Path
@@ -40,14 +41,20 @@ TOKEN_PATTERNS = (
 )
 
 
-def _is_iso_timestamp(value: object) -> bool:
-    if not isinstance(value, str) or not value:
-        return False
+def _evidence_timestamp(data: dict[str, object]) -> object:
+    return data.get("generated_at") or data.get("verified_at") or data.get("timestamp")
+
+
+def _parse_iso_timestamp(value: object) -> datetime | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
     try:
-        datetime.fromisoformat(value.replace("Z", "+00:00"))
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
     except ValueError:
-        return False
-    return True
+        return None
+    if parsed.tzinfo is None:
+        return None
+    return parsed.astimezone(timezone.utc)
 
 
 def _canonical_sha256(data: dict[str, object]) -> str:
@@ -102,8 +109,19 @@ def validate_file(path: Path) -> list[str]:
         errors.append(f"{path.name}: write_requests_made_must_be_zero")
     if data.get("ro_app_data_mutated") is not False:
         errors.append(f"{path.name}: ro_app_data_mutated_must_be_false")
-    if not _is_iso_timestamp(data.get("generated_at")):
-        errors.append(f"{path.name}: generated_at_invalid")
+
+    timestamp = _evidence_timestamp(data)
+    parsed_timestamp = _parse_iso_timestamp(timestamp)
+    if parsed_timestamp is None:
+        errors.append(f"{path.name}: evidence_timestamp_invalid_or_timezone_missing")
+    else:
+        max_age_hours = float(os.getenv("MARSEL_EVIDENCE_MAX_AGE_HOURS", "24"))
+        age_seconds = (datetime.now(timezone.utc) - parsed_timestamp).total_seconds()
+        if age_seconds < 0:
+            errors.append(f"{path.name}: evidence_timestamp_in_future")
+        elif age_seconds > max_age_hours * 3600:
+            errors.append(f"{path.name}: stale_evidence")
+
     for key in PROVENANCE:
         if not data.get(key):
             errors.append(f"{path.name}: missing_provenance:{key}")
