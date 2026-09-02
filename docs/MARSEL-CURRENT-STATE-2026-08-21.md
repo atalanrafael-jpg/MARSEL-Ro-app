@@ -2,7 +2,7 @@
 
 ## Canonical system
 
-- Repository: `atalanrafael-jpg/Ro-app`.
+- Repository: `atalanrafael-jpg/MARSEL-Ro-app`.
 - `main` is the canonical production source branch.
 - MARSEL and ROAPP are one system.
 - `.github/workflows/marsel-unified-control-plane.yml` is the single live RO App audit control plane.
