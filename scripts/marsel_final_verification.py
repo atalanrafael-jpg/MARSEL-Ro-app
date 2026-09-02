@@ -72,7 +72,7 @@ def main() -> int:
                 failures.append(f"production_workflow_missing:{marker}")
 
     result = {
-        "repository": "atalanrafael-jpg/Ro-app",
+        "repository": "atalanrafael-jpg/MARSEL-Ro-app",
         "result": "PASS" if not failures else "FAIL",
         "repository_controls": "PASS" if not failures else "FAIL",
         "production_write_authorized": False,
