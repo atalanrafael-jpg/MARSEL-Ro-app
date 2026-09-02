@@ -37,37 +37,39 @@ Evidence MUST NOT contain API keys, bearer tokens, access/refresh tokens, passwo
 
 ## Evidence-specific requirements
 
+The validator now enforces the following minimum fields in addition to the common contract. Field names are deliberately explicit so producers cannot pass the gate with an unstructured narrative alone.
+
 ### Backup
 
-Must identify the backup operation, source/environment, completion result, timestamp, and an integrity/checksum reference sufficient for an authorized reviewer to identify the produced backup.
+`operation`, `completion_result`, and `integrity_reference` are required. The evidence must identify the backup operation, source/environment, completion result, timestamp, and an integrity/checksum reference sufficient for an authorized reviewer to identify the produced backup.
 
 ### Restore
 
-Must identify the tested backup, target controlled environment, restore result, and verification result. Production data must not be mutated by the evidence-generation test.
+`tested_backup`, `target_environment`, `restore_result`, and `verification_result` are required. Production data must not be mutated by the evidence-generation test.
 
 ### Wix/ROAPP reconciliation
 
-Must identify both systems/environment references, the reconciliation scope, comparison result, and any unresolved differences. No production write is permitted during reconciliation evidence generation.
+`systems`, `reconciliation_scope`, `comparison_result`, and `unresolved_differences` are required. No production write is permitted during reconciliation evidence generation.
 
 ### Unified read-only inventory
 
-Must be the independently generated read-only MARSEL Unified Control Plane evidence and must demonstrate no writes and no ROAPP mutation.
+The unified control-plane artifact is validated by its own control-plane schema and gate. It must be independently generated, read-only, and demonstrate no writes or ROAPP mutation.
 
 ### Duplicate-reference evidence
 
-Must identify the duplicate/reference check scope and result, with no production mutation.
+`duplicate_check_scope` and `duplicate_check_result` are required, with no production mutation.
 
 ### Write dry-run
 
-Must identify the simulated operation set and prove `writes_executed` is `0`, `false`, or `null`.
+`operation_set` and `writes_executed` are required. `writes_executed` must be `0`, `false`, or `null`.
 
 ### Idempotency
 
-Must prove the tested operation is idempotent and must demonstrate no ROAPP mutation while generating the pre-write evidence.
+`operation`, `idempotency_tested`, and `idempotent` are required. Both boolean fields must be `true` for a passing artifact.
 
 ### Rollback
 
-Must prove `tested=true` and `reversible=true`, with enough metadata to identify the controlled test and its result.
+`tested`, `reversible`, and `test_result` are required. Both `tested` and `reversible` must be `true` for a passing artifact.
 
 ## Provenance requirements
 

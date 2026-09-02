@@ -33,13 +33,23 @@ PROVENANCE = (
 )
 TIMESTAMP_KEYS = ("generated_at", "verified_at", "timestamp")
 CREDENTIAL_KEYS = {
-    "api_key", "apikey", "authorization", "access_token", "refresh_token",
-    "client_secret", "password", "passwd", "private_key", "secret",
+    "api_key", "apikey", "authorization", "access_token", "accesstoken",
+    "refresh_token", "refreshtoken", "client_secret", "clientsecret",
+    "password", "passwd", "private_key", "privatekey", "secret",
 }
 TOKEN_PATTERNS = (
     re.compile(r"-----BEGIN [A-Z0-9 ]+ PRIVATE KEY-----"),
     re.compile(r"\bBearer\s+[A-Za-z0-9._~+/=-]{12,}\b", re.IGNORECASE),
 )
+EVIDENCE_REQUIREMENTS = {
+    "backup_evidence.json": ("operation", "completion_result", "integrity_reference"),
+    "restore_evidence.json": ("tested_backup", "target_environment", "restore_result", "verification_result"),
+    "wix_roapp_reconciliation.json": ("systems", "reconciliation_scope", "comparison_result", "unresolved_differences"),
+    "duplicate_reference_evidence.json": ("duplicate_check_scope", "duplicate_check_result"),
+    "write_dry_run.json": ("operation_set", "writes_executed"),
+    "idempotency_evidence.json": ("operation", "idempotency_tested", "idempotent"),
+    "rollback_evidence.json": ("tested", "reversible", "test_result"),
+}
 
 
 def _evidence_timestamp(data: dict[str, object]) -> object:
@@ -58,6 +68,15 @@ def _parse_iso_timestamp(value: object) -> datetime | None:
     return parsed.astimezone(timezone.utc)
 
 
+def _max_age_hours() -> float:
+    raw = os.getenv("MARSEL_EVIDENCE_MAX_AGE_HOURS", "24")
+    try:
+        value = float(raw)
+    except ValueError:
+        return 24.0
+    return value if value >= 0 else 24.0
+
+
 def _canonical_sha256(data: dict[str, object]) -> str:
     canonical = dict(data)
     canonical["sha256"] = ""
@@ -71,7 +90,7 @@ def _canonical_sha256(data: dict[str, object]) -> str:
 
 
 def _credential_like_material(value: object, key: str = "") -> str | None:
-    normalized_key = key.strip().lower().replace("-", "_")
+    normalized_key = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", key.strip()).lower().replace("-", "_")
     if normalized_key in CREDENTIAL_KEYS:
         return normalized_key
     if isinstance(value, dict):
@@ -89,6 +108,27 @@ def _credential_like_material(value: object, key: str = "") -> str | None:
             if pattern.search(value):
                 return pattern.pattern
     return None
+
+
+def _validate_evidence_specifics(filename: str, data: dict[str, object]) -> list[str]:
+    errors: list[str] = []
+    for key in EVIDENCE_REQUIREMENTS.get(filename, ()):
+        if key not in data or data[key] in (None, "", []):
+            errors.append(f"{filename}: missing_evidence_specific:{key}")
+    if filename == "write_dry_run.json" and "writes_executed" in data:
+        if data["writes_executed"] not in (0, False, None):
+            errors.append(f"{filename}: writes_executed_must_be_zero_false_or_null")
+    if filename == "idempotency_evidence.json":
+        if data.get("idempotency_tested") is not True:
+            errors.append(f"{filename}: idempotency_tested_must_be_true")
+        if data.get("idempotent") is not True:
+            errors.append(f"{filename}: idempotent_must_be_true")
+    if filename == "rollback_evidence.json":
+        if data.get("tested") is not True:
+            errors.append(f"{filename}: tested_must_be_true")
+        if data.get("reversible") is not True:
+            errors.append(f"{filename}: reversible_must_be_true")
+    return errors
 
 
 def validate_file(path: Path) -> list[str]:
@@ -116,11 +156,10 @@ def validate_file(path: Path) -> list[str]:
     if parsed_timestamp is None:
         errors.append(f"{path.name}: evidence_timestamp_invalid_or_timezone_missing")
     else:
-        max_age_hours = float(os.getenv("MARSEL_EVIDENCE_MAX_AGE_HOURS", "24"))
         age_seconds = (datetime.now(timezone.utc) - parsed_timestamp).total_seconds()
         if age_seconds < 0:
             errors.append(f"{path.name}: evidence_timestamp_in_future")
-        elif age_seconds > max_age_hours * 3600:
+        elif age_seconds > _max_age_hours() * 3600:
             errors.append(f"{path.name}: stale_evidence")
 
     for key in PROVENANCE:
@@ -130,6 +169,7 @@ def validate_file(path: Path) -> list[str]:
         errors.append(f"{path.name}: missing_provenance_timestamp")
     if data.get("sha256") != _canonical_sha256(data):
         errors.append(f"{path.name}: sha256_mismatch")
+    errors.extend(_validate_evidence_specifics(path.name, data))
     marker = _credential_like_material(data)
     if marker:
         errors.append(f"{path.name}: credential_like_material_detected:{marker}")
