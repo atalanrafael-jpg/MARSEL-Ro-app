@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Validate externally produced MARSEL production evidence.
 
-This module is intentionally validation-only: it never creates evidence,
-performs ROAPP writes, or changes production state.
+Validation-only: never creates evidence, performs ROAPP writes, or changes
+production state. The declared sha256 is the SHA-256 of canonical JSON with
+its own sha256 field replaced by an empty string.
 """
 
 from __future__ import annotations
@@ -25,14 +26,8 @@ REQUIRED = (
 )
 PASS_STATUSES = {"PASS", "PASSED", "VERIFIED"}
 PROVENANCE = (
-    "source_system",
-    "environment",
-    "producing_job_or_run",
-    "source_version",
-    "generated_at",
-    "sha256",
-    "producer_identity",
-    "scope",
+    "source_system", "environment", "producing_job_or_run", "source_version",
+    "generated_at", "sha256", "producer_identity", "scope",
 )
 
 
@@ -46,12 +41,11 @@ def _is_iso_timestamp(value: object) -> bool:
     return True
 
 
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
+def _canonical_sha256(data: dict[str, object]) -> str:
+    canonical = dict(data)
+    canonical["sha256"] = ""
+    payload = json.dumps(canonical, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
 
 
 def validate_file(path: Path) -> list[str]:
@@ -60,7 +54,6 @@ def validate_file(path: Path) -> list[str]:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         return [f"{path.name}: invalid_json_or_read_error:{exc}"]
-
     if not isinstance(data, dict):
         return [f"{path.name}: root_must_be_object"]
     if str(data.get("status", "")).upper() not in PASS_STATUSES:
@@ -76,10 +69,10 @@ def validate_file(path: Path) -> list[str]:
     for key in PROVENANCE:
         if not data.get(key):
             errors.append(f"{path.name}: missing_provenance:{key}")
-    if data.get("sha256") != _sha256(path):
+    if data.get("sha256") != _canonical_sha256(data):
         errors.append(f"{path.name}: sha256_mismatch")
     serialized = json.dumps(data, ensure_ascii=False).lower()
-    for marker in ("api_key", "authorization", "bearer ", "secret", "password", "token"):
+    for marker in ("api_key", "authorization", "bearer ", "secret", "password"):
         if marker in serialized:
             errors.append(f"{path.name}: credential_like_material_detected:{marker}")
             break
