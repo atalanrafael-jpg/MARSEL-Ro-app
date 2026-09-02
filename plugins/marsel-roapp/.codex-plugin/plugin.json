@@ -4,10 +4,10 @@
   "description": "Read-only MARSEL RO App inspection and data-quality workflows for ChatGPT and Codex.",
   "author": {
     "name": "MARSEL",
-    "url": "https://github.com/atalanrafael-jpg/Ro-app"
+    "url": "https://github.com/atalanrafael-jpg/MARSEL-Ro-app"
   },
-  "homepage": "https://github.com/atalanrafael-jpg/Ro-app",
-  "repository": "https://github.com/atalanrafael-jpg/Ro-app",
+  "homepage": "https://github.com/atalanrafael-jpg/MARSEL-Ro-app",
+  "repository": "https://github.com/atalanrafael-jpg/MARSEL-Ro-app",
   "keywords": ["marsel", "roapp", "jewelry", "mcp", "codex", "chatgpt", "audit"],
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
@@ -18,7 +18,7 @@
     "developerName": "MARSEL",
     "category": "Productivity",
     "capabilities": ["Read", "Analyze"],
-    "websiteURL": "https://github.com/atalanrafael-jpg/Ro-app",
+    "websiteURL": "https://github.com/atalanrafael-jpg/MARSEL-Ro-app",
     "defaultPrompt": [
       "Audit RO App orders for duplicate or missing fields.",
       "Check RO App connector readiness without exposing secrets.",
