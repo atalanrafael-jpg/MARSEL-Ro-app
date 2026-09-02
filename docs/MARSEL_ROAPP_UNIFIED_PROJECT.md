@@ -4,7 +4,7 @@
 
 `MARSEL ROAPP` использует один GitHub repository как единый технический проект:
 
-`atalanrafael-jpg/Ro-app`
+`atalanrafael-jpg/MARSEL-Ro-app`
 
 ## Единый контур
 
@@ -16,15 +16,15 @@ Repository + Issues + Pull Requests + Actions + Evidence + Production Gates
 
 ## Точки входа
 
-- Repository: https://github.com/atalanrafael-jpg/Ro-app
-- Issues: https://github.com/atalanrafael-jpg/Ro-app/issues
-- Pull Requests: https://github.com/atalanrafael-jpg/Ro-app/pulls
-- Actions: https://github.com/atalanrafael-jpg/Ro-app/actions
-- Control Plane: https://github.com/atalanrafael-jpg/Ro-app/blob/main/docs/MARSEL_ROAPP_CONTROL_PLANE.md
-- Production Gates: https://github.com/atalanrafael-jpg/Ro-app/blob/main/docs/MARSEL-PRODUCTION-GO-LIVE-GATES.md
-- Write Gate: https://github.com/atalanrafael-jpg/Ro-app/blob/main/docs/WRITE-GATE.md
-- Task Registry: https://github.com/atalanrafael-jpg/Ro-app/blob/main/docs/MARSEL_ROAPP_TASK_REGISTRY.md
-- Unified Control Issue: https://github.com/atalanrafael-jpg/Ro-app/issues/92
+- Repository: https://github.com/atalanrafael-jpg/MARSEL-Ro-app
+- Issues: https://github.com/atalanrafael-jpg/MARSEL-Ro-app/issues
+- Pull Requests: https://github.com/atalanrafael-jpg/MARSEL-Ro-app/pulls
+- Actions: https://github.com/atalanrafael-jpg/MARSEL-Ro-app/actions
+- Control Plane: https://github.com/atalanrafael-jpg/MARSEL-Ro-app/blob/main/docs/MARSEL_ROAPP_CONTROL_PLANE.md
+- Production Gates: https://github.com/atalanrafael-jpg/MARSEL-Ro-app/blob/main/docs/MARSEL-PRODUCTION-GO-LIVE-GATES.md
+- Write Gate: https://github.com/atalanrafael-jpg/MARSEL-Ro-app/blob/main/docs/WRITE-GATE.md
+- Task Registry: https://github.com/atalanrafael-jpg/MARSEL-Ro-app/blob/main/docs/MARSEL_ROAPP_TASK_REGISTRY.md
+- Unified Control Issue: https://github.com/atalanrafael-jpg/MARSEL-Ro-app/issues/92
 
 ## Правила
 
