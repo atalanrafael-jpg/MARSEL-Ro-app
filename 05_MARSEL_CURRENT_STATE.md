@@ -9,9 +9,9 @@
 MARSEL/ROAPP unified control plane with production-safety hardening, canonical GitHub governance, automated evidence orchestration, and fail-closed production gating.
 
 ## CONTROL CHECKPOINT
-Current `main` checkpoint: `ec74ed92f5f4f203d7bb69748d286242bb8542c2`.
+Current `main` checkpoint: `7fa5d296e595bfe7fb51309a92a284794fe3334c`.
 
-Since the previous documented checkpoint `0df6aae4bc465407e93e94b48846ffb7d6b48aaf`, `main` is 16 commits ahead and contains the latest canonical repository-identity, governance, MCP workflow, smoke-test, registry, and verifier corrections. A fresh Unified Control Plane result for this exact checkpoint is still required before any readiness conclusion.
+The previous documented checkpoint `ec74ed92f5f4f203d7bb69748d286242bb8542c2` is no longer the current `main` HEAD. `main` has advanced to `7fa5d296e595bfe7fb51309a92a284794fe3334c` with the latest documented warehouse-implementation alignment. A fresh Unified Control Plane result for this exact checkpoint is still required before any readiness conclusion.
 
 ## SYSTEM MODEL
 **MARSEL = business contour + ROAPP = technical contour → one unified system → one canonical `main` control plane.**
@@ -19,9 +19,9 @@ Since the previous documented checkpoint `0df6aae4bc465407e93e94b48846ffb7d6b48a
 ## VERIFIED LIVE / REPOSITORY FACTS
 - Canonical repository: `atalanrafael-jpg/MARSEL-Ro-app`.
 - The repository is public, active, and `main` is the default branch.
-- The current `main` HEAD is `ec74ed92f5f4f203d7bb69748d286242bb8542c2`.
+- The current `main` HEAD is `7fa5d296e595bfe7fb51309a92a284794fe3334c`.
 - Recent verified changes include canonical repository-identity corrections, MCP workflow alignment, RO App smoke-test configuration alignment, and MARSEL ROAPP workflow/project registry updates.
-- GitHub Actions are executing against the current HEAD; at least the `MARSEL Language Quality` push run is currently `in_progress`.
+- The latest observed GitHub Actions activity includes a `MARSEL Production Gate` run on `main` at commit `7fa5d296e595bfe7fb51309a92a284794fe3334c`; that observed run concluded `skipped`.
 - Production Gate remains fail-closed and production WRITE remains disabled.
 - Historical RO App evidence remains valid only for the runs that produced it.
 - The latest verified warehouse diagnostic tested the documented `/v2/warehouse/` forms and received HTTP 404; this does not authorize promotion of any undocumented compatibility route.
@@ -51,6 +51,7 @@ Since the previous documented checkpoint `0df6aae4bc465407e93e94b48846ffb7d6b48a
 - Gmail OAuth user-authorized verification is not complete.
 - Official RO App MCP authorization is not complete.
 - Credential-exposure remediation tracked by Issue #23 is not closed by direct evidence.
+- `main` branch protection is not enabled according to the current GitHub branch metadata; required status checks are currently off.
 - Production WRITE is not authorized.
 
 ## SAFETY
@@ -68,8 +69,9 @@ Since the previous documented checkpoint `0df6aae4bc465407e93e94b48846ffb7d6b48a
 6. Complete Gmail OAuth read-only user authorization test.
 7. Complete official RO App MCP authorization verification.
 8. Complete credential-exposure remediation evidence for Issue #23.
-9. Reconcile governance/remediation PRs against canonical `main`.
-10. Only after all required evidence passes: evaluate production safety gate; production WRITE remains disabled until explicit authorization.
+9. Enable and verify appropriate `main` branch protection/status checks; account-level controls cannot be changed by the current GitHub connector surface.
+10. Reconcile governance/remediation PRs against canonical `main`.
+11. Only after all required evidence passes: evaluate production safety gate; production WRITE remains disabled until explicit authorization.
 
 ## REQUIRED UPDATE RULE
 After every material change:
