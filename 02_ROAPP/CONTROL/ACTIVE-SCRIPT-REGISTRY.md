@@ -1,6 +1,6 @@
 # MARSEL / Ro App — Active Script Registry
 
-Дата контрольной ревизии: 2026-08-24
+Дата контрольной ревизии: 2026-09-02
 Ветка: `main`
 
 ## 1. ACTIVE / CORE — фактически вызывается Unified Control Plane
@@ -12,7 +12,7 @@
 | Data quality | `scripts/marsel_data_quality_v22_readonly.py` | ACTIVE |
 | Entity audit | `scripts/marsel_entity_audit_v20_35.py` | ACTIVE |
 | Product collision | `scripts/marsel_product_code_collision_audit_v22_3.py` | ACTIVE |
-| Warehouse contract | `scripts/marsel_warehouse_contract_v20_47.py` | ACTIVE |
+| Warehouse contract | `scripts/marsel_warehouse_contract_v20_48.py` | ACTIVE |
 
 Источник истины для ACTIVE-набора: `.github/workflows/marsel-unified-control-plane.yml` на `main`.
 
