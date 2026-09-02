@@ -1,180 +1,115 @@
-# MARSEL / ROAPP — ЕДИНАЯ КАНОНИЧЕСКАЯ СТРУКТУРА
+# MARSEL / ROAPP — CANONICAL STRUCTURE
 
-Дата ревизии: 2026-08-22  
-Ветка: `main`
+> Historical document normalized on 2026-09-02. Current truth is the latest `main` state and `docs/MARSEL-UNIFIED-MASTER-2026-09-02.md`.
 
-## 1. Единая система
+## 1. Unified system
 
-`MARSEL` и `ROAPP` — один продукт и один исходный контур: `atalanrafael-jpg/Ro-app`.
+`MARSEL` and `ROAPP` are one system and one source-of-truth chain.
 
-- MARSEL — бизнес-контур.
-- ROAPP — технологический контур: API, данные, интеграции, автоматизация, MCP и CI/CD.
-- `main` — каноническая ветка.
-- Параллельные бизнес- и технические проекты не считаются отдельными источниками истины.
+- MARSEL — business contour.
+- ROAPP — technical contour: API, data, integrations, automation, MCP and CI/CD.
+- Canonical repository: `atalanrafael-jpg/MARSEL-Ro-app`.
+- Canonical branch: `main`.
+- Historical material: `старые данные/`.
 
-## 2. Единственная точка live-аудита RO App
-Дата контрольной ревизии: 2026-08-21
-Ветка: `main`
+## 2. Canonical live audit
 
-## 1. Единственная точка live-аудита Ro App
+`.github/workflows/marsel-unified-control-plane.yml` is the single canonical live RO App audit path.
 
-`.github/workflows/marsel-unified-control-plane.yml`
+Order:
 
-Порядок выполнения:
+1. canonical structure self-check;
+2. secret/configuration checks;
+3. API inventory — READ ONLY;
+4. data quality — READ ONLY;
+5. entity audit — READ ONLY;
+6. product-code collision review — READ ONLY/advisory;
+7. warehouse contract audit — READ ONLY;
+8. unified safety/quality gate;
+9. evidence artifact.
 
-1. Canonical structure self-check
-2. RO App secret presence check
-3. API inventory — READ ONLY
-4. Data quality — READ ONLY
-5. Entity audit — READ ONLY
-6. Product-code collision review — READ ONLY / advisory
-6. Product-code collision review — READ ONLY
-7. Warehouse contract audit — READ ONLY
-8. Unified safety/quality gate
-9. Unified evidence artifact
-10. Artifact upload
+Other workflows may perform distinct engineering, security, MCP, evidence or production-gate responsibilities, but must not create a second independent live RO App audit path.
 
-Другие workflow не должны выполнять самостоятельный live-аудит RO App.
+## 3. Active runtime components
 
-## 3. Канонические runtime-компоненты
-
-- `scripts/marsel_canonical_self_check.py` — structural self-check.
-- `scripts/marsel_api_inventory_v20_32.py` — API inventory.
-- `scripts/marsel_data_quality_v22_readonly.py` — data quality.
-- `scripts/marsel_entity_audit_v20_35.py` — entity audit.
-- `scripts/marsel_product_code_collision_audit_v22_1.py` — advisory collision review.
-- `scripts/marsel_warehouse_contract_v20_36.py` — warehouse contract audit.
-- `scripts/marsel_api_v2_probe_v1.py` — canonical read-only probe.
-- `scripts/marsel_api_v2_canonical_registry_v1.py` — API evidence/registry support.
-
-Старые versioned auditors сохраняются только как исторический материал и не подключаются к live Control Plane.
-
-## 2. Фактически используемые runtime-компоненты Unified Control Plane
-
-Имена ниже сверены с текущим `.github/workflows/marsel-unified-control-plane.yml` на `main`.
+The active set is determined by the current workflow on `main`, not by historical filenames. Current documented components include:
 
 - `scripts/marsel_canonical_self_check.py`
 - `scripts/marsel_api_inventory_v20_32.py`
 - `scripts/marsel_data_quality_v22_readonly.py`
 - `scripts/marsel_entity_audit_v20_35.py`
-- `scripts/marsel_product_code_collision_audit_v22_1.py`
-- `scripts/marsel_warehouse_contract_v20_36.py`
-
-Поддержка/API registry:
-
+- `scripts/marsel_product_code_collision_audit_v22_3.py`
+- `scripts/marsel_warehouse_contract_v20_47.py`
 - `scripts/marsel_api_v2_probe_v1.py`
 - `scripts/marsel_api_v2_canonical_registry_v1.py`
 
-Support runtime:
+Internal dependencies with older version numbers remain active until their dependency chain is refactored and verified. Version number alone is not grounds for deletion.
 
-- `scripts/generate_drafts.py`
-
-## 3. Важное правило версий
-
-Имя файла и внутренняя версия скрипта являются разными атрибутами. Нельзя объявлять скрипт версией `20.48`, если фактический файл на `main` содержит другую внутреннюю версию. На контрольную дату warehouse-файл называется `marsel_warehouse_contract_v20_36.py`, а его внутренний отчёт содержит `version: 20.45`. Это зафиксировано как технический debt до отдельного version-normalization commit.
-
-## 4. Единая прикладная структура
+## 4. Repository structure
 
 ```text
-Ro-app/
-├── app/                 # application runtime
-├── ai_service/          # AI service layer
-├── config/              # configuration and fixtures
-├── data/                # reference/catalog data
-├── docs/                # canonical documentation and contracts
-├── scripts/             # canonical + justified specialized checks
-├── docs/                # документация и контракты
-├── scripts/             # runtime/audit scripts
-├── tests/               # tests
-├── javascript/          # GPT integration
-├── typescript/          # GPT integration
-├── python/              # Python integration
-├── 02_ROAPP/CONTROL/    # control registries
-├── .github/workflows/   # CI + Unified Control Plane
-├── .agents/             # agent skills/contracts
-├── старые данные/       # historical material; not active
-└── requirements.txt     # Python dependencies
-```
-
-## 5. CI-разделение
-
-- `marsel-unified-control-plane.yml` — единственный RO App live-audit workflow.
-- `test.yml` — unit/compile/dependency validation; live RO App audit сюда не входит.
-- `language-quality.yml` — языковые проверки.
-- `generate-drafts.yml` — draft generation; не является READ-ONLY control plane.
-- `mcp-production.yml` — MCP-specific readiness checks.
-
-## 6. Обязательные safety invariants
-├── 02_ROAPP/CONTROL/    # контрольные реестры
-├── старые данные/       # архивные файлы; не источник active configuration
-├── .github/workflows/   # CI/CD
+MARSEL-Ro-app/
+├── app/
+├── ai_service/
+├── config/
+├── data/
+├── docs/
+├── scripts/
+├── tests/
+├── javascript/
+├── typescript/
+├── python/
+├── 02_ROAPP/CONTROL/
+├── .agents/
+├── .github/workflows/
+├── plugins/
+├── старые данные/
 └── requirements.txt
 ```
 
-## 5. CI/CD разделение
+## 5. CI/CD classification
 
-### CORE
+- `marsel-unified-control-plane.yml` — canonical live RO App audit.
+- `marsel-production-gate.yml` — fail-closed production gate.
+- `marsel-evidence-orchestrator.yml` — evidence orchestration.
+- `marsel-integration-health.yml` — integration health.
+- `marsel-live-probes.yml` — supporting live probes.
+- `marsel-secret-guard.yml` — security/secret checks.
+- `mcp-production.yml` — MCP-specific engineering checks.
+- `codeql.yml` — code security.
+- `language-quality.yml` — quality checks.
+- `test.yml` — general engineering tests; not the canonical live audit.
 
-- `marsel-unified-control-plane.yml` — единственный live Ro App audit.
-- `test.yml` — unit/integration test workflow; live Ro App audit не должен находиться внутри него.
-- `mcp-production.yml` — MCP production-readiness.
-
-### SUPPORT
-
-- `language-quality.yml` — language checks.
-- `generate-drafts.yml` — scheduled draft generation; это не READ-ONLY control plane и workflow имеет `issues: write`.
+Every workflow must have one documented responsibility in `02_ROAPP/CONTROL/ACTIVE-WORKFLOW-REGISTRY.md`.
 
 ## 6. Safety invariants
 
-Канонический live-контур обязан подтверждать:
+The canonical live audit must preserve:
 
 - `WRITE_REQUESTS_MADE=0`;
 - `RO_APP_DATA_MUTATED=false`;
 - `identifiers_guessed=false`;
-- отсутствие POST/PUT/PATCH/DELETE в live-аудите;
-- неполные или неподтверждённые live-данные = `REVIEW_REQUIRED`, никогда не `PASS`;
-- старый успешный запуск не заменяет новый запуск на текущем `main`;
-- секреты не хранятся в репозитории.
+- no POST/PUT/PATCH/DELETE in live audit paths;
+- incomplete/conflicting evidence = `REVIEW_REQUIRED`;
+- secrets absent from source, documentation, logs and artifacts;
+- current `main` evidence takes precedence over historical runs.
 
-## 7. Правила архива
+## 7. Archive policy
 
-`старые данные/` предназначена только для исторических файлов, устаревших snapshots и заменённых реализаций.
+`старые данные/` contains historical snapshots and superseded implementations. They are not active configuration.
 
-Архивные материалы не являются источником текущего состояния и не должны подключаться в production workflow без отдельной миграции и повторной проверки.
+A file is moved to archive only after dependency checks across workflows, tests, runtime imports, scripts and documentation. Historical Git history and evidence are preserved.
 
-Удаление исторических данных не производится, если их назначение нельзя подтвердить. В таком случае они остаются в архиве.
+## 8. Production readiness
 
-## 8. Критерий системной готовности
-
-Проект не объявляется полностью готовым только на основании наличия кода или успешного CI.
-
-Для production WRITE обязательны прямые evidence по:
+Production WRITE is disabled until direct evidence exists for:
 
 `backup/export → restore integrity → schema reconciliation → full READ-ONLY inventory → duplicate/orphan/reference analysis → dry-run → idempotency → rollback → controlled write → post-write verification`.
 
-До прохождения этих gate'ов production WRITE остаётся отключённым.
-- отсутствие guessed identifiers;
-- отсутствие POST/PUT/PATCH/DELETE в live-аудите;
-- неполные или неподтверждённые live-данные = `REVIEW_REQUIRED`, никогда не `PASS`;
-- старый успешный run не заменяет новый run на текущем `main`;
-- секреты не хранятся в репозитории.
+A green CI run or existing code is not sufficient evidence of production readiness.
 
-## 7. Legacy / archive policy
+## 9. Current verdict
 
-Старые GitHub Actions runs и Git history не удаляются.
+`REVIEW_REQUIRED / NO-GO FOR PRODUCTION WRITE`
 
-Файлы репозитория переводятся в `старые данные/` только после доказательства отсутствия зависимостей в:
-
-- active workflows;
-- tests;
-- runtime/imports;
-- documentation/contracts;
-- scripts invoked by other scripts.
-
-Сам факт более старого номера версии не является достаточным основанием для архивации.
-
-## 8. Критерий завершения
-
-Проект считается VERIFIED только после успешного Unified Control Plane на текущем `main`, полного evidence artifact и прохождения всех safety/data/entity/collision/warehouse gates.
-
-До этого итоговый статус: `REVIEW_REQUIRED`.
+Use `docs/MARSEL-UNIFIED-MASTER-2026-09-02.md` for the current priority order and remaining gates.
