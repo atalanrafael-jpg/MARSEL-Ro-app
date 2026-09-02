@@ -10,7 +10,7 @@ load_dotenv()
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 GITHUB_TOKEN = os.getenv("GH_PAT") or os.getenv("GITHUB_TOKEN")
-REPO = os.getenv("GITHUB_REPOSITORY", "atalanrafael-jpg/Ro-app")
+REPO = os.getenv("GITHUB_REPOSITORY", "atalanrafael-jpg/MARSEL-Ro-app")
 ISSUE_LABELS = ["ai/draft"]
 
 
@@ -60,7 +60,7 @@ def main():
     if not GITHUB_TOKEN:
         raise RuntimeError("Missing GH_PAT or GITHUB_TOKEN")
 
-    topic = os.getenv("AI_TOPIC", "Ideas for posts about Ro-app: features and community growth")
+    topic = os.getenv("AI_TOPIC", "Ideas for posts about MARSEL ROAPP: features and community growth")
     variants = generate_variants(topic, count=int(os.getenv("AI_VARIANTS", "3")))
     now = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
     title = f"AI Drafts: {topic} — {now}"
