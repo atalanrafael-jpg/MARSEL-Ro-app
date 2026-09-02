@@ -3,24 +3,26 @@
 **Role:** single living project checkpoint. Update after every material verified change.
 
 ## DATE
-2026-08-31
+2026-09-02
 
 ## CURRENT VERSION
 MARSEL/ROAPP unified control plane with production-safety hardening, canonical GitHub governance, automated evidence orchestration, and fail-closed production gating.
 
 ## CONTROL CHECKPOINT
-Current `main` checkpoint: `0df6aae4bc465407e93e94b48846ffb7d6b48aaf`.
+Current `main` checkpoint: `ec74ed92f5f4f203d7bb69748d286242bb8542c2`.
 
-The V20.47 warehouse diagnostic naming drift has been corrected and the superseded V20.47 script removed. A fresh Unified Control Plane run on this exact checkpoint remains required before any readiness conclusion.
+Since the previous documented checkpoint `0df6aae4bc465407e93e94b48846ffb7d6b48aaf`, `main` is 16 commits ahead and contains the latest canonical repository-identity, governance, MCP workflow, smoke-test, registry, and verifier corrections. A fresh Unified Control Plane result for this exact checkpoint is still required before any readiness conclusion.
 
 ## SYSTEM MODEL
 **MARSEL = business contour + ROAPP = technical contour → one unified system → one canonical `main` control plane.**
 
 ## VERIFIED LIVE / REPOSITORY FACTS
-- Repository `atalanrafael-jpg/Ro-app` is accessible through the connected GitHub integration.
+- Canonical repository: `atalanrafael-jpg/MARSEL-Ro-app`.
 - The repository is public, active, and `main` is the default branch.
-- The Unified Control Plane is configured for push to `main`, pull requests, manual dispatch, and a 6-hour schedule.
-- Production Gate is fail-closed and production WRITE remains disabled.
+- The current `main` HEAD is `ec74ed92f5f4f203d7bb69748d286242bb8542c2`.
+- Recent verified changes include canonical repository-identity corrections, MCP workflow alignment, RO App smoke-test configuration alignment, and MARSEL ROAPP workflow/project registry updates.
+- GitHub Actions are executing against the current HEAD; at least the `MARSEL Language Quality` push run is currently `in_progress`.
+- Production Gate remains fail-closed and production WRITE remains disabled.
 - Historical RO App evidence remains valid only for the runs that produced it.
 - The latest verified warehouse diagnostic tested the documented `/v2/warehouse/` forms and received HTTP 404; this does not authorize promotion of any undocumented compatibility route.
 
