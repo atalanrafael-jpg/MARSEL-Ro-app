@@ -1,0 +1,44 @@
+name: ReadMe Documentation Sync
+
+on:
+  pull_request:
+    paths:
+      - 'documentation/**'
+      - '.github/workflows/readme-sync.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'documentation/**'
+      - '.github/workflows/readme-sync.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  readme:
+    name: Validate and sync ReadMe docs
+    runs-on: ubuntu-latest
+    env:
+      README_API_KEY: ${{ secrets.README_API_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate ReadMe Markdown (dry run)
+        uses: readmeio/rdme@v10
+        with:
+          rdme: docs upload ./documentation --branch=stable --dry-run
+
+      - name: Sync docs to ReadMe
+        if: github.event_name != 'pull_request' && env.README_API_KEY != ''
+        uses: readmeio/rdme@v10
+        with:
+          rdme: docs upload ./documentation --branch=stable --key=${{ secrets.README_API_KEY }}
+
+      - name: ReadMe credentials gate
+        if: github.event_name != 'pull_request' && env.README_API_KEY == ''
+        run: |
+          echo 'README_API_KEY is not configured; ReadMe publish was intentionally skipped.'
+          echo 'Add the repository secret README_API_KEY before enabling production synchronization.'
