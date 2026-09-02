@@ -1,4 +1,4 @@
-# MARSEL / ROAPP — MASTER PROJECT CONTROL
+# MARSEL ROAPP — MASTER PROJECT CONTROL
 
 ## Purpose
 Единая контрольная точка проекта: техническое состояние RO App integration, качество данных, безопасность, бизнес-автоматизация и коммерческий контур MARSEL.
@@ -10,7 +10,7 @@
 - Current integration mode: READ-ONLY.
 - Production WRITE: DISABLED.
 - Canonical live audit workflow: `.github/workflows/marsel-unified-control-plane.yml`.
-- Canonical warehouse implementation: `scripts/marsel_warehouse_contract_v20_47.py`.
+- Canonical warehouse implementation: `scripts/marsel_warehouse_contract_v20_48.py`.
 - Historical implementations and snapshots belong in `старые данные/` and do not override current evidence.
 
 ## Evidence precedence
