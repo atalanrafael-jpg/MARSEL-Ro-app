@@ -71,15 +71,19 @@ Must prove `tested=true` and `reversible=true`, with enough metadata to identify
 
 ## Provenance requirements
 
-The intake SHOULD additionally include, where available:
+Each evidence object MUST additionally provide these provenance fields:
 
 - source system/environment identifier;
 - producing job/run identifier;
 - source commit or version;
 - evidence generation timestamp;
-- SHA-256 of each evidence file;
+- `sha256` integrity value;
 - operator or automation identity (non-secret identifier);
 - test scope and dataset/environment identifier.
+
+### Canonical SHA-256 convention
+
+The `sha256` value MUST be the SHA-256 digest of the evidence JSON after replacing its own `sha256` field with the empty string, serialized as UTF-8 JSON with `ensure_ascii=false`, lexicographically sorted object keys (`sort_keys=true`), and compact separators `(',', ':')`. This avoids a self-referential hash while making producer and validator calculations deterministic.
 
 These provenance fields identify evidence; they do not grant authorization.
 
