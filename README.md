@@ -35,7 +35,7 @@ A successful CI run, the existence of write methods, or documentation alone is n
 - `scripts/marsel_data_quality_v22_readonly.py`
 - `scripts/marsel_entity_audit_v20_35.py`
 - `scripts/marsel_product_code_collision_audit_v22_3.py`
-- `scripts/marsel_warehouse_contract_v20_47.py`
+- `scripts/marsel_warehouse_contract_v20_48.py`
 - `scripts/marsel_api_v2_probe_v1.py`
 - `scripts/marsel_api_v2_canonical_registry_v1.py`
 - `scripts/marsel_canonical_self_check.py`
