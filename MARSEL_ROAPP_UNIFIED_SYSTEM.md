@@ -1,22 +1,25 @@
 # MARSEL ROAPP — ЕДИНАЯ СИСТЕМА
 
-Дата контрольной ревизии: 2026-08-24
+Дата контрольной ревизии: 2026-09-02
 
-MARSEL и ROAPP — единая система ювелирной студии, а не независимые проекты.
+MARSEL и ROAPP — единая система Ювелирной студии MARSEL, а не независимые проекты.
 
 - MARSEL — бизнес-контур: клиенты, заказы, изделия, ремонт, производство, склад, материалы, финансы, продажи и маркетинг.
 - ROAPP — технологический контур той же системы: API, данные, интеграции, автоматизация, MCP и CI/CD.
-- `atalanrafael-jpg/Ro-app` — единый исходный контур.
-- `main` — каноническая ветка.
-- Единый источник истины запрещает параллельные MARSEL/ROAPP control planes и дублирующие live-аудиты.
+- Канонический GitHub repository: `atalanrafael-jpg/MARSEL-Ro-app`.
+- Каноническая ветка: `main`.
+- Канонический live audit control plane: `.github/workflows/marsel-unified-control-plane.yml`.
+- Исторические реализации находятся в `старые данные/` и не являются текущим источником истины.
 
 ## Canonical control plane
 
-`.github/workflows/marsel-unified-control-plane.yml` — единственный live RO App audit workflow.
+`.github/workflows/marsel-unified-control-plane.yml` — единственный канонический live RO App audit workflow. Вспомогательные workflow разрешены только для явно отличающихся инженерных, security или gate-функций и не должны создавать второй live audit path.
 
-Он последовательно выполняет READ-ONLY:
+Основная цепочка:
 
-`API inventory → data quality → entity audit → product-code review → warehouse contract → unified safety gate → evidence artifact`.
+`API inventory → data quality → entity audit → product-code review → warehouse contract → safety gate → evidence`
+
+Все live-аудиты RO App выполняются READ-ONLY. Идентификаторы не угадываются. Недостаточные или конфликтующие доказательства дают `REVIEW_REQUIRED`, а не `PASS`.
 
 ## Canonical implementations
 
@@ -29,30 +32,31 @@ MARSEL и ROAPP — единая система ювелирной студии,
 - `scripts/marsel_api_v2_canonical_registry_v1.py`
 - `scripts/marsel_canonical_self_check.py`
 
-Required internal API inventory dependencies are `v20_31` and `v20_29`; they are not legacy candidates until the dependency chain is refactored and verified.
-
-Старые versioned реализации находятся в `старые данные/` и не являются активным control plane.
+Внутренние зависимости API inventory `v20_31` и `v20_29` остаются активными до отдельного рефакторинга и повторной проверки; их нельзя удалять только из-за номера версии.
 
 ## Production safety
 
-**Production WRITE remains disabled.** Production mutations remain disabled until direct evidence exists for:
+**Production WRITE остаётся запрещённым.** До рассмотрения controlled write должны существовать прямые доказательства:
 
-`backup/export → restore integrity → schema reconciliation → READ-ONLY inventory → duplicate/orphan/reference analysis → dry-run → idempotency → rollback → controlled write → post-write verification`.
+`backup/export → restore integrity → schema reconciliation → full READ-ONLY inventory → duplicate/orphan/reference analysis → dry-run → idempotency → rollback → controlled write → post-write verification`
 
-Наличие write-методов в документации или клиенте не означает, что они выполнялись.
+Наличие write-методов, успешного CI или документации не является доказательством выполнения production WRITE или готовности к нему.
 
-## External verification gates
+## Current external gates
 
-Следующие состояния нельзя объявлять выполненными без прямого evidence из фактической среды:
+По последнему проверенному состоянию остаются открытыми:
 
-- Gmail OAuth live authorization;
-- официальный RO App MCP authorization;
-- production backup/restore;
-- warehouse contract completeness;
-- production data mutation/reconciliation.
+- backup/export и независимый restore/integrity test;
+- полнота текущего API/entity coverage;
+- официальный live warehouse-list contract;
+- классификация/актуальная reconciliation collision findings;
+- user-authorized Gmail OAuth read-only verification;
+- official RO App MCP authorization;
+- credential-exposure remediation evidence;
+- GitHub account/ruleset/security controls, которые требуют account-level проверки.
 
-## Current control rule
+## Control rule
 
-Каждая задача должна завершаться свежей проверкой. Старый успешный запуск не заменяет проверку текущего `main`.
+Каждая существенная задача проходит `OBSERVE → MEASURE → FIND → FIX → TEST → VERIFY → DOCUMENT → MONITOR`.
 
-`старые данные/` — только исторический архив; его содержимое не является текущим источником истины.
+Старые успешные запуски не заменяют свежую проверку текущего `main`. `DONE` допускается только при наличии прямого evidence.
