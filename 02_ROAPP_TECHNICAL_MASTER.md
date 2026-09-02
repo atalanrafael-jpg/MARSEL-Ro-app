@@ -3,16 +3,16 @@
 **Purpose:** canonical technical layer: API, data contract, integrations, development, security and production gates.
 
 ## 1. Current repository control
-- Repository: `atalanrafael-jpg/Ro-app`
+- Repository: `atalanrafael-jpg/MARSEL-Ro-app`
 - Canonical branch: `main`
-- At creation checkpoint, main commit: `4e5e37104389817d6fdad95bfdfa6aac9cb4c0b2`.
-- Current architecture already contains a Unified Control Plane; this document does not create a parallel architecture.
+- Current canonical checkpoint: 2026-09-02
+- The Unified Control Plane is the canonical live RO App audit path; this document does not create a parallel architecture.
 
 ## 2. API contract policy
 Only evidence from official documentation or successful live requests may be marked VERIFIED.
 For every endpoint record: method, path, auth, parameters, pagination, schema, errors, rate/limits, version, evidence date.
 
-### Verified live evidence currently available
+### Verified historical live evidence
 - RO App API base used by project: `https://api.roapp.io/v2`.
 - Bearer authentication is used by the project.
 - `GET /orders` has been live-tested successfully with HTTP 200 in READ-ONLY mode.
@@ -21,14 +21,15 @@ For every endpoint record: method, path, auth, parameters, pagination, schema, e
 
 ### Not verified / blocked
 - Full API completeness is not proven.
-- Warehouse live contract is NOT VERIFIED.
+- Warehouse live contract is NOT VERIFIED; documented `/v2/warehouse/` probes previously returned 404 while an undocumented compatibility route returned 200. The compatibility route is not promoted to official PASS.
 - Full backup/restore readiness is NOT VERIFIED.
-- Two entity checks remain blocked in the latest documented audit state.
-- Eleven product-code collision groups require classification; no automatic deletion is permitted.
+- Remaining entity checks require fresh evidence.
+- Product-code collision findings remain review-only; no automatic deletion is permitted.
 
 ## 3. MCP
-- MCP integration exists in the repository and has had CI validation documented.
-- Production WRITE remains blocked by safety policy until authorization, backup/restore and production gates are proven.
+- MCP integration exists in the repository and has CI validation documented.
+- Official live authorization remains an external verification gate.
+- Production WRITE remains blocked until authorization, backup/restore and production gates are proven.
 - Never place secrets in code, documentation, logs or artifacts.
 
 ## 4. Integration map
@@ -84,13 +85,4 @@ After WRITE:
 - Do not infer authorization from a successful CI job.
 
 ## 8. Canonical technical documents
-This master subsumes the intended roles of:
-- `ROAPP_API_CONTRACT.md`
-- `ROAPP_DATA_DICTIONARY.md` (technical portions)
-- `MARSEL_BACKUP_RESTORE.md`
-- `MARSEL_PRODUCTION_GATES.md`
-- `MARSEL_INTEGRATION_MAP.md`
-- `MARSEL_DEVELOPMENT_STANDARD.md`
-- `MARSEL_AUTOMATION_CATALOG.md`
-
-If individual files are later added, they must reference this master and must not contradict it.
+This master is authoritative for the technical contour. Supporting documents may specialize one topic, but must reference this master and must not contradict the current `main` state.
