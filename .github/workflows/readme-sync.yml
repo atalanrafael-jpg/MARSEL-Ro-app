@@ -26,10 +26,54 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate ReadMe frontmatter without credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          files = sorted(Path('documentation').rglob('*.md'))
+          if not files:
+              raise SystemExit('No documentation/*.md files found')
+
+          errors = []
+          for path in files:
+              text = path.read_text(encoding='utf-8')
+              if not text.startswith('---\n'):
+                  errors.append(f'{path}: missing YAML frontmatter opening delimiter')
+                  continue
+              end = text.find('\n---\n', 4)
+              if end == -1:
+                  errors.append(f'{path}: missing YAML frontmatter closing delimiter')
+                  continue
+              frontmatter = text[4:end]
+              if not re.search(r'^title:\s*.+$', frontmatter, re.MULTILINE):
+                  errors.append(f'{path}: missing title')
+              if not re.search(r'^category:\s*$', frontmatter, re.MULTILINE):
+                  errors.append(f'{path}: missing category block')
+              if not re.search(r'^\s+uri:\s*.+$', frontmatter, re.MULTILINE):
+                  errors.append(f'{path}: missing category.uri')
+
+          if errors:
+              print('\n'.join(errors))
+              raise SystemExit(1)
+
+          print(f'Validated ReadMe frontmatter: {len(files)} Markdown file(s)')
+          PY
+
       - name: Validate ReadMe Markdown (dry run)
+        if: env.README_API_KEY != ''
         uses: readmeio/rdme@v10
         with:
-          rdme: docs upload ./documentation --dry-run
+          rdme: docs upload ./documentation --dry-run --key=${{ secrets.README_API_KEY }}
+
+      - name: ReadMe dry-run gate
+        if: env.README_API_KEY == ''
+        run: |
+          echo 'README_API_KEY is not configured; credentialed ReadMe dry-run was intentionally skipped.'
+          echo 'Static frontmatter validation passed. Add the repository secret README_API_KEY to enable credentialed validation and publication.'
 
       - name: Sync docs to ReadMe
         if: github.event_name != 'pull_request' && env.README_API_KEY != ''
