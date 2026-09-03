@@ -36,6 +36,8 @@ jobs:
     name: Validate official ROAPP documentation discovery
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    outputs:
+      openapi_available: ${{ steps.contract.outputs.openapi_available }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -44,6 +46,7 @@ jobs:
         run: python scripts/marsel_official_roapp_discovery_v1.py
 
       - name: Verify official ROAPP documentation index
+        id: contract
         shell: bash
         run: |
           set -euo pipefail
@@ -61,9 +64,13 @@ jobs:
               item = sources.get(url, {})
               print(f"{url}: status={item.get('http_status', 'unavailable')}")
 
-          if data.get("openapi_available") is not True:
+          available = data.get("openapi_available") is True
+          with Path("$GITHUB_OUTPUT").open("a", encoding="utf-8") as output:
+              output.write(f"openapi_available={'true' if available else 'false'}\n")
+
+          if not available:
               print("OPENAPI_SOURCE_UNAVAILABLE: the public RO App ReadMe publication does not currently expose openapi.json/openapi.yaml.")
-              print("The pipeline will not fabricate or upload a replacement specification.")
+              print("The pipeline will skip synchronization and will not fabricate or upload a replacement specification.")
           else:
               print("OPENAPI_SOURCE_AVAILABLE=True")
           PY
@@ -80,17 +87,47 @@ jobs:
   sync-readme:
     name: Sync validated ROAPP OpenAPI to ReadMe
     needs: validate-roapp-contract
-    if: ${{ needs.validate-roapp-contract.result == 'success' && github.event_name != 'pull_request' }}
+    if: ${{ needs.validate-roapp-contract.result == 'success' && needs.validate-roapp-contract.outputs.openapi_available == 'true' && github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Refuse sync without an official OpenAPI source
+      - name: Download official OpenAPI JSON
         shell: bash
         run: |
           set -euo pipefail
-          echo "ROAPP OpenAPI synchronization is blocked: the official public ReadMe OpenAPI JSON/YAML endpoints are unavailable."
-          echo "No substitute or generated specification will be uploaded automatically."
-          exit 1
+          mkdir -p .artifacts
+          curl --fail --location --retry 3 --retry-all-errors \
+            --header 'User-Agent: MARSEL-ROApp-CI/1.0' \
+            --output .artifacts/roapp.openapi.json \
+            "$ROAPP_OPENAPI_JSON_URL"
+
+      - name: Validate downloaded OpenAPI document
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path('.artifacts/roapp.openapi.json')
+          data = json.loads(p.read_text(encoding='utf-8'))
+          if not isinstance(data, dict) or not str(data.get('openapi', '')).strip():
+              raise SystemExit('Downloaded document is not a valid OpenAPI JSON document')
+          if not isinstance(data.get('paths'), dict) or not data['paths']:
+              raise SystemExit('Downloaded OpenAPI document contains no paths')
+          print(f"OpenAPI version: {data['openapi']}")
+          print(f"Title: {data.get('info', {}).get('title', '<missing>')}")
+          print(f"Paths: {len(data['paths'])}")
+          PY
+
+      - name: Validate OpenAPI with official ReadMe CLI
+        uses: readmeio/rdme@v10
+        with:
+          rdme: openapi validate .artifacts/roapp.openapi.json
+
+      - name: Sync OpenAPI to ReadMe
+        uses: readmeio/rdme@v10
+        with:
+          rdme: openapi upload .artifacts/roapp.openapi.json --key=${{ secrets.README_API_KEY }} --slug=${{ secrets.README_API_DEFINITION_SLUG }}
