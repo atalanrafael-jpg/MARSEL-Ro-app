@@ -1,0 +1,110 @@
+name: MARSEL Backup Evidence Producer
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["MARSEL Unified Control Plane"]
+    types: [completed]
+    branches: [main]
+
+concurrency:
+  group: marsel-backup-evidence-producer-${{ github.event.workflow_run.head_sha || github.sha }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  backup-evidence:
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: python -m pip install --disable-pip-version-check --no-input "httpx==0.28.1"
+
+      - name: Download canonical API inventory
+        if: ${{ github.event_name == 'workflow_run' }}
+        uses: actions/download-artifact@v8
+        with:
+          run-id: ${{ github.event.workflow_run.id }}
+          name: marsel-unified-evidence
+          path: evidence/upstream
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Locate canonical inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f evidence/upstream/marsel-unified-api-inventory.json ]; then
+            cp evidence/upstream/marsel-unified-api-inventory.json marsel-api-inventory-v20-31.json
+          elif [ -f marsel-api-inventory-v20-31.json ]; then
+            true
+          else
+            echo 'Canonical API inventory is required; no fallback or synthetic inventory is allowed.'
+            exit 1
+          fi
+
+      - name: Verify RO App secret
+        env:
+          ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+        shell: bash
+        run: test -n "$ROAPP_API_KEY"
+
+      - name: Run full READ-ONLY export
+        timeout-minutes: 25
+        env:
+          ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+          ROAPP_API_BASE: https://api.roapp.io/v2
+          MARSEL_INVENTORY_INPUT: marsel-api-inventory-v20-31.json
+          MARSEL_FULL_BACKUP_OUTPUT: marsel-full-readonly-backup-v1.json
+          MARSEL_MAX_PAGES_PER_ENDPOINT: "10000"
+          ROAPP_PAGE_SIZE: "50"
+          ROAPP_MIN_REQUEST_INTERVAL: "0.34"
+        run: python scripts/marsel_full_readonly_backup_v1.py
+
+      - name: Build canonical backup evidence
+        env:
+          MARSEL_FULL_BACKUP_INPUT: marsel-full-readonly-backup-v1.json
+          MARSEL_BACKUP_EVIDENCE_OUTPUT: backup_evidence.json
+          MARSEL_EVIDENCE_ENVIRONMENT: staging
+        run: python scripts/marsel_backup_evidence_v1.py
+
+      - name: Verify evidence contract and mutation safety
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path('backup_evidence.json')
+          data = json.loads(p.read_text(encoding='utf-8'))
+          assert data.get('status') == 'PASS'
+          assert data.get('readonly') is True
+          assert data.get('write_requests_made') == 0
+          assert data.get('ro_app_data_mutated') is False
+          assert data.get('source_system') == 'roapp'
+          assert data.get('producer_identity')
+          assert data.get('sha256')
+          print('BACKUP_EVIDENCE=PASS')
+          print('WRITE_REQUESTS_MADE=0')
+          print('RO_APP_DATA_MUTATED=False')
+          PY
+
+      - name: Upload backup evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: marsel-backup-evidence
+          path: |
+            backup_evidence.json
+            marsel-full-readonly-backup-v1.json
+          if-no-files-found: error
+          retention-days: 90
