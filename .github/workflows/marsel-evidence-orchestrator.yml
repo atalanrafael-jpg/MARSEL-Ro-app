@@ -32,7 +32,7 @@ jobs:
           path: evidence/unified
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build evidence inventory
+      - name: Build supporting evidence inventory
         env:
           UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
           UPSTREAM_SHA: ${{ github.event.workflow_run.head_sha }}
@@ -44,43 +44,26 @@ jobs:
           from datetime import datetime, timezone
           from pathlib import Path
 
-          required = [
-              'backup_evidence.json',
-              'restore_evidence.json',
-              'wix_roapp_reconciliation.json',
-              'marsel-unified-evidence.json',
-              'duplicate_reference_evidence.json',
-              'write_dry_run.json',
-              'idempotency_evidence.json',
-              'rollback_evidence.json',
-          ]
-
-          event = os.environ.get('EVENT_NAME')
+          # This workflow is a supporting inventory/indexer only.
+          # The authoritative 8-file production evidence gate remains
+          # scripts/marsel_evidence_builder_v1.py + marsel-production-gate.yml.
           candidates = list(Path('evidence').rglob('*.json'))
-          by_name = {p.name: p for p in candidates}
           entries = []
-          missing = []
           invalid = []
           unsafe = []
 
-          for name in required:
-              p = by_name.get(name)
-              if not p:
-                  missing.append(name)
-                  entries.append({'name': name, 'status': 'MISSING'})
-                  continue
-
+          for p in sorted(candidates):
               raw = p.read_bytes()
               try:
                   data = json.loads(raw)
               except Exception as exc:
-                  invalid.append(name)
-                  entries.append({'name': name, 'status': 'INVALID_JSON', 'error': str(exc)})
+                  invalid.append(str(p))
+                  entries.append({'path': str(p), 'status': 'INVALID_JSON', 'error': str(exc)})
                   continue
 
               if not isinstance(data, dict):
-                  invalid.append(name)
-                  entries.append({'name': name, 'status': 'INVALID_SCHEMA'})
+                  invalid.append(str(p))
+                  entries.append({'path': str(p), 'status': 'INVALID_SCHEMA'})
                   continue
 
               safety_errors = []
@@ -90,14 +73,12 @@ jobs:
                   safety_errors.append('write_requests_made must be 0')
               if data.get('ro_app_data_mutated') is not False:
                   safety_errors.append('ro_app_data_mutated must be false')
-
-              status = 'UNSAFE' if safety_errors else 'PRESENT'
               if safety_errors:
-                  unsafe.append(name)
+                  unsafe.append(str(p))
 
               entries.append({
-                  'name': name,
-                  'status': status,
+                  'path': str(p),
+                  'status': 'UNSAFE' if safety_errors else 'PRESENT',
                   'sha256': hashlib.sha256(raw).hexdigest(),
                   'readonly': data.get('readonly'),
                   'write_requests_made': data.get('write_requests_made'),
@@ -107,20 +88,19 @@ jobs:
               })
 
           report = {
-              'schema': 'marsel-evidence-index/v2',
+              'schema': 'marsel-supporting-evidence-index/v3',
               'system': 'MARSEL Evidence Orchestrator',
+              'role': 'SUPPORTING_INDEXER_NOT_PRODUCTION_GATE',
               'generated_at': datetime.now(timezone.utc).isoformat(),
-              'event': event,
+              'event': os.environ.get('EVENT_NAME'),
               'upstream_run_id': os.environ.get('UPSTREAM_RUN_ID') or None,
               'upstream_sha': os.environ.get('UPSTREAM_SHA') or os.environ.get('GITHUB_SHA'),
-              'required_count': len(required),
               'present_count': sum(x['status'] == 'PRESENT' for x in entries),
-              'missing': missing,
               'invalid': invalid,
               'unsafe': unsafe,
-              'trigger_policy_error': None,
-              'entries': entries,
               'production_write_enabled': False,
+              'production_gate_authority': 'marsel-production-gate.yml',
+              'entries': entries,
           }
           Path('evidence').mkdir(exist_ok=True)
           Path('evidence/evidence-index.json').write_text(
@@ -129,7 +109,7 @@ jobs:
           print(json.dumps(report, ensure_ascii=False, indent=2))
           PY
 
-      - name: Upload evidence index
+      - name: Upload supporting evidence index
         if: always()
         uses: actions/upload-artifact@v7
         with:
@@ -138,22 +118,19 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
-      - name: Fail closed when production evidence is incomplete or unsafe
+      - name: Fail closed on unsafe supporting evidence
         run: |
           python - <<'PY'
           import json
           from pathlib import Path
           report = json.loads(Path('evidence/evidence-index.json').read_text(encoding='utf-8'))
-          problems = []
-          if report['missing']:
-              problems.append('MISSING=' + ','.join(report['missing']))
-          if report['invalid']:
-              problems.append('INVALID=' + ','.join(report['invalid']))
-          if report['unsafe']:
-              problems.append('UNSAFE=' + ','.join(report['unsafe']))
-          if problems:
-              print('PRODUCTION_EVIDENCE=BLOCKED')
-              print('\n'.join(problems))
+          if report['invalid'] or report['unsafe']:
+              print('SUPPORTING_EVIDENCE=INVALID_OR_UNSAFE')
+              if report['invalid']:
+                  print('INVALID=' + ','.join(report['invalid']))
+              if report['unsafe']:
+                  print('UNSAFE=' + ','.join(report['unsafe']))
               raise SystemExit(1)
-          print('PRODUCTION_EVIDENCE=COMPLETE_AND_SAFE')
+          print('SUPPORTING_EVIDENCE=SAFE')
+          print('PRODUCTION_GATE_AUTHORITY=marsel-production-gate.yml')
           PY
