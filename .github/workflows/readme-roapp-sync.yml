@@ -85,7 +85,7 @@ jobs:
   sync-readme:
     name: Sync validated ROAPP OpenAPI to ReadMe
     needs: validate-roapp-contract
-    if: ${{ needs.validate-roapp-contract.result == 'success' && github.event_name != 'pull_request' && secrets.README_API_KEY != '' && secrets.README_API_DEFINITION_SLUG != '' }}
+    if: ${{ needs.validate-roapp-contract.result == 'success' && github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -101,6 +101,16 @@ jobs:
             --header 'User-Agent: MARSEL-ROApp-CI/1.0' \
             --output .artifacts/roapp.openapi.json \
             "$ROAPP_OPENAPI_JSON_URL"
+
+      - name: Verify ReadMe sync configuration
+        shell: bash
+        env:
+          README_API_KEY: ${{ secrets.README_API_KEY }}
+          README_API_DEFINITION_SLUG: ${{ secrets.README_API_DEFINITION_SLUG }}
+        run: |
+          set -euo pipefail
+          test -n "$README_API_KEY" || { echo "README_API_KEY is not configured"; exit 1; }
+          test -n "$README_API_DEFINITION_SLUG" || { echo "README_API_DEFINITION_SLUG is not configured"; exit 1; }
 
       - name: Sync OpenAPI to ReadMe
         uses: readmeio/rdme@v10
