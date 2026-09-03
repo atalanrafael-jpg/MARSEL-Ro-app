@@ -21,7 +21,7 @@
 | Data quality | `scripts/marsel_data_quality_v22_readonly.py` | CANONICAL |
 | Entity audit | `scripts/marsel_entity_audit_v20_35.py` | CANONICAL |
 | Product-code review | `scripts/marsel_product_code_collision_audit_v22_3.py` | CANONICAL / ADVISORY |
-| Warehouse contract | `scripts/marsel_warehouse_contract_v20_47.py` | CANONICAL |
+| Warehouse contract | `scripts/marsel_warehouse_contract_v20_48.py` | CANONICAL |
 | API v2 probe | `scripts/marsel_api_v2_probe_v1.py` | CANONICAL |
 | API v2 registry | `scripts/marsel_api_v2_canonical_registry_v1.py` | CANONICAL |
 | Structural self-check | `scripts/marsel_canonical_self_check.py` | CANONICAL |
@@ -39,7 +39,7 @@ Official documentation references recorded by the repository:
 
 The repository records the RO App public API as REST with Bearer authentication and a documented limit of up to 3 requests/second. These claims are retained as repository evidence, but their current official status must be revalidated before being used as a production contract.
 
-**Important date correction:** the previous registry stated that an older API version remained supported until September 1, 2026. The current audit date is September 2, 2026, so that statement is now stale. It must not be treated as evidence of current compatibility. Current version support remains `REVIEW_REQUIRED` until verified against the live official RO App documentation.
+**Important date correction:** the previous registry stated that an older API version remained supported until September 1, 2026. The current audit date is September 3, 2026, so that statement is now stale. It must not be treated as evidence of current compatibility. Current version support remains `REVIEW_REQUIRED` until verified against the live official RO App documentation.
 
 The canonical production audit remains READ-ONLY. No POST/PATCH/DELETE operation is executed by the canonical audit workflow.
 
