@@ -1,0 +1,54 @@
+name: MARSEL Location by ID Contract V20.49
+
+on:
+  push:
+    paths:
+      - 'scripts/marsel_location_by_id_contract_v20_49.py'
+      - '.github/workflows/marsel-location-by-id-v20-49.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnostic:
+    runs-on: ubuntu-latest
+    env:
+      ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+      ROAPP_API_BASE: https://api.roapp.io/v2
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Verify RO App secret without disclosure
+        shell: bash
+        run: |
+          test -n "$ROAPP_API_KEY"
+
+      - name: Run location-by-id contract diagnostic
+        run: python scripts/marsel_location_by_id_contract_v20_49.py
+
+      - name: Verify read-only invariant
+        shell: bash
+        run: |
+          test -f marsel-location-by-id-contract-v20-49.json
+          python - <<'PY'
+          import json
+          p=json.load(open('marsel-location-by-id-contract-v20-49.json', encoding='utf-8'))
+          assert p.get('readonly') is True
+          assert p.get('write_requests_made') == 0
+          assert p.get('ro_app_data_mutated') is False
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: marsel-location-by-id-v20-49-evidence
+          path: marsel-location-by-id-contract-v20-49.json
+          if-no-files-found: error
