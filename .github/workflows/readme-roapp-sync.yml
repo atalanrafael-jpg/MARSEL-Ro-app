@@ -52,6 +52,7 @@ jobs:
           set -euo pipefail
           python - <<'PY'
           import json
+          import os
           from pathlib import Path
 
           p = Path("marsel-official-roapp-discovery-v1.json")
@@ -65,7 +66,7 @@ jobs:
               print(f"{url}: status={item.get('http_status', 'unavailable')}")
 
           available = data.get("openapi_available") is True
-          with Path("$GITHUB_OUTPUT").open("a", encoding="utf-8") as output:
+          with Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as output:
               output.write(f"openapi_available={'true' if available else 'false'}\n")
 
           if not available:
