@@ -1,0 +1,32 @@
+name: Agent Runtime Verification
+
+on:
+  pull_request:
+    paths:
+      - 'agent_runtime/**'
+      - 'tests/test_agent_*'
+      - '.github/workflows/agent-runtime-verification.yml'
+  push:
+    branches:
+      - feature/master-agent-control-plane
+    paths:
+      - 'agent_runtime/**'
+      - 'tests/test_agent_*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  agent-runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install test dependencies
+        run: python -m pip install --disable-pip-version-check --no-input pytest
+      - name: Run agent runtime tests
+        run: python -m pytest -q tests/test_agent_runtime.py tests/test_agent_controls.py tests/test_tool_registry.py tests/test_orchestrator.py
