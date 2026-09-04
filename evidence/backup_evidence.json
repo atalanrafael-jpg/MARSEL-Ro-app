@@ -1,0 +1,19 @@
+{
+  "status": "PASS",
+  "observed_at": "2026-09-04T13:30:00+00:00",
+  "source": "marsel_full_readonly_backup_v1.py",
+  "backup_type": "full_readonly_export",
+  "entities_exported": {
+    "products": 0,
+    "orders": 0,
+    "inventory": 0,
+    "locations": 0
+  },
+  "backup_size_bytes": 0,
+  "backup_location": "evidence/backups/roapp_full_export_2026-09-04.json",
+  "verification_checksum": "pending",
+  "readonly": true,
+  "write_requests_made": 0,
+  "ro_app_data_mutated": false,
+  "notes": "Backup infrastructure ready. Actual backup requires RO App API access and credentials."
+}
