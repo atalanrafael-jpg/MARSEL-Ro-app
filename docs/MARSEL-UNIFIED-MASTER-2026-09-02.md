@@ -55,7 +55,7 @@ Direct full permitted backup/export and an independently verified restore/integr
 Reconcile the current authoritative API documentation against the canonical registry and verify required entities with safe live GETs.
 
 ### P0.3 Warehouse contract
-The documented `/v2/warehouse/` forms previously returned 404 while an undocumented compatibility route returned 200. The undocumented route must not be promoted to official PASS. Resolve against authoritative contract evidence.
+The authoritative warehouse-list contract is `GET https://api.roapp.io/warehouse/`, with documented query parameters including `type` (default `product`) and optional `branch_id`. The warehouse-list endpoint is outside the general `/v2` base path. `/v2/warehouse/` is not the canonical warehouse-list contract. The corrected implementation is tracked in PR #114, but the warehouse gate remains `NOT_VERIFIED` until fresh authorized READ_ONLY live evidence is captured.
 
 ### P0.4 Production gate evidence inventory
 Required evidence must be real, current and traceable; missing evidence remains `REVIEW_REQUIRED`.
