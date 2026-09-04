@@ -7,7 +7,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 EXPECTED_REPOSITORY = "atalanrafael-jpg/MARSEL-Ro-app"
 WORKFLOW = ROOT / ".github" / "workflows" / "marsel-unified-control-plane.yml"
+PRODUCTION_GATE = ROOT / ".github" / "workflows" / "marsel-production-gate.yml"
 GENERIC_TEST = ROOT / ".github" / "workflows" / "test.yml"
+WORKFLOW_REGISTRY = ROOT / "docs" / "MARSEL_ROAPP_WORKFLOW_REGISTRY.md"
+SETTINGS_BASELINE = ROOT / "docs" / "MARSEL_SETTINGS_BASELINE_2026-09-04.md"
 API_REGISTRY = ROOT / "scripts" / "marsel_api_v2_canonical_registry_v1.py"
 API_REGISTRY_DOC = ROOT / "docs" / "MARSEL-API-REGISTRY.md"
 TASK_REGISTRY = ROOT / "docs" / "MARSEL_ROAPP_TASK_REGISTRY.md"
@@ -44,17 +47,26 @@ def main() -> int:
     runtime_repository = os.getenv("GITHUB_REPOSITORY")
     if runtime_repository and runtime_repository != EXPECTED_REPOSITORY:
         fail(f"unexpected canonical repository: {runtime_repository}; expected {EXPECTED_REPOSITORY}")
-    required = [WORKFLOW, GENERIC_TEST, API_REGISTRY, API_REGISTRY_DOC, TASK_REGISTRY, ARCH, MASTER_CORE]
+    required = [
+        WORKFLOW, PRODUCTION_GATE, GENERIC_TEST, WORKFLOW_REGISTRY,
+        SETTINGS_BASELINE, API_REGISTRY, API_REGISTRY_DOC, TASK_REGISTRY,
+        ARCH, MASTER_CORE,
+    ]
     missing = [str(p.relative_to(ROOT)) for p in required if not p.exists()]
     if missing:
         fail("missing canonical files: " + ", ".join(missing))
+
     workflow_text = WORKFLOW.read_text(encoding="utf-8")
+    production_gate_text = PRODUCTION_GATE.read_text(encoding="utf-8")
     test_text = GENERIC_TEST.read_text(encoding="utf-8")
+    workflow_registry_text = WORKFLOW_REGISTRY.read_text(encoding="utf-8")
+    settings_text = SETTINGS_BASELINE.read_text(encoding="utf-8")
     registry_text = API_REGISTRY.read_text(encoding="utf-8")
     registry_doc_text = API_REGISTRY_DOC.read_text(encoding="utf-8")
     task_text = TASK_REGISTRY.read_text(encoding="utf-8")
     arch_text = ARCH.read_text(encoding="utf-8")
     core_text = MASTER_CORE.read_text(encoding="utf-8")
+
     for marker in REQUIRED_CORE_MARKERS:
         if marker not in core_text:
             fail(f"MASTER CORE marker missing: {marker}")
@@ -79,6 +91,16 @@ def main() -> int:
     for marker in ("write_requests_made", "ro_app_data_mutated", "readonly"):
         if marker not in workflow_text:
             fail(f"workflow safety marker missing: {marker}")
+    if "MARSEL_WRITE_APPROVED" not in production_gate_text or '"false"' not in production_gate_text:
+        fail("production gate does not explicitly default MARSEL_WRITE_APPROVED to false")
+    if "contents: read" not in workflow_text:
+        fail("unified workflow is missing least-privilege contents: read permission")
+    if "github.event_name != 'pull_request'" not in workflow_text:
+        fail("live secret/audit boundary for pull_request events is missing")
+    if "marsel-unified-control-plane.yml" not in workflow_registry_text:
+        fail("workflow registry does not name the canonical control plane")
+    if "Production WRITE: `DISABLED`" not in settings_text:
+        fail("settings baseline does not record production WRITE as disabled")
     production_write_disabled_markers = (
         "Production mutations remain disabled",
         "Production WRITE remains disabled",
@@ -88,6 +110,7 @@ def main() -> int:
         fail("architecture does not explicitly keep production WRITE disabled")
     if "`WRITE=0`" not in task_text:
         fail("production WRITE gate is missing from task registry")
+
     print("CANONICAL_SELF_CHECK=PASS")
     print("SYSTEM=MARSEL_ROAPP")
     print(f"CANONICAL_REPOSITORY={EXPECTED_REPOSITORY}")
@@ -95,6 +118,8 @@ def main() -> int:
     print("GENERIC_TEST_LIVE_AUDIT=NONE")
     print("MASTER_CORE=CANONICAL_AND_VERIFIED")
     print("API_REGISTRY=NON_EMPTY_READ_ONLY")
+    print("WORKFLOW_REGISTRY=CANONICAL_PRESENT")
+    print("SETTINGS_BASELINE=PRESENT")
     print("PRODUCTION_WRITE=DISABLED")
     print("RO_APP_DATA_MUTATION=NOT_PERFORMED")
     return 0
