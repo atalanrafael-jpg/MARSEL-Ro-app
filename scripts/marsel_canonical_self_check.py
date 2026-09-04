@@ -16,6 +16,7 @@ API_REGISTRY_DOC = ROOT / "docs" / "MARSEL-API-REGISTRY.md"
 TASK_REGISTRY = ROOT / "docs" / "MARSEL_ROAPP_TASK_REGISTRY.md"
 ARCH = ROOT / "MARSEL_ROAPP_UNIFIED_SYSTEM.md"
 MASTER_CORE = ROOT / "MARSEL_ROAPP_MASTER_CORE.md"
+EVIDENCE_BUILDER = ROOT / "scripts" / "marsel_evidence_builder_v1.py"
 CANONICAL_SCRIPTS = {
     "scripts/marsel_api_inventory_v20_32.py",
     "scripts/marsel_data_quality_v22_readonly.py",
@@ -50,7 +51,7 @@ def main() -> int:
     required = [
         WORKFLOW, PRODUCTION_GATE, GENERIC_TEST, WORKFLOW_REGISTRY,
         SETTINGS_BASELINE, API_REGISTRY, API_REGISTRY_DOC, TASK_REGISTRY,
-        ARCH, MASTER_CORE,
+        ARCH, MASTER_CORE, EVIDENCE_BUILDER,
     ]
     missing = [str(p.relative_to(ROOT)) for p in required if not p.exists()]
     if missing:
@@ -66,6 +67,7 @@ def main() -> int:
     task_text = TASK_REGISTRY.read_text(encoding="utf-8")
     arch_text = ARCH.read_text(encoding="utf-8")
     core_text = MASTER_CORE.read_text(encoding="utf-8")
+    evidence_builder_text = EVIDENCE_BUILDER.read_text(encoding="utf-8")
 
     for marker in REQUIRED_CORE_MARKERS:
         if marker not in core_text:
@@ -110,6 +112,9 @@ def main() -> int:
         fail("architecture does not explicitly keep production WRITE disabled")
     if "`WRITE=0`" not in task_text:
         fail("production WRITE gate is missing from task registry")
+    for marker in ("NEVER fabricates production evidence", '"fabricated_evidence": False', '"production_write": False', '"status": "READY_FOR_GATE"'):
+        if marker not in evidence_builder_text:
+            fail(f"evidence builder safety marker missing: {marker}")
 
     print("CANONICAL_SELF_CHECK=PASS")
     print("SYSTEM=MARSEL_ROAPP")
@@ -120,6 +125,7 @@ def main() -> int:
     print("API_REGISTRY=NON_EMPTY_READ_ONLY")
     print("WORKFLOW_REGISTRY=CANONICAL_PRESENT")
     print("SETTINGS_BASELINE=PRESENT")
+    print("EVIDENCE_BUILDER=FAIL_CLOSED")
     print("PRODUCTION_WRITE=DISABLED")
     print("RO_APP_DATA_MUTATION=NOT_PERFORMED")
     return 0
