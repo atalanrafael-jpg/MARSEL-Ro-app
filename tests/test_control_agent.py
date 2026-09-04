@@ -1,6 +1,15 @@
+from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
-from agents.marsel_control_agent import _is_protected_path, _is_sensitive_path, _repo_relative_path
+MODULE_PATH = Path(__file__).resolve().parents[1] / "agents" / "marsel_control_agent.py"
+SPEC = spec_from_file_location("marsel_control_agent_under_test", MODULE_PATH)
+assert SPEC is not None and SPEC.loader is not None
+MODULE = module_from_spec(SPEC)
+SPEC.loader.exec_module(MODULE)
+
+_is_protected_path = MODULE._is_protected_path
+_is_sensitive_path = MODULE._is_sensitive_path
+_repo_relative_path = MODULE._repo_relative_path
 
 
 def test_repo_relative_path_rejects_escape():
