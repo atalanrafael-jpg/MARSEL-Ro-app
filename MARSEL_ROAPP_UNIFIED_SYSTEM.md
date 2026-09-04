@@ -13,13 +13,13 @@ MARSEL и ROAPP — единая система Ювелирной студии 
 
 ## Canonical control plane
 
-`.github/workflows/marsel-unified-control-plane.yml` — единственный канонический live RO App audit workflow. Вспомогательные workflow разрешены только для явно отличающихся инженерных, security или gate-функций и не должны создавать второй live audit path.
+`.github/workflows/marsel-unified-control-plane.yml` — единственный канонический live RO App audit workflow. Вспомогательные workflow разрешены только при документированной роли и явной регистрации в реестре рабочих процессов.
 
 Основная цепочка:
 
 `API inventory → data quality → entity audit → product-code review → warehouse contract → safety gate → evidence`
 
-Все live-аудиты RO App выполняются READ-ONLY. Идентификаторы не угадываются. Недостаточные или конфликтующие доказательства дают `REVIEW_REQUIRED`, а не `PASS`.
+Все live-аудиты RO App выполняются READ-ONLY. Идентификат��ры не угадываются. Недостаточные или конфликтующие доказательства приводят к статусу `REVIEW_REQUIRED`.
 
 ## Canonical implementations
 
@@ -32,7 +32,7 @@ MARSEL и ROAPP — единая система Ювелирной студии 
 - `scripts/marsel_api_v2_canonical_registry_v1.py`
 - `scripts/marsel_canonical_self_check.py`
 
-Внутренние зависимости API inventory `v20_31` и `v20_29` остаются активными до отдельного рефакторинга и повторной проверки; их нельзя удалять только из-за номера версии.
+Внутренние зависимости API inventory `v20_31` и `v20_29` остаются активными до отдельного рефакторинга и повторной проверки.
 
 ## Production safety
 
@@ -40,7 +40,7 @@ MARSEL и ROAPP — единая система Ювелирной студии 
 
 `backup/export → restore integrity → schema reconciliation → full READ-ONLY inventory → duplicate/orphan/reference analysis → dry-run → idempotency → rollback → controlled write → post-write verification`
 
-Наличие write-методов, успешного CI или документации не является доказательством выполнения production WRITE или готовности к нему.
+Наличие write-методов, успешного CI или документации не явл��ется доказательством выполнения production WRITE или готовности к нему.
 
 ## Current external gates
 
@@ -59,4 +59,4 @@ MARSEL и ROAPP — единая система Ювелирной студии 
 
 Каждая существенная задача проходит `OBSERVE → MEASURE → FIND → FIX → TEST → VERIFY → DOCUMENT → MONITOR`.
 
-Старые успешные запуски не заменяют свежую проверку текущего `main`. `DONE` допускается только при наличии прямого evidence.
+Старые успешные запуски не заменяют свежую проверку текущего `main`. `DONE` допускается только при наличии прямого и актуального evidence.
