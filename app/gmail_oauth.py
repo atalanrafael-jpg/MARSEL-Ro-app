@@ -104,15 +104,22 @@ class GmailOAuthService:
         )
         flow.fetch_token(code=code)
         credentials = flow.credentials
-        self._credentials = credentials
 
-        profile = self._gmail_service().users().getProfile(userId="me").execute()
-        email = str(profile.get("emailAddress") or "").strip().lower()
-        configured_account = self._configured_account()
-        if email != configured_account:
+        # Keep newly issued credentials local until the authorized account has
+        # been verified. This prevents a failed/mismatched callback or a
+        # profile lookup error from leaving unverified credentials connected.
+        service = build("gmail", "v1", credentials=credentials, cache_discovery=False)
+        try:
+            profile = service.users().getProfile(userId="me").execute()
+            email = str(profile.get("emailAddress") or "").strip().lower()
+            configured_account = self._configured_account()
+            if email != configured_account:
+                raise PermissionError("Authorized Google account does not match configured Gmail account")
+        except Exception:
             self._credentials = None
-            raise PermissionError("Authorized Google account does not match configured Gmail account")
+            raise
 
+        self._credentials = credentials
         return {
             "status": "connected",
             "email": email,
