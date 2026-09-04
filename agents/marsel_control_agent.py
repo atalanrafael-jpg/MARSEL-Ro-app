@@ -1,29 +1,46 @@
-"""MARSEL ROAPP Control Agent.
-
-A guarded, repository-first agent for inspect -> diagnose -> change -> test -> verify.
-Production writes remain disabled by default and require explicit approval.
-"""
+"""MARSEL ROAPP Control Agent."""
 
 from __future__ import annotations
 
 import os
 import subprocess
 from pathlib import Path
-from typing import Optional
 
 from agents import Agent, Runner, function_tool
 
 ROOT = Path(__file__).resolve().parents[1]
 WRITE_ENABLED = os.getenv("MARSEL_AGENT_ALLOW_WRITE", "0") == "1"
 PRODUCTION_WRITE_ENABLED = False
+PROTECTED_PREFIXES = (Path(".github") / "workflows",)
+PROTECTED_FILES = {Path("Dockerfile"), Path("requirements.lock")}
+SENSITIVE_FILENAMES = {".env", ".env.local", ".env.production", ".env.development"}
+SENSITIVE_SUFFIXES = (".pem", ".key", ".p12", ".pfx", ".crt", ".token", ".secret")
+
+
+def _repo_relative_path(path: str) -> tuple[Path | None, str | None]:
+    target = (ROOT / path).resolve()
+    try:
+        return target.relative_to(ROOT), None
+    except ValueError:
+        return None, "BLOCKED: path escapes repository"
+
+
+def _is_protected_path(relative: Path) -> bool:
+    return relative in PROTECTED_FILES or any(relative == prefix or prefix in relative.parents for prefix in PROTECTED_PREFIXES)
+
+
+def _is_sensitive_path(relative: Path) -> bool:
+    name = relative.name.lower()
+    return (name in SENSITIVE_FILENAMES or name.endswith(SENSITIVE_SUFFIXES) or any(part.lower() in {".env", "secrets", "credentials", "private_keys"} for part in relative.parts))
 
 
 @function_tool
 def inspect_file(path: str) -> str:
     """Read a text file inside the repository; paths may not escape the repo."""
-    target = (ROOT / path).resolve()
-    if ROOT not in target.parents and target != ROOT:
-        return "BLOCKED: path escapes repository"
+    relative, error = _repo_relative_path(path)
+    if error:
+        return error
+    target = ROOT / relative
     if not target.is_file():
         return f"NOT_FOUND: {path}"
     return target.read_text(encoding="utf-8")[:30000]
@@ -49,14 +66,17 @@ def write_file(path: str, content: str) -> str:
     """Write a repository file only when the explicit local write gate is enabled."""
     if not WRITE_ENABLED:
         return "BLOCKED: MARSEL_AGENT_ALLOW_WRITE is not enabled"
-    target = (ROOT / path).resolve()
-    if ROOT not in target.parents:
-        return "BLOCKED: path escapes repository"
-    if path.startswith(".github/workflows/") or path in {"Dockerfile", "requirements.lock"}:
+    relative, error = _repo_relative_path(path)
+    if error:
+        return error
+    if _is_protected_path(relative):
         return "BLOCKED: protected infrastructure requires manual review"
+    if _is_sensitive_path(relative):
+        return "BLOCKED: sensitive credential/config path requires manual review"
+    target = ROOT / relative
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(content, encoding="utf-8")
-    return f"UPDATED: {path}"
+    return f"UPDATED: {relative.as_posix()}"
 
 
 AGENT_INSTRUCTIONS = """You are the MARSEL ROAPP Control Agent.
@@ -73,7 +93,7 @@ Rules:
 3. Prefer the smallest safe change. Never create duplicate implementations, workflows, tasks, or documents.
 4. Production WRITE is permanently blocked in this agent. Never enable or simulate a production write.
 5. Repository writes are blocked unless MARSEL_AGENT_ALLOW_WRITE=1 is explicitly present.
-6. Even with write enabled, protected infrastructure (.github/workflows, Dockerfile, requirements.lock) requires manual review.
+6. Protected infrastructure and sensitive credential/config paths remain blocked even when repository writes are enabled.
 7. After every change, run available verification and report exact evidence and remaining NOT_VERIFIED items.
 8. Never invent credentials, API responses, IDs, reviewers, approvals, or deployment success.
 9. Treat CI success as evidence for CI only; do not claim live integration success without direct evidence.
@@ -82,11 +102,7 @@ Rules:
 Use tools deliberately. Return a concise action log: findings, changes, tests, verification, blockers, next task.
 """
 
-agent = Agent(
-    name="MARSEL ROAPP Control Agent",
-    instructions=AGENT_INSTRUCTIONS,
-    tools=[inspect_file, run_check, write_file],
-)
+agent = Agent(name="MARSEL ROAPP Control Agent", instructions=AGENT_INSTRUCTIONS, tools=[inspect_file, run_check, write_file])
 
 
 def run(prompt: str) -> str:
