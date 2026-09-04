@@ -44,6 +44,8 @@ jobs:
           PY
       - name: Release readiness check with real external evidence
         if: github.event_name != 'pull_request'
+        env:
+          MARSEL_EVIDENCE_DIR: ${{ github.workspace }}/evidence
         run: python scripts/marsel_release_readiness_v1.py
       - name: PR-safe release evidence policy
         if: github.event_name == 'pull_request'
@@ -51,11 +53,21 @@ jobs:
           echo "EXTERNAL_EVIDENCE=NOT_REQUIRED_FOR_PR_REVIEW"
           echo "PRODUCTION_WRITE_AUTHORIZED=false"
           echo "RESULT=PR_SAFE_REVIEW"
+          echo "EVIDENCE_INFRASTRUCTURE=READY"
       - name: Production gate must remain fail-closed
+        if: github.event_name != 'pull_request'
         env:
           MARSEL_WRITE_APPROVED: "true"
+          MARSEL_EVIDENCE_DIR: ${{ github.workspace }}/evidence
         run: |
           if python scripts/marsel_production_gate_v1.py; then
             echo "Production gate incorrectly accepted write approval" >&2
             exit 1
           fi
+      - name: Production gate sanity check (PR mode - should fail gracefully)
+        if: github.event_name == 'pull_request'
+        env:
+          MARSEL_WRITE_APPROVED: "true"
+          MARSEL_EVIDENCE_DIR: ${{ github.workspace }}/evidence
+        run: |
+          python scripts/marsel_production_gate_v1.py && exit 1 || echo "Production gate correctly rejected (PR mode)"
