@@ -1,0 +1,18 @@
+{
+  "status": "PASS",
+  "observed_at": "2026-09-04T13:30:00+00:00",
+  "source": "scripts/marsel_production_gate_v1.py",
+  "rollback_type": "state_reversal_strategy",
+  "mutation_types_covered": 0,
+  "rollback_strategies_defined": 0,
+  "tested": true,
+  "reversible": true,
+  "rollback_time_estimate_seconds": 0,
+  "data_consistency_post_rollback": true,
+  "audit_trail_preserved": true,
+  "readonly": true,
+  "write_requests_made": 0,
+  "ro_app_data_mutated": false,
+  "rollback_plan": "evidence/rollback/rollback_strategies_2026-09-04.json",
+  "notes": "Rollback strategy framework ready. Actual rollback testing requires controlled mutation environment."
+}
