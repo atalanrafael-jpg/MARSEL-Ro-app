@@ -18,7 +18,7 @@ jobs:
       ROAPP_API_BASE: https://api.roapp.io/v2
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Python
         uses: actions/setup-python@v5

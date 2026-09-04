@@ -40,7 +40,7 @@ jobs:
       openapi_available: ${{ steps.contract.outputs.openapi_available }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Discover official ROAPP documentation endpoints
         run: python scripts/marsel_official_roapp_discovery_v1.py
@@ -93,7 +93,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Download official OpenAPI JSON
         shell: bash

@@ -18,7 +18,7 @@ jobs:
     environment:
       name: staging
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Run read-only probes
         env:
           MARSEL_PR_SAFE: ${{ github.event_name == 'pull_request' && 'true' || 'false' }}
