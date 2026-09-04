@@ -15,7 +15,9 @@
 
 ## Fresh runtime evidence
 - Run `33868944393` for `MARSEL Live Integration Probes` on current `main` HEAD `745a522c...` completed `success` on 2026-09-04.
-- This fresh successful run does not by itself prove backup/restore, full entity completeness, OAuth, MCP authorization, or production readiness.
+- Artifact `marsel-live-probes` was produced from that run. Its report is `REVIEW_REQUIRED` because auxiliary health URLs are not configured for ROAPP API, Supabase, Vercel, OpenAI Platform and Wix; this is not evidence that those underlying integrations are unavailable.
+- The same fresh report explicitly records `production_write=false` and `credentials_exposed=false`.
+- The fresh live-probe workflow does not by itself prove backup/restore, full entity completeness, OAuth, MCP authorization, or production readiness.
 - PR #113 remains open; its current head has previously verified green PR-triggered CI, but merge is not automatic and live OpenAI authorization is not claimed without direct evidence.
 
 ## Evidence precedence
@@ -84,6 +86,7 @@
 7. Historical credential-exposure remediation requires direct evidence (Issue #23).
 8. GitHub account/ruleset/security settings require account-level action where connector access is read-only. Direct ruleset inspection shows active ruleset `21230907` currently targets malformed pattern `refs/heads/Include by pattern main` rather than `refs/heads/main`.
 9. ReadMe ↔ GitHub bi-directional sync (Issue #106) requires external ReadMe setup in a dedicated empty docs repository; production application repository must not be connected directly without explicit approval.
+10. Auxiliary live-probe health URLs are not configured; the probe intentionally remains `REVIEW_REQUIRED` rather than falsely reporting integration health.
 
 ## Open issue consolidation
 - Issue #42 was closed as a duplicate of the broader current warehouse blocker tracked by Issue #87. No technical evidence was discarded.
