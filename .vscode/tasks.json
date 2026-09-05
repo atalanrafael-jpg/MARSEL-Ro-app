@@ -1,0 +1,44 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "MARSEL: compile control scripts",
+      "type": "shell",
+      "command": "python -m compileall -q scripts",
+      "problemMatcher": []
+    },
+    {
+      "label": "MARSEL: canonical self-check",
+      "type": "shell",
+      "command": "python scripts/marsel_canonical_self_check.py",
+      "problemMatcher": []
+    },
+    {
+      "label": "MARSEL: release readiness",
+      "type": "shell",
+      "command": "python scripts/marsel_release_readiness_v1.py",
+      "problemMatcher": []
+    },
+    {
+      "label": "MARSEL: production gate fail-closed test",
+      "type": "shell",
+      "command": "python scripts/marsel_production_gate_v1.py",
+      "options": {
+        "env": {
+          "MARSEL_WRITE_APPROVED": "true"
+        }
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "MARSEL: local readiness chain",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "MARSEL: compile control scripts",
+        "MARSEL: canonical self-check",
+        "MARSEL: release readiness"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}
