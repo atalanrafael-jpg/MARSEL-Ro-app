@@ -7,5 +7,3 @@ Live ReadMe `securitySchemes` parity remains `REVIEW_REQUIRED`; no external Read
 The PR itself can be closed as superseded by the current `main` implementation.
 
 Control: production WRITE remains disabled.
-
-Evidence commit: `87af4bc032b5db86fd774a6f9fc983999122ae4d`.
