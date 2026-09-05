@@ -157,6 +157,33 @@ jobs:
             out.update({'status':'VERIFIED' if final=='PASS' else 'REVIEW_REQUIRED','api_inventory':{'contract_state':inv.get('contract_state',{}),'summary':inv.get('summary',{}),'safety':inv.get('safety',{})},'data_quality':{'result':quality,'summary':dq.get('summary',{}),'access_failures':dq.get('access_failures',[]),'hard_issues':dq.get('hard_issues',[])},'entity_audit':{'result':entity,'resolved_entities':ent.get('resolved_entities',[]),'blocked_entities':ent.get('blocked_entities',[]),'failed_entities':ent.get('failed_entities',[])},'product_collision_review':{'result':collision,'review_only':True,'duplicate_code_group_count':int(col.get('duplicate_code_group_count') or 0),'collisions':col.get('collisions',[]),'error':col.get('error')},'warehouse_contract':{'result':warehouse,'warehouse_list_contract_verified':wh.get('warehouse_list_contract_verified'),'confirmed_live_gets':wh.get('confirmed_live_gets',[]),'explicit_get_contracts':wh.get('explicit_get_contracts',[]),'reference_pages':wh.get('warehouse_reference_pages',[])}})
           json.dump(out,open('marsel-unified-evidence.json','w',encoding='utf-8'),ensure_ascii=False,indent=2)
           PY
+      - name: Collect immutable evidence bundle
+        if: always() && github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          mkdir -p evidence
+          python - <<'PY'
+          import json, shutil
+          from datetime import datetime, timezone
+          from pathlib import Path
+          mapping={
+            'marsel-unified-evidence.json':'marsel-unified-evidence.json',
+            'duplicate_reference_evidence.json':'marsel-unified-product-collisions.json',
+          }
+          for dst,src in mapping.items():
+            p=Path(src)
+            if p.exists():
+              shutil.copyfile(p,Path('evidence')/dst)
+          json.dump({'status':'INCOMPLETE','observed_at':datetime.now(timezone.utc).isoformat(),'source':'github-actions-readonly-control-plane','readonly':True,'write_requests_made':0,'ro_app_data_mutated':False,'reason':'Backup/restore/dry-run/idempotency/rollback evidence is not fabricated by CI.'},open('evidence/evidence-collection-status.json','w',encoding='utf-8'),ensure_ascii=False,indent=2)
+          PY
+      - name: Upload evidence collection bundle
+        if: always() && github.event_name != 'pull_request'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: marsel-evidence-collection-bundle
+          path: evidence/
+          if-no-files-found: warn
+          retention-days: 90
       - name: Upload unified evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
