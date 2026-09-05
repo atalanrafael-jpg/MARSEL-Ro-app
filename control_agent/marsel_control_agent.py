@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import os
 import subprocess
+from dataclasses import dataclass, field
+from enum import Enum
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -17,6 +19,59 @@ PROTECTED_PREFIXES = (Path(".github") / "workflows",)
 PROTECTED_FILES = {Path("Dockerfile"), Path("requirements.lock")}
 SENSITIVE_FILENAMES = {".env", ".env.local", ".env.production", ".env.development"}
 SENSITIVE_SUFFIXES = (".pem", ".key", ".p12", ".pfx", ".crt", ".token", ".secret")
+
+
+class AgentStage(str, Enum):
+    REQUEST = "REQUEST"
+    VALIDATE = "VALIDATE"
+    READ = "READ"
+    ANALYZE = "ANALYZE"
+    BACKUP_RESTORE_CHECK = "BACKUP_RESTORE_CHECK"
+    DRY_RUN = "DRY_RUN"
+    SAFETY_GATE = "SAFETY_GATE"
+    WRITE = "WRITE"
+    VERIFY = "VERIFY"
+    LOG = "LOG"
+    CHECKPOINT = "CHECKPOINT"
+
+
+@dataclass(frozen=True)
+class AgentState:
+    """Deterministic, serializable control-plane state for one execution."""
+
+    stage: AgentStage = AgentStage.REQUEST
+    request_id: str = ""
+    read_only: bool = True
+    production_write_enabled: bool = False
+    evidence: tuple[str, ...] = field(default_factory=tuple)
+    blockers: tuple[str, ...] = field(default_factory=tuple)
+
+    def checkpoint(self) -> dict[str, object]:
+        return {
+            "stage": self.stage.value,
+            "request_id": self.request_id,
+            "read_only": self.read_only,
+            "production_write_enabled": self.production_write_enabled,
+            "evidence": list(self.evidence),
+            "blockers": list(self.blockers),
+        }
+
+
+def next_stage(state: AgentState, target: AgentStage) -> AgentState:
+    """Advance state only through the declared execution pipeline."""
+    order = list(AgentStage)
+    if order.index(target) < order.index(state.stage):
+        raise ValueError(f"cannot move backwards from {state.stage.value} to {target.value}")
+    if target is AgentStage.WRITE and (state.read_only or not state.production_write_enabled):
+        raise PermissionError("production WRITE is fail-closed")
+    return AgentState(
+        stage=target,
+        request_id=state.request_id,
+        read_only=state.read_only,
+        production_write_enabled=state.production_write_enabled,
+        evidence=state.evidence,
+        blockers=state.blockers,
+    )
 
 
 def _repo_relative_path(path: str) -> tuple[Path | None, str | None]:
