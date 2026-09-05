@@ -91,3 +91,7 @@ A successful GitHub workflow proves only that the fetched OpenAPI document passe
 - **VERIFIED:** ReadMe supports OpenAPI security schemes and authenticated API requests in its API Reference.
 - **VERIFIED:** ReadMe `rdme@v10` can validate and upload an OpenAPI definition using a GitHub secret.
 - **REVIEW_REQUIRED:** the exact current ROAPP ReadMe OpenAPI `securitySchemes` object must be checked against the freshly fetched official `openapi.json`; repository documentation must not be treated as proof of the live published schema.
+
+## Change control
+
+This document is a repository-side contract only. Live ReadMe publication, API definition selection, and external authentication configuration remain external verification gates.
