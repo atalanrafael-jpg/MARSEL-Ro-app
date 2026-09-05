@@ -1,0 +1,6 @@
+# Optional Apple Core AI toolchain for Apple Silicon model conversion.
+# Kept separate from the server runtime so MARSEL ROAPP production does not
+# acquire a platform-specific dependency by default.
+coreai-core==1.0.0b2
+coreai-torch==0.4.2
+torch>=2.8.0,<2.12
