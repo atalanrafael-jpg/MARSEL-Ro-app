@@ -1,7 +1,7 @@
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
-MODULE_PATH = Path(__file__).resolve().parents[1] / "agents" / "marsel_control_agent.py"
+MODULE_PATH = Path(__file__).resolve().parents[1] / "control_agent" / "marsel_control_agent.py"
 SPEC = spec_from_file_location("marsel_control_agent_under_test", MODULE_PATH)
 assert SPEC is not None and SPEC.loader is not None
 MODULE = module_from_spec(SPEC)
@@ -36,7 +36,7 @@ def test_sensitive_policy_blocks_secret_paths():
 
 
 def test_normal_source_path_is_not_sensitive_or_protected():
-    relative, error = _repo_relative_path("agents/marsel_control_agent.py")
+    relative, error = _repo_relative_path("control_agent/marsel_control_agent.py")
     assert error is None
     assert not _is_sensitive_path(relative)
     assert not _is_protected_path(relative)
