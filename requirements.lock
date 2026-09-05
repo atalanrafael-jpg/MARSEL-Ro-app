@@ -1,4 +1,4 @@
-# Resolved dependency set; refreshed 2026-08-29 for MCP SDK v2 migration.
+# Resolved dependency set; refreshed 2026-09-05 for MARSEL ROAPP control-agent consistency.
 # Production builds consume this file; direct Google dependencies are pinned here.
 PyJWT==2.13.0
 annotated-doc==0.0.5
@@ -30,6 +30,7 @@ jsonschema==4.26.0
 jsonschema-specifications==2025.9.1
 mcp==2.1.0
 openai==3.3.1
+openai-agents==0.22.0
 packaging==26.3
 pluggy==1.6.0
 pycparser==3.0
