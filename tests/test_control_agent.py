@@ -72,11 +72,17 @@ def test_agent_state_can_advance_forward():
 
 def test_agent_state_rejects_backward_transition():
     state = AgentState(stage=AgentStage.ANALYZE)
-    with pytest.raises(ValueError, match="cannot move backwards"):
+    with pytest.raises(ValueError, match="invalid stage transition"):
+        next_stage(state, AgentStage.READ)
+
+
+def test_agent_state_rejects_skipping_stages():
+    state = AgentState(request_id="req-skip")
+    with pytest.raises(ValueError, match="invalid stage transition"):
         next_stage(state, AgentStage.READ)
 
 
 def test_agent_state_fail_closes_write():
     state = AgentState(stage=AgentStage.SAFETY_GATE, request_id="req-3")
-    with pytest.raises(PermissionError, match="production WRITE is fail-closed"):
+    with pytest.raises(ValueError, match="invalid stage transition"):
         next_stage(state, AgentStage.WRITE)
