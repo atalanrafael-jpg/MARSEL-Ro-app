@@ -58,10 +58,14 @@ class AgentState:
 
 
 def next_stage(state: AgentState, target: AgentStage) -> AgentState:
-    """Advance state only through the declared execution pipeline."""
+    """Advance exactly one stage through the declared execution pipeline."""
     order = list(AgentStage)
-    if order.index(target) < order.index(state.stage):
-        raise ValueError(f"cannot move backwards from {state.stage.value} to {target.value}")
+    current_index = order.index(state.stage)
+    target_index = order.index(target)
+    if target_index != current_index + 1:
+        raise ValueError(
+            f"invalid stage transition from {state.stage.value} to {target.value}"
+        )
     if target is AgentStage.WRITE and (state.read_only or not state.production_write_enabled):
         raise PermissionError("production WRITE is fail-closed")
     return AgentState(
