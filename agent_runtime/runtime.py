@@ -18,16 +18,8 @@ class TaskStatus(str, Enum):
 
 
 EVIDENCE_FIELDS = {
-    "task_id",
-    "agent_id",
-    "timestamp",
-    "requested_action",
-    "actual_action",
-    "tool_or_system",
-    "result",
-    "evidence_reference",
-    "verifier",
-    "verification_result",
+    "task_id", "agent_id", "timestamp", "requested_action", "actual_action",
+    "tool_or_system", "result", "evidence_reference", "verifier", "verification_result",
 }
 
 ALLOWED_TRANSITIONS = {
@@ -61,11 +53,7 @@ class AgentRuntime:
         if task.project not in self.allowed_projects:
             task.status = TaskStatus.BLOCKED
             return {"status": task.status.value, "reason": "UNKNOWN_PROJECT"}
-        return {
-            "project": task.project,
-            "task_type": task.task_type,
-            "risk_level": task.risk_level,
-        }
+        return {"project": task.project, "task_type": task.task_type, "risk_level": task.risk_level}
 
     def transition(self, task: Task, status: TaskStatus) -> None:
         if status not in ALLOWED_TRANSITIONS[task.status]:
