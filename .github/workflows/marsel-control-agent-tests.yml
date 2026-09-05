@@ -1,0 +1,34 @@
+name: MARSEL Control Agent Tests
+
+on:
+  pull_request:
+    paths:
+      - 'control_agent/**'
+      - 'tests/test_control_agent.py'
+      - 'requirements.txt'
+      - '.github/workflows/marsel-control-agent-tests.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'control_agent/**'
+      - 'tests/test_control_agent.py'
+      - 'requirements.txt'
+      - '.github/workflows/marsel-control-agent-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Install test dependencies
+        run: python -m pip install --upgrade pip pytest
+      - name: Run control-agent safety tests
+        run: python -m pytest -q tests/test_control_agent.py
