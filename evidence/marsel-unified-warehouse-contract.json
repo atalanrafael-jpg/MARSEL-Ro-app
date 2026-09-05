@@ -1,0 +1,1 @@
+{"status": "PASS", "observed_at": "2026-09-05T08:41:00Z", "source": "marsel unified warehouse contract audit", "mode": "READ_ONLY", "readonly": true, "write_requests_made": 0, "ro_app_data_mutated": false, "result": "PASS", "warehouse_list_contract_verified": true}

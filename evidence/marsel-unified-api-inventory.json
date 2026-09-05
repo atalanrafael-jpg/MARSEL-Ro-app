@@ -1,0 +1,1 @@
+{"status": "PASS", "observed_at": "2026-09-05T08:41:00Z", "source": "marsel unified api inventory audit", "readonly": true, "write_requests_made": 0, "ro_app_data_mutated": false, "contract_state": {"status": "verified"}, "summary": {"total_endpoints": 42, "readonly_endpoints": 42}, "safety": {"credentials_exposed": false}}

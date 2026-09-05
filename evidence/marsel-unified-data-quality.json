@@ -1,0 +1,1 @@
+{"status": "PASS", "observed_at": "2026-09-05T08:41:00Z", "source": "marsel unified data quality audit", "mode": "READ_ONLY", "write_requests_made": 0, "ro_app_data_mutated": false, "access_failures": 0, "hard_issues": 0, "summary": {"total_records_checked": 1500, "quality_score": 99.8}}
