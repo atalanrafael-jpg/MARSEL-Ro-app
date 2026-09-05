@@ -3,30 +3,29 @@
 **Role:** single living project checkpoint. Update after every material verified change.
 
 ## DATE
-2026-09-04
+2026-09-05
 
 ## CURRENT VERSION
-MARSEL ROAPP unified control plane with production-safety hardening, canonical GitHub governance, automated evidence orchestration, and fail-closed production gating.
+MARSEL ROAPP unified control plane with production-safety hardening, canonical GitHub governance, automated evidence orchestration, deterministic control-agent state transitions, and fail-closed production gating.
 
 ## CONTROL CHECKPOINT
 - Canonical repository: `atalanrafael-jpg/MARSEL-Ro-app`.
 - Canonical branch: `main`.
-- Current canonical `main` HEAD observed before this remediation: `745a522c3b95fe14216963d126d66080df07c816`.
+- Current canonical `main` HEAD verified: `e055985ec9c5f15345fab3b7eb99ce2267261cf2`.
 - Production WRITE remains disabled.
 
 ## VERIFIED REPOSITORY FACTS
-- PR #113 Control Agent head `294a7b9281726759dc6e817ae97f706071b26103` passed the current PR-triggered CI suite and was moved from Draft to Ready for review.
-- PR #113 is open, mergeable and not merged; human review remains required.
-- PR #114 was created from current `main` to correct the warehouse-list contract implementation. It is open and not merged; live CI verification remains required.
-- Historical RO App evidence remains valid only for the runs that produced it.
+- PR #114 (`fix: restore verified RO App warehouse contract`) was merged into `main` on 2026-09-05. It aligns the canonical warehouse diagnostic with the documented `GET /warehouse/` endpoint and adds regression coverage.
+- PR #113 (Control Agent v3) is closed and not merged; its changes must not be treated as part of canonical `main`.
+- PR #112 (optional Apple Core AI Torch integration) remains open and is explicitly NOT HARDWARE-VERIFIED; it is isolated and does not change production requirements or introduce live RO App writes.
+- The latest commit sequence on `main` adds a deterministic control-agent state model, strict sequential stage transitions, write-gate tests, and dependency/lock alignment.
+- The latest observed `MARSEL Production Gate` workflow run for `main` was `skipped`; therefore a skipped run is not evidence of production readiness.
 
-## WAREHOUSE CONTRACT CORRECTION
-- The current RO App API reference uses `https://api.roapp.io/v2` as the general v2 base, while the documented Get Warehouses method uses `GET https://api.roapp.io/warehouse/`.
-- The warehouse endpoint accepts `type` (default `product`) and optional `branch_id`.
-- The previous `/v2/warehouse/` probes returned HTTP 404; the undocumented compatibility route `/warehouse/` returned live data.
-- PR #114 changes the canonical diagnostic to use the documented `/warehouse/` endpoint from the API root and adds regression tests.
-- No undocumented route is promoted to PASS merely because it responds successfully.
-- The warehouse gate remains NOT VERIFIED until a fresh authorized READ-ONLY Actions run produces and validates the evidence artifact.
+## WAREHOUSE CONTRACT
+- The authoritative RO App documentation distinguishes the general v2 API root from the documented warehouse endpoint.
+- The previous `/v2/warehouse/` probe returned HTTP 404; the documented `/warehouse/` route was the basis for the correction in merged PR #114.
+- Code-level correction is now present on `main`.
+- Fresh live evidence is still required before the warehouse evidence gate can be marked VERIFIED.
 
 ## RO APP STATUS
 🟢 **VERIFIED HISTORICAL LIVE ACCESS**
@@ -35,30 +34,31 @@ MARSEL ROAPP unified control plane with production-safety hardening, canonical G
 - Historical V20.8 detail audit: 6,820 detail requests; 0 detail failures; 0 writes.
 
 🟡 **PARTIAL**
-- Historical API inventory and entity coverage remain historical evidence, not proof of current completeness.
+- Historical API inventory/entity coverage remains historical evidence, not proof of current completeness.
 - Product-code collision findings remain review-only; no automatic deletion/merge is permitted.
+- Supabase security advisor currently reports no security lints.
+- Supabase performance advisor reports 12 unused-index INFO findings; these are optimization candidates, not automatically removable objects.
 
 🔴 **BLOCKED / NOT VERIFIED**
 - Complete production backup is not proven.
-- Restore test is not proven.
-- Fresh current-main Unified Control Plane result is not established by this checkpoint.
-- Warehouse-list contract requires fresh live evidence after PR #114.
+- Independently tested restore/integrity is not proven.
+- Fresh current-main evidence bundle is not established as production-gate evidence.
 - Gmail OAuth user-authorized verification is not complete.
 - Official RO App MCP authorization is not complete.
 - Credential-exposure remediation tracked by Issue #23 is not closed by direct evidence.
-- Main branch protection/account-level GitHub controls require account authorization outside the current repository connector surface.
+- Main branch protection/account-level GitHub controls require account authorization outside the available repository connector surface.
 - Production WRITE is not authorized.
 
 ## CURRENT EXECUTION QUEUE
-1. Validate PR #114 with fresh CI and, when authorized, inspect its real warehouse evidence artifact.
-2. Close the warehouse contract issues only after direct evidence proves the documented endpoint and response schema.
-3. Verify complete backup/export and independently tested restore/integrity.
-4. Complete current API/entity verification from authoritative contracts and verified identifiers.
-5. Complete Gmail OAuth read-only user authorization test.
-6. Complete official RO App MCP authorization verification.
-7. Complete credential-exposure remediation evidence for Issue #23.
-8. Verify GitHub `main` protection and required status checks through account-level settings.
-9. Reconcile stale/open remediation PRs against current `main`; do not merge stale branches without revalidation.
+1. Produce and verify fresh READ-ONLY warehouse/live evidence on current `main`.
+2. Prove complete backup/export and independently tested restore/integrity.
+3. Complete current API/entity verification from authoritative contracts and verified identifiers.
+4. Complete Gmail OAuth read-only user authorization test.
+5. Complete official RO App MCP authorization verification.
+6. Complete credential-exposure remediation evidence for Issue #23.
+7. Verify GitHub `main` protection, secret scanning/push protection, production environment controls, and required status checks through account-level settings.
+8. Reconcile stale/open remediation PRs against current `main`; do not merge stale branches without revalidation.
+9. Review the 12 Supabase unused-index INFO findings using actual query workload before any index removal.
 10. Only after all applicable evidence gates pass, evaluate production safety gate. Production WRITE remains disabled until explicit authorization.
 
 ## SAFETY
