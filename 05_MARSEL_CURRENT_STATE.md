@@ -11,15 +11,16 @@ MARSEL ROAPP unified control plane with production-safety hardening, canonical G
 ## CONTROL CHECKPOINT
 - Canonical repository: `atalanrafael-jpg/MARSEL-Ro-app`.
 - Canonical branch: `main`.
-- Current canonical `main` HEAD verified: `e055985ec9c5f15345fab3b7eb99ce2267261cf2`.
+- Current canonical `main` HEAD verified: `212ed7f707cdf5df44c6a36288b7ac311a5a10a9`.
 - Production WRITE remains disabled.
+- Live GitHub branch metadata currently reports `main` as **unprotected**; required status checks are not configured at branch level. This is an account/repository administration blocker, not a code failure.
 
 ## VERIFIED REPOSITORY FACTS
 - PR #114 (`fix: restore verified RO App warehouse contract`) was merged into `main` on 2026-09-05. It aligns the canonical warehouse diagnostic with the documented `GET /warehouse/` endpoint and adds regression coverage.
 - PR #113 (Control Agent v3) is closed and not merged; its changes must not be treated as part of canonical `main`.
 - PR #112 (optional Apple Core AI Torch integration) remains open and is explicitly NOT HARDWARE-VERIFIED; it is isolated and does not change production requirements or introduce live RO App writes.
-- The latest commit sequence on `main` adds a deterministic control-agent state model, strict sequential stage transitions, write-gate tests, and dependency/lock alignment.
-- The latest observed `MARSEL Production Gate` workflow run for `main` was `skipped`; therefore a skipped run is not evidence of production readiness.
+- The latest commit sequence on `main` adds a deterministic control-agent state model, strict sequential stage transitions, write-gate tests, dependency/lock alignment, and the final cross-system audit checkpoint.
+- The latest observed `MARSEL Production Gate` workflow run for `main` was `skipped`; therefore it is not evidence of production readiness.
 
 ## WAREHOUSE CONTRACT
 - The authoritative RO App documentation distinguishes the general v2 API root from the documented warehouse endpoint.
@@ -46,7 +47,8 @@ MARSEL ROAPP unified control plane with production-safety hardening, canonical G
 - Gmail OAuth user-authorized verification is not complete.
 - Official RO App MCP authorization is not complete.
 - Credential-exposure remediation tracked by Issue #23 is not closed by direct evidence.
-- Main branch protection/account-level GitHub controls require account authorization outside the available repository connector surface.
+- GitHub `main` branch protection is currently OFF; required status checks are not configured.
+- Account-level secret-scanning/push-protection, production environment controls, and Copilot controls are not independently verified through the available connector surface.
 - Production WRITE is not authorized.
 
 ## CURRENT EXECUTION QUEUE
@@ -56,7 +58,7 @@ MARSEL ROAPP unified control plane with production-safety hardening, canonical G
 4. Complete Gmail OAuth read-only user authorization test.
 5. Complete official RO App MCP authorization verification.
 6. Complete credential-exposure remediation evidence for Issue #23.
-7. Verify GitHub `main` protection, secret scanning/push protection, production environment controls, and required status checks through account-level settings.
+7. Enable and verify GitHub `main` protection, secret scanning/push protection, production environment controls, and required status checks through account/repository administration.
 8. Reconcile stale/open remediation PRs against current `main`; do not merge stale branches without revalidation.
 9. Review the 12 Supabase unused-index INFO findings using actual query workload before any index removal.
 10. Only after all applicable evidence gates pass, evaluate production safety gate. Production WRITE remains disabled until explicit authorization.
