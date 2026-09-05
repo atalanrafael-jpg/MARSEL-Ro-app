@@ -30,7 +30,7 @@ jobs:
         run: python scripts/marsel_live_probe_v1.py
       - name: Upload probe report
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: marsel-live-probes
           path: artifacts/marsel-live-probes.json

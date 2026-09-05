@@ -57,7 +57,7 @@ jobs:
           } > test-manifest.txt
       - name: Upload test artifacts
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: marsel-test-evidence-${{ github.run_id }}
           path: |

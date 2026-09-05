@@ -47,7 +47,7 @@ jobs:
 
       - name: Upload evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: marsel-location-by-id-v20-49-evidence
           path: marsel-location-by-id-contract-v20-49.json
