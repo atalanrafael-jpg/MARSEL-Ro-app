@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """MARSEL V20.48 — documented RO App warehouse-list contract diagnostic.
 
-READ-ONLY only. The authoritative documented contract is /v2/warehouse/.
+READ-ONLY only. The warehouse-list endpoint is documented outside the /v2
+namespace, while the current API reference uses /v2 for many other resources.
 Undocumented compatibility routes are never promoted to PASS evidence.
 """
 from __future__ import annotations
@@ -14,25 +15,39 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 KEY = os.getenv("ROAPP_API_KEY", "")
-API_BASE = os.getenv("ROAPP_API_BASE", "https://api.roapp.io/v2").rstrip("/")
+API_ROOT = os.getenv("ROAPP_API_ROOT", "https://api.roapp.io").rstrip("/")
 TIMEOUT = float(os.getenv("ROAPP_TIMEOUT", "30"))
 INTERVAL = max(float(os.getenv("ROAPP_MIN_REQUEST_INTERVAL", "0.34")), 0.34)
 OUT = os.getenv("WAREHOUSE_DIAGNOSTIC_OUTPUT", "marsel-unified-warehouse-contract.json")
-DOC = "https://roapp.readme.io/reference/get-warehouses"
+DOC = "https://roappua.readme.io/reference/get-warehouses"
 DOCUMENTED_PATH = "/warehouse/"
 
 
 def get(path: str, query: dict[str, str] | None = None):
     time.sleep(INTERVAL)
-    url = f"{API_BASE}{path}"
+    url = f"{API_ROOT}{path}"
     if query:
         url += "?" + urlencode(query)
-    req = Request(url, headers={"Authorization": f"Bearer {KEY}", "Accept": "application/json", "User-Agent": "MARSEL-V20.48-READONLY"}, method="GET")
+    req = Request(
+        url,
+        headers={
+            "Authorization": f"Bearer {KEY}",
+            "Accept": "application/json",
+            "User-Agent": "MARSEL-V20.48-READONLY",
+        },
+        method="GET",
+    )
     started = time.time()
     try:
         with urlopen(req, timeout=TIMEOUT) as response:
             body = response.read().decode("utf-8", errors="replace")
-            return {"url": url, "http": response.status, "elapsed_s": round(time.time() - started, 3), "body": body, "error": None}
+            return {
+                "url": url,
+                "http": response.status,
+                "elapsed_s": round(time.time() - started, 3),
+                "body": body,
+                "error": None,
+            }
     except Exception as exc:
         body = ""
         status = getattr(exc, "code", None)
@@ -40,7 +55,13 @@ def get(path: str, query: dict[str, str] | None = None):
             body = exc.read().decode("utf-8", errors="replace")
         except Exception:
             pass
-        return {"url": url, "http": status, "elapsed_s": round(time.time() - started, 3), "body": body, "error": f"{type(exc).__name__}: {exc}"}
+        return {
+            "url": url,
+            "http": status,
+            "elapsed_s": round(time.time() - started, 3),
+            "body": body,
+            "error": f"{type(exc).__name__}: {exc}",
+        }
 
 
 def summarize(result):
@@ -49,7 +70,14 @@ def summarize(result):
     try:
         payload = json.loads(body)
     except Exception:
-        summary.update({"json_valid": False, "top_level_type": None, "keys": None, "candidate_counts": {}})
+        summary.update(
+            {
+                "json_valid": False,
+                "top_level_type": None,
+                "keys": None,
+                "candidate_counts": {},
+            }
+        )
         return summary
     summary.update({"json_valid": True, "top_level_type": type(payload).__name__})
     if isinstance(payload, dict):
@@ -79,8 +107,11 @@ def main() -> int:
         summarize(get(DOCUMENTED_PATH, {"type": "product", "page": "1"})),
     ]
     list_ok = any(
-        p.get("http") == 200 and p.get("json_valid") and any(
-            isinstance(v, int) and v > 0 for v in (p.get("candidate_counts") or {}).values()
+        p.get("http") == 200
+        and p.get("json_valid")
+        and any(
+            isinstance(v, int) and v > 0
+            for v in (p.get("candidate_counts") or {}).values()
         )
         for p in probes
     )
@@ -91,11 +122,14 @@ def main() -> int:
         "readonly": True,
         "result": result,
         "official_documentation": DOC,
-        "documented_contract": "/v2/warehouse/",
-        "probed_path": "/v2/warehouse/",
+        "documented_contract": "/warehouse/",
+        "api_root": API_ROOT,
+        "probed_path": "/warehouse/",
         "probes": probes,
         "warehouse_list_contract_verified": list_ok,
-        "confirmed_live_gets": [p for p in probes if p.get("http") == 200 and p.get("json_valid")],
+        "confirmed_live_gets": [
+            p for p in probes if p.get("http") == 200 and p.get("json_valid")
+        ],
         "write_requests_made": 0,
         "ro_app_data_mutated": False,
     }

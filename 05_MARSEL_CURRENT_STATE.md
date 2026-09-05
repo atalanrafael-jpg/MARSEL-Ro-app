@@ -6,72 +6,66 @@
 2026-09-04
 
 ## CURRENT VERSION
-MARSEL/ROAPP unified control plane with production-safety hardening, canonical GitHub governance, automated evidence orchestration, and fail-closed production gating.
+MARSEL ROAPP unified control plane with production-safety hardening, canonical GitHub governance, automated evidence orchestration, and fail-closed production gating.
 
 ## CONTROL CHECKPOINT
-Current canonical `main` HEAD observed on 2026-09-04: `2ce18fc9461fcb22da630af20c8c23459e727980` (`ci: harden ReadMe ROAPP OpenAPI sync (#111)`). No GitHub Actions workflow runs were returned for this exact `main` HEAD at the time of this checkpoint, so fresh main-head CI/control-plane verification remains NOT_VERIFIED.
-
-## SYSTEM MODEL
-**MARSEL = business contour + ROAPP = technical contour → one unified system → one canonical `main` control plane.**
-
-## VERIFIED LIVE / REPOSITORY FACTS
 - Canonical repository: `atalanrafael-jpg/MARSEL-Ro-app`.
-- The repository is public, active, and `main` is the default branch.
-- Current canonical `main` HEAD is `2ce18fc9461fcb22da630af20c8c23459e727980`.
-- PR #111 is merged into current `main`.
-- Production Gate remains fail-closed and production WRITE remains disabled.
-- PR #113 (MARSEL ROAPP Control Agent) is open, mergeable, and draft; its head `0e4af386c24752f78e139eeda755ea68eee3cb7c` has successful completed runs for CodeQL, MARSEL RO App API v2 Guard, MARSEL release readiness, Codex Plugin Validation, MARSEL Secret Guard, MARSEL Integration Health, MARSEL Live Integration Probes, MARSEL Unified Control Plane, MARSEL Language Quality, test, and MCP production readiness. These results validate that PR head's executed workflows only; they do not establish live OpenAI authorization or production readiness.
-- Historical RO App evidence remains valid only for the runs that produced it.
-- The latest verified warehouse diagnostic tested the documented `/v2/warehouse/` forms and received HTTP 404; this does not authorize promotion of any undocumented compatibility route.
+- Canonical branch: `main`.
+- Current canonical `main` HEAD observed before this remediation: `745a522c3b95fe14216963d126d66080df07c816`.
+- Production WRITE remains disabled.
 
-## CANONICALIZATION CORRECTION
-- Canonical warehouse diagnostic: `scripts/marsel_warehouse_contract_v20_48.py`.
-- Superseded `scripts/marsel_warehouse_contract_v20_47.py` has been removed.
-- Unified Control Plane references V20.48.
-- Warehouse contract remains `NOT_VERIFIED` until authoritative contract/live behavior is resolved.
+## VERIFIED REPOSITORY FACTS
+- PR #113 Control Agent head `294a7b9281726759dc6e817ae97f706071b26103` passed the current PR-triggered CI suite and was moved from Draft to Ready for review.
+- PR #113 is open, mergeable and not merged; human review remains required.
+- PR #114 was created from current `main` to correct the warehouse-list contract implementation. It is open and not merged; live CI verification remains required.
+- Historical RO App evidence remains valid only for the runs that produced it.
+
+## WAREHOUSE CONTRACT CORRECTION
+- The current RO App API reference uses `https://api.roapp.io/v2` as the general v2 base, while the documented Get Warehouses method uses `GET https://api.roapp.io/warehouse/`.
+- The warehouse endpoint accepts `type` (default `product`) and optional `branch_id`.
+- The previous `/v2/warehouse/` probes returned HTTP 404; the undocumented compatibility route `/warehouse/` returned live data.
+- PR #114 changes the canonical diagnostic to use the documented `/warehouse/` endpoint from the API root and adds regression tests.
+- No undocumented route is promoted to PASS merely because it responds successfully.
+- The warehouse gate remains NOT VERIFIED until a fresh authorized READ-ONLY Actions run produces and validates the evidence artifact.
 
 ## RO APP STATUS
 🟢 **VERIFIED HISTORICAL LIVE ACCESS**
-- `GET /v2/orders` previously returned HTTP 200 in a real read-only smoke test.
+- `GET /v2/orders` previously returned HTTP 200 in a real READ-ONLY smoke test.
 - Historical order audit: 4,373 orders; 4,373 unique IDs; 0 duplicate IDs; 0 missing IDs; 0 missing client IDs; 0 missing statuses for that run.
 - Historical V20.8 detail audit: 6,820 detail requests; 0 detail failures; 0 writes.
 
 🟡 **PARTIAL**
-- Historical API inventory: 124 operations / 45 GET probes.
-- Full current API/entity completeness is not yet proven by a fresh complete evidence set.
-- Historical product-code review found 11 shared groups; later evidence classified them as legitimate reuse. No automatic deletion/merge is permitted.
+- Historical API inventory and entity coverage remain historical evidence, not proof of current completeness.
+- Product-code collision findings remain review-only; no automatic deletion/merge is permitted.
 
 🔴 **BLOCKED / NOT VERIFIED**
 - Complete production backup is not proven.
 - Restore test is not proven.
-- Fresh Unified Control Plane result on current `main` is not yet verified.
-- Warehouse-list contract is not verified.
+- Fresh current-main Unified Control Plane result is not established by this checkpoint.
+- Warehouse-list contract requires fresh live evidence after PR #114.
 - Gmail OAuth user-authorized verification is not complete.
 - Official RO App MCP authorization is not complete.
 - Credential-exposure remediation tracked by Issue #23 is not closed by direct evidence.
-- `main` branch protection is not enabled according to the current GitHub branch metadata; required status checks are currently off.
+- Main branch protection/account-level GitHub controls require account authorization outside the current repository connector surface.
 - Production WRITE is not authorized.
 
-## CURRENT OPEN BLOCKERS
-1. Verify fresh Unified Control Plane result on current canonical `main`.
-2. Prove complete backup/export and independently tested restore/integrity.
-3. Complete current API/entity verification from authoritative contracts and verified identifiers.
-4. Resolve the documented warehouse-list contract discrepancy with authoritative evidence.
-5. Keep collision findings review-only; no automatic deletion/merge.
-6. Complete Gmail OAuth read-only user authorization test.
-7. Complete official RO App MCP authorization verification.
-8. Complete credential-exposure remediation evidence for Issue #23.
-9. Enable and verify appropriate `main` branch protection/status checks; account-level controls cannot be changed by the current GitHub connector surface.
-10. Reconcile governance/remediation PRs against canonical `main`; do not merge stale branches without revalidation.
-11. Review PR #113 Control Agent implementation and, if accepted, require it to become ready-for-review only after its dependency/code contract is reconciled with current `main`.
-12. Only after all required evidence passes: evaluate production safety gate; production WRITE remains disabled until explicit authorization.
+## CURRENT EXECUTION QUEUE
+1. Validate PR #114 with fresh CI and, when authorized, inspect its real warehouse evidence artifact.
+2. Close the warehouse contract issues only after direct evidence proves the documented endpoint and response schema.
+3. Verify complete backup/export and independently tested restore/integrity.
+4. Complete current API/entity verification from authoritative contracts and verified identifiers.
+5. Complete Gmail OAuth read-only user authorization test.
+6. Complete official RO App MCP authorization verification.
+7. Complete credential-exposure remediation evidence for Issue #23.
+8. Verify GitHub `main` protection and required status checks through account-level settings.
+9. Reconcile stale/open remediation PRs against current `main`; do not merge stale branches without revalidation.
+10. Only after all applicable evidence gates pass, evaluate production safety gate. Production WRITE remains disabled until explicit authorization.
 
 ## SAFETY
 - `MARSEL_WRITE_APPROVED=false` remains mandatory.
 - Unified Control Plane live checks are GET-only/read-only.
 - Evidence Orchestrator is fail-closed and rejects synthetic evidence.
-- Production Gate requires successful upstream control-plane evidence and complete required external evidence.
-- No production write, credential creation, reviewer fabrication, bypass, or synthetic evidence is authorized by this checkpoint.
+- No production write, credential creation, reviewer fabrication, bypass, or synthetic evidence is authorized.
 
 ## REQUIRED UPDATE RULE
 After every material change:

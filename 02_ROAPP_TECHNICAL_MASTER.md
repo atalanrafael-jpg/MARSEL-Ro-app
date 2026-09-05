@@ -13,15 +13,23 @@ Only evidence from official documentation or successful live requests may be mar
 For every endpoint record: method, path, auth, parameters, pagination, schema, errors, rate/limits, version, evidence date.
 
 ### Verified historical live evidence
-- RO App API base used by project: `https://api.roapp.io/v2`.
+- RO App API base used by project: `https://api.roapp.io/v2` for v2 resources.
 - Bearer authentication is used by the project.
 - `GET /orders` has been live-tested successfully with HTTP 200 in READ-ONLY mode.
 - A historical live audit verified 4,373 orders, 4,373 unique IDs, zero duplicate IDs, zero missing IDs, zero missing client IDs and zero missing statuses; this is evidence for that audit run, not a perpetual current database count.
 - A deeper READ-ONLY detail audit recorded 6,820 successful detail requests and `DETAIL_FAILURES=0`.
 
+### Warehouse contract — corrected canonical path
+- The current RO App documentation identifies the Warehouse List method as `GET https://api.roapp.io/warehouse/`, with `type` (default `product`) and optional `branch_id` parameters.
+- The warehouse endpoint is outside the `/v2` namespace even though the general v2 API base is `https://api.roapp.io/v2`.
+- The canonical diagnostic is `scripts/marsel_warehouse_contract_v20_48.py` and must probe `/warehouse/` from `https://api.roapp.io`.
+- `/v2/warehouse/` is not an accepted warehouse-list contract and must not be used for PASS evidence.
+- Undocumented compatibility routes are not promoted to official PASS evidence.
+- Live verification remains required before the warehouse gate can be marked PASS.
+
 ### Not verified / blocked
 - Full API completeness is not proven.
-- Warehouse live contract is NOT VERIFIED; documented `/v2/warehouse/` probes previously returned 404 while an undocumented compatibility route returned 200. The compatibility route is not promoted to official PASS.
+- Current warehouse live evidence must be refreshed after the corrected endpoint implementation.
 - Full backup/restore readiness is NOT VERIFIED.
 - Remaining entity checks require fresh evidence.
 - Product-code collision findings remain review-only; no automatic deletion is permitted.
