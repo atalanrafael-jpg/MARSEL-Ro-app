@@ -11,7 +11,8 @@ MARSEL ROAPP unified control plane with production-safety hardening, canonical G
 ## CONTROL CHECKPOINT
 - Canonical repository: `atalanrafael-jpg/MARSEL-Ro-app`.
 - Canonical branch: `main`.
-- Current canonical `main` HEAD verified from the latest repository commit: `6c19d2eab166b014acca0d0047ddb835dc16c1bd`.
+- Current canonical `main` HEAD verified: `21093bc82abd36627a788102209343d197764dd7`.
+- The code lineage immediately before this documentation reconciliation was `6c19d2eab166b014acca0d0047ddb835dc16c1bd`.
 - Production WRITE remains disabled.
 - Live GitHub branch metadata reports `main` as **unprotected**; required status checks are not configured at branch level. This is an account/repository administration blocker, not a code failure.
 
