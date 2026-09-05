@@ -84,5 +84,5 @@ def test_agent_state_rejects_skipping_stages():
 
 def test_agent_state_fail_closes_write():
     state = AgentState(stage=AgentStage.SAFETY_GATE, request_id="req-3")
-    with pytest.raises(ValueError, match="invalid stage transition"):
+    with pytest.raises(PermissionError, match="production WRITE is fail-closed"):
         next_stage(state, AgentStage.WRITE)
