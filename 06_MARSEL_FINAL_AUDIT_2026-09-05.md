@@ -6,15 +6,22 @@ Final cross-system verification pass for MARSEL ROAPP using the current canonica
 ## Verified
 - Canonical GitHub repository: `atalanrafael-jpg/MARSEL-Ro-app`.
 - Canonical branch: `main`.
+- Current canonical `main` HEAD: `f8558e5beefbe6cf2c37b064ed5805aac33c7300`.
 - Production WRITE remains disabled.
 - PR #114 was merged and the warehouse contract correction is now on `main`.
 - PR #113 is closed and unmerged; it is not canonical production code.
 - PR #112 remains open and is explicitly not hardware-verified; it is isolated from production requirements.
-- Latest `main` commits include deterministic Control Agent state transitions, strict sequential transitions, and write-gate tests.
+- Latest `main` commits include deterministic Control Agent state transitions, strict sequential transitions, write-gate tests, and corrected live-governance documentation.
 - Supabase project `wdbytmvzuensuuoquvav` is `ACTIVE_HEALTHY`.
 - Supabase security advisor returned zero security lints at the time of this audit.
 - Supabase performance advisor returned 12 unused-index INFO findings. No automatic deletion was performed because unused indexes require workload validation before removal.
 - RO App official API documentation currently documents a warehouse endpoint at `/warehouse/`, while `/v2` is used as the general v2 API root. The repository's warehouse diagnostic was corrected accordingly in merged PR #114.
+
+## Governance checkpoint
+- Live GitHub branch metadata currently reports `main` as **unprotected**.
+- Required status checks are currently **not configured** at branch level.
+- This is an account/repository-administration blocker, not a code failure, and cannot be truthfully marked fixed through the available repository connector.
+- GitHub documents protected branches as the mechanism for enforcing reviews/status checks and related merge controls. citeturn0news0
 
 ## Not verified / blocked
 - Fresh live warehouse evidence on current `main` is not yet sufficient to close the evidence gate.
@@ -36,7 +43,7 @@ Final cross-system verification pass for MARSEL ROAPP using the current canonica
 - #83 Production Gate evidence discovery and verification.
 - #85 Security bridge to external secret-control repository.
 - #91 Account-level GitHub security and Copilot controls.
-- #106 ReadMe ↔ GitHub documentation synchronization.
+- #106 ReadMe ↔ GitHub documentation synchronization; its governance text was corrected during this audit so it no longer incorrectly states that production `main` is protected.
 
 ## Decisions made during audit
 1. Do not enable production WRITE.
