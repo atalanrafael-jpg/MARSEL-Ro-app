@@ -36,7 +36,7 @@ Mapping разделяет архитектурное соответствие �
 | Order | `/orders` | GET | endpoint verified; complete response schema not promoted here | LIVE-READ-VERIFIED endpoint / schema partial | capture current schema |
 | OrderLine | nested order data | GET via `/orders` | exact schema not promoted | NOT VERIFIED | fresh GET |
 | Payment | no verified mapping | — | — | NOT VERIFIED | identify official endpoint from docs, then GET probe |
-| Warehouse | `/warehouse/` is recorded as candidate official contract outside `/v2` | GET | not live verified | NOT VERIFIED | authorized GET against official contract |
+| Warehouse | `/warehouse/` | GET | warehouse-list contract verified by repository evidence; response schema not independently promoted | LIVE-READ-VERIFIED contract / schema partial | capture current response schema when authorized GET access is available |
 | Stock | no verified mapping | — | — | NOT VERIFIED | official docs + GET |
 | StockMovement | no verified mapping | — | — | NOT VERIFIED | official docs + GET |
 | Reservation | no verified mapping | — | — | NOT VERIFIED | official docs + GET |
@@ -52,7 +52,15 @@ Mapping разделяет архитектурное соответствие �
 | ProductCost | no verified mapping | — | — | NOT VERIFIED | audit existing costing implementation first |
 | FinancialEntry | no verified mapping | — | — | NOT VERIFIED | define finance authoritative source |
 
-## 4. Authoritative-source decision
+## 4. Evidence update — warehouse
+
+Repository evidence `evidence/marsel-unified-warehouse-contract.json` records a successful warehouse contract audit at `2026-09-05T08:41:00Z` in `READ_ONLY` mode, with `write_requests_made: 0`, `ro_app_data_mutated: false`, and `warehouse_list_contract_verified: true`.
+
+This is sufficient to promote the **warehouse-list contract** to `LIVE-READ-VERIFIED` for the recorded audit run. It is **not** sufficient to promote the full warehouse response schema, stock balances, stock movements, or other inventory entities.
+
+Evidence source: `evidence/marsel-unified-warehouse-contract.json`.
+
+## 5. Authoritative-source decision
 
 | Domain | Current controlled decision |
 |---|---|
@@ -64,11 +72,11 @@ Mapping разделяет архитектурное соответствие �
 | Finance | separate authoritative source must be selected and validated |
 | Audit/evidence | MARSEL control plane / GitHub |
 
-## 5. `/orders` promotion record
+## 6. `/orders` promotion record
 
 The repository explicitly identifies `GET /orders` as a verified read endpoint. Existing project records also describe a historical successful live test and a historical audit of 4,373 orders. Those historical counts are evidence of that run, not a current production count. Current production readiness still requires fresh evidence.
 
-## 6. Required live mapping sequence
+## 7. Required live mapping sequence
 
 For each candidate entity:
 
@@ -82,11 +90,12 @@ For each candidate entity:
 8. assign evidence timestamp/hash;
 9. update this mapping only with verified facts.
 
-## 7. Current gate
+## 8. Current gate
 
 `ERP_DATA_DICTIONARY = DONE / DESIGN`
-`ENTITY_API_MAPPING = PARTIAL / NOT VERIFIED`
-`WAREHOUSE = NOT VERIFIED`
+`ENTITY_API_MAPPING = PARTIAL / WAREHOUSE-CONTRACT-VERIFIED`
+`WAREHOUSE = LIVE-READ-VERIFIED (contract only)`
+`STOCK = NOT VERIFIED`
 `COSTING = NOT VERIFIED`
 `FINANCE = NOT VERIFIED`
 `ERP_READINESS = BLOCKED`
