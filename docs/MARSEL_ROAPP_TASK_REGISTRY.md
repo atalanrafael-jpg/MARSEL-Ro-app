@@ -15,12 +15,14 @@ MARSEL и ROAPP — один проект. Issue, PR, workflow, документ
 | #19 | Production go-live | BLOCKED / NOT READY | собрать 8 обязательных production evidence; WRITE остаётся 0 |
 | #91 | GitHub account/security controls | OPEN / MANUAL | исправить target ruleset, secret scanning/push protection, production environment и Copilot controls через GitHub account UI/API |
 | PR #89 | Limits-resilient execution worker | OPEN / DRAFT / MERGEABLE | пройти review и текущий CI; затем снять Draft и merge только после проверки |
+| PR #127 | ERP data model | OPEN / DRAFT | review новых ERP data dictionary и entity ownership документов; merge только после проверки |
 | Warehouse | Warehouse API | NOT VERIFIED | получить прямое доказательство официального GET-контракта |
 | MCP | ChatGPT/Codex MCP | AUTH PENDING | выполнить реальную authorization verification |
 | Credentials | ROAPP API key | SECURITY GATE | подтвердить rotation/history scan при подозрении или подтверждённом exposure |
 | Gmail OAuth | Live read-only OAuth | NOT VERIFIED | выполнить реальный OAuth smoke test |
 | Evidence | Production evidence bundle | 1/8 | отсутствуют backup, restore, reconciliation, duplicate/reference, dry-run, idempotency, rollback evidence |
-| ERP Architecture | ERP master architecture | DONE / DESIGN | архитектура закреплена в `docs/MARSEL_ERP_MASTER_ARCHITECTURE_V1.md`; следующий шаг — ERP data dictionary и entity/API mapping |
+| ERP Architecture | ERP master architecture | DONE / DESIGN | архитектура закреплена в `docs/MARSEL_ERP_MASTER_ARCHITECTURE_V1.md` |
+| ERP Data Model | ERP data dictionary + entity ownership | DONE / DESIGN | PR #127; после review выполнить RO App entity/API mapping |
 | ERP Readiness | ERP production readiness | BLOCKED | не считать production ERP готовым до P0 gates; отдельно проверить costing, finance, inventory, procurement, production и repair flows |
 
 ## Что уже подтверждено
@@ -31,6 +33,7 @@ MARSEL и ROAPP — один проект. Issue, PR, workflow, документ
 - Production Evidence Orchestrator корректно блокирует gate при неполном evidence.
 - Security issue, ранее ошибочно закрытая при состоянии NOT READY, была возвращена в OPEN.
 - ERP закреплён как обязательный бизнес-контур MARSEL ROAPP отдельной master-архитектурой.
+- ERP data dictionary и entity ownership matrix подготовлены в PR #127 как документационный слой; они не являются live API evidence.
 
 ## Текущие ограничения
 
@@ -54,7 +57,13 @@ ERP является обязательным контуром проекта, �
 
 `клиенты → заказы → производство/ремонт → материалы → склад → себестоимость → оплаты → аналитика → автоматизация → повторные продажи`
 
-Следующий ERP-проход: MDM/data dictionary → entity ownership → RO App API mapping → costing/finance validation → READ_ONLY smoke tests.
+Текущий ERP-проход завершён на уровне проектирования MDM:
+
+`master architecture → data dictionary → entity ownership`
+
+Следующий проход:
+
+`RO App API mapping → costing/finance validation → READ_ONLY smoke tests → ERP evidence`
 
 ## Linear
 
