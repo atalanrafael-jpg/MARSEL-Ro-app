@@ -1,0 +1,15 @@
+# MARSEL ROAPP execution policy
+# Fail-closed manifest for the read-only execution worker.
+# Production mutations remain explicitly disabled.
+
+mode: fail-closed
+
+defaults:
+  production_write: false
+
+tasks:
+  production_mutation:
+    enabled: false
+
+security:
+  secrets_from_github_only: true
