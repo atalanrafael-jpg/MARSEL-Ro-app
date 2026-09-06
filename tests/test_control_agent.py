@@ -1,3 +1,4 @@
+import sys
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
@@ -7,6 +8,7 @@ MODULE_PATH = Path(__file__).resolve().parents[1] / "control_agent" / "marsel_co
 SPEC = spec_from_file_location("marsel_control_agent_under_test", MODULE_PATH)
 assert SPEC is not None and SPEC.loader is not None
 MODULE = module_from_spec(SPEC)
+sys.modules[SPEC.name] = MODULE
 SPEC.loader.exec_module(MODULE)
 
 AgentStage = MODULE.AgentStage
