@@ -15,14 +15,14 @@ MARSEL и ROAPP — один проект. Issue, PR, workflow, документ
 | #19 | Production go-live | BLOCKED / NOT READY | собрать 8 обязательных production evidence; WRITE остаётся 0 |
 | #91 | GitHub account/security controls | OPEN / MANUAL | исправить target ruleset, secret scanning/push protection, production environment и Copilot controls через GitHub account UI/API |
 | PR #89 | Limits-resilient execution worker | OPEN / DRAFT / MERGEABLE | пройти review и текущий CI; затем снять Draft и merge только после проверки |
-| Warehouse | Warehouse API | NOT VERIFIED | получить прямое доказательство официального GET-контракта |
+| Warehouse | Warehouse API | LIVE-READ-VERIFIED / CONTRACT ONLY | подтвердить полный response schema и stock/stock-movement endpoints отдельными GET evidence |
 | MCP | ChatGPT/Codex MCP | AUTH PENDING | выполнить реальную authorization verification |
 | Credentials | ROAPP API key | SECURITY GATE | подтвердить rotation/history scan при подозрении или подтверждённом exposure |
 | Gmail OAuth | Live read-only OAuth | NOT VERIFIED | выполнить реальный OAuth smoke test |
 | Evidence | Production evidence bundle | 1/8 | отсутствуют backup, restore, reconciliation, duplicate/reference, dry-run, idempotency, rollback evidence |
 | ERP Architecture | ERP master architecture | DONE / DESIGN | архитектура закреплена в `docs/MARSEL_ERP_MASTER_ARCHITECTURE_V1.md` |
-| ERP Data Dictionary | ERP data dictionary v1 | DONE / DESIGN | создан `docs/MARSEL_ERP_DATA_DICTIONARY_V1.md`; следующий шаг — подтверждённый entity/API mapping |
-| ERP Entity/API Mapping | ERP ↔ RO App mapping | PARTIAL / NOT VERIFIED | получить свежие READ_ONLY GET evidence для warehouse, stock, materials, products, customers и payments |
+| ERP Data Dictionary | ERP data dictionary v1 | DONE / DESIGN | создан `docs/MARSEL_ERP_DATA_DICTIONARY_V1.md`; mapping продолжается по evidence |
+| ERP Entity/API Mapping | ERP ↔ RO App mapping | PARTIAL / WAREHOUSE-CONTRACT-VERIFIED | подтвердить stock, materials, products, customers и payments через официальные GET evidence |
 | ERP Costing | Costing | NOT VERIFIED | подтвердить существующий engine, price sources, labor/overhead и planned-vs-actual; не создавать параллельный engine |
 | ERP Finance | Finance boundary | NOT VERIFIED | определить authoritative finance/accounting source и выполнить READ_ONLY mapping/reconciliation |
 | ERP Readiness | ERP production readiness | BLOCKED | не считать production ERP готовым до P0 gates; отдельно закрыть costing, finance, inventory, procurement, production и repair flows |
@@ -36,6 +36,7 @@ MARSEL и ROAPP — один проект. Issue, PR, workflow, документ
 - Security issue, ранее ошибочно закрытая при состоянии NOT READY, была возвращена в OPEN.
 - ERP закреплён как обязательный бизнес-контур MARSEL ROAPP отдельной master-архитектурой.
 - ERP data dictionary v1 добавлен в репозиторий; его mapping-статусы намеренно не повышены без live/API evidence.
+- Warehouse-list contract получил прямое repository evidence: `evidence/marsel-unified-warehouse-contract.json` фиксирует `status=PASS`, `mode=READ_ONLY`, `write_requests_made=0`, `ro_app_data_mutated=false`, `warehouse_list_contract_verified=true` на `2026-09-05T08:41:00Z`.
 - Costing audit 2026-09-06 выполнен: архитектура подтверждена как DESIGN, production implementation и RO App cost API не подтверждены.
 - Finance boundary audit 2026-09-06 выполнен: financial control model подтверждена, production ledger/posting/integration не подтверждены.
 
@@ -64,7 +65,7 @@ Data dictionary: `docs/MARSEL_ERP_DATA_DICTIONARY_V1.md`.
 
 `клиенты → заказы → производство/ремонт → материалы → склад → себестоимость → оплаты → аналитика → автоматизация → повторные продажи`
 
-Следующий ERP-проход: live READ_ONLY API evidence → warehouse/stock mapping → costing implementation evidence → finance source/reconciliation.
+Следующий ERP-проход: официальные GET evidence для stock → materials/products/customers/payments → costing implementation → finance source/reconciliation.
 
 ## Linear
 
