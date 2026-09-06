@@ -24,6 +24,7 @@ MARSEL и ROAPP — один проект. Issue, PR, workflow, документ
 | ERP Data Dictionary | ERP data dictionary v1 | DONE / DESIGN | создан `docs/MARSEL_ERP_DATA_DICTIONARY_V1.md`; mapping продолжается по evidence |
 | ERP Repository Contract Audit | repository implementation audit | DONE / READ-ONLY | создан `docs/MARSEL_ERP_ROAPP_REPOSITORY_CONTRACT_AUDIT_2026-09-06.md`; не повышать live-статусы без свежего GET evidence |
 | ERP Endpoint Surface Audit | repository endpoint surface | DONE / READ-ONLY | создан `docs/MARSEL_ERP_ENDPOINT_SURFACE_AUDIT_2026-09-06.md`; endpoint paths из audit scripts не считать API contract без evidence |
+| ERP Stock/Materials Evidence Gate | stock/materials control pass | DONE / READ-ONLY | создан `docs/MARSEL_ERP_STOCK_MATERIALS_EVIDENCE_GATE_2026-09-06.md`; live evidence по stock, movements, materials, metals, stones отсутствует |
 | ERP Entity/API Mapping | ERP ↔ RO App mapping | PARTIAL / WAREHOUSE-CONTRACT-VERIFIED | подтвердить stock, materials, products, customers и payments через официальные GET evidence; не создавать дублирующие коннекторы для уже реализованных read-only путей |
 | ERP Costing | Costing | NOT VERIFIED | подтвердить существующий engine, price sources, labor/overhead и planned-vs-actual; не создавать параллельный engine |
 | ERP Finance | Finance boundary | NOT VERIFIED | определить authoritative finance/accounting source и выполнить READ_ONLY mapping/reconciliation |
@@ -43,6 +44,7 @@ MARSEL и ROAPP — один проект. Issue, PR, workflow, документ
 - Finance boundary audit 2026-09-06 выполнен: financial control model подтверждена, production ledger/posting/integration не подтверждены.
 - Repository contract audit 2026-09-06 выполнен: существующая read-only инфраструктура найдена для orders, products, services и warehouse; наличие кода не приравнено к свежему live contract evidence.
 - Endpoint surface audit 2026-09-06 выполнен: inventory script содержит дополнительные candidate paths (`/catalog/bundles`, `/inquiries`, `/bookings`, `/estimates`, `/invoices`), но они не повышены до verified API contracts.
+- Stock/materials evidence gate 2026-09-06 выполнен: repository evidence недостаточно для promotion stock, stock movements, materials, metals или stones; никаких новых production connectors не создано.
 
 ## Текущие ограничения
 
@@ -65,9 +67,11 @@ ERP является обязательным контуром проекта, �
 
 Data dictionary: `docs/MARSEL_ERP_DATA_DICTIONARY_V1.md`.
 
-Repository contract audit: `docs/MARSEL_ERP_ROAPP_REPOSITORY_CONTRACT_AUDIT_2026-09-06.md`.
+Repository contract audit: `docs/MARSEL_ERP_ROAPP_ENTITY_API_MAPPING_V1.md` и `docs/MARSEL_ERP_ROAPP_REPOSITORY_CONTRACT_AUDIT_2026-09-06.md`.
 
 Endpoint surface audit: `docs/MARSEL_ERP_ENDPOINT_SURFACE_AUDIT_2026-09-06.md`.
+
+Stock/materials evidence gate: `docs/MARSEL_ERP_STOCK_MATERIALS_EVIDENCE_GATE_2026-09-06.md`.
 
 Целевой сквозной поток:
 
