@@ -13,6 +13,7 @@ import hashlib, json, os, sys, time
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
+from cryptography.fernet import Fernet
 import httpx
 
 BASE = os.environ.get("ROAPP_API_BASE", "https://api.roapp.io/v2").rstrip("/")
@@ -20,8 +21,17 @@ KEY = os.environ.get("ROAPP_API_KEY", "")
 TIMEOUT = float(os.environ.get("ROAPP_TIMEOUT", "30"))
 PAGE_SIZE = int(os.environ.get("ROAPP_PAGE_SIZE", "50"))
 OUT = Path(os.environ.get("MARSEL_BACKUP_OUTPUT", "marsel-orders-backup-v20-20.json"))
+BACKUP_ENCRYPTION_KEY = os.environ.get("MARSEL_BACKUP_ENCRYPTION_KEY", "")
 if not KEY:
     print("ROAPP_API_KEY is required", file=sys.stderr)
+    raise SystemExit(1)
+if not BACKUP_ENCRYPTION_KEY:
+    print("MARSEL_BACKUP_ENCRYPTION_KEY is required", file=sys.stderr)
+    raise SystemExit(1)
+try:
+    FERNET = Fernet(BACKUP_ENCRYPTION_KEY.encode("utf-8"))
+except Exception:
+    print("MARSEL_BACKUP_ENCRYPTION_KEY must be a valid Fernet key", file=sys.stderr)
     raise SystemExit(1)
 if PAGE_SIZE < 1 or PAGE_SIZE > 50:
     raise SystemExit("ROAPP_PAGE_SIZE must be 1..50")
@@ -140,7 +150,9 @@ report = {
 }
 canonical = json.dumps(report, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 report["sha256"] = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
-OUT.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+plaintext_backup = json.dumps(report, ensure_ascii=False, indent=2).encode("utf-8")
+encrypted_backup = FERNET.encrypt(plaintext_backup)
+OUT.write_bytes(encrypted_backup)
 
 print("=== MARSEL V20.20 / ORDERS BACKUP + DATA AUDIT / READ ONLY ===")
 for key, value in summary.items():
