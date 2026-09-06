@@ -22,7 +22,10 @@ MARSEL и ROAPP — один проект. Issue, PR, workflow, документ
 | Evidence | Production evidence bundle | 1/8 | отсутствуют backup, restore, reconciliation, duplicate/reference, dry-run, idempotency, rollback evidence |
 | ERP Architecture | ERP master architecture | DONE / DESIGN | архитектура закреплена в `docs/MARSEL_ERP_MASTER_ARCHITECTURE_V1.md` |
 | ERP Data Dictionary | ERP data dictionary v1 | DONE / DESIGN | создан `docs/MARSEL_ERP_DATA_DICTIONARY_V1.md`; следующий шаг — подтверждённый entity/API mapping |
-| ERP Readiness | ERP production readiness | BLOCKED | не считать production ERP готовым до P0 gates; отдельно проверить costing, finance, inventory, procurement, production и repair flows |
+| ERP Entity/API Mapping | ERP ↔ RO App mapping | PARTIAL / NOT VERIFIED | получить свежие READ_ONLY GET evidence для warehouse, stock, materials, products, customers и payments |
+| ERP Costing | Costing | NOT VERIFIED | подтвердить существующий engine, price sources, labor/overhead и planned-vs-actual; не создавать параллельный engine |
+| ERP Finance | Finance boundary | NOT VERIFIED | определить authoritative finance/accounting source и выполнить READ_ONLY mapping/reconciliation |
+| ERP Readiness | ERP production readiness | BLOCKED | не считать production ERP готовым до P0 gates; отдельно закрыть costing, finance, inventory, procurement, production и repair flows |
 
 ## Что уже подтверждено
 
@@ -33,6 +36,8 @@ MARSEL и ROAPP — один проект. Issue, PR, workflow, документ
 - Security issue, ранее ошибочно закрытая при состоянии NOT READY, была возвращена в OPEN.
 - ERP закреплён как обязательный бизнес-контур MARSEL ROAPP отдельной master-архитектурой.
 - ERP data dictionary v1 добавлен в репозиторий; его mapping-статусы намеренно не повышены без live/API evidence.
+- Costing audit 2026-09-06 выполнен: архитектура подтверждена как DESIGN, production implementation и RO App cost API не подтверждены.
+- Finance boundary audit 2026-09-06 выполнен: financial control model подтверждена, production ledger/posting/integration не подтверждены.
 
 ## Текущие ограничения
 
@@ -44,7 +49,8 @@ MARSEL и ROAPP — один проект. Issue, PR, workflow, документ
 - подтвердить Copilot account controls;
 - выполнить пользовательский Gmail OAuth;
 - выполнить пользовательскую RO App MCP authorization;
-- создать реальные backup/restore/rollback доказательства без доступа к соответствующим production systems.
+- создать реальные backup/restore/rollback evidence без доступа к соответствующим production systems;
+- выполнить live RO App GET smoke tests без действующей авторизации/API access.
 
 Никакие фиктивные evidence, credentials, OAuth tokens или production WRITE операции не создаются.
 
@@ -58,7 +64,7 @@ Data dictionary: `docs/MARSEL_ERP_DATA_DICTIONARY_V1.md`.
 
 `клиенты → заказы → производство/ремонт → материалы → склад → себестоимость → оплаты → аналитика → автоматизация → повторные продажи`
 
-Следующий ERP-проход: entity ownership → RO App API mapping → costing/finance validation → READ_ONLY smoke tests.
+Следующий ERP-проход: live READ_ONLY API evidence → warehouse/stock mapping → costing implementation evidence → finance source/reconciliation.
 
 ## Linear
 
