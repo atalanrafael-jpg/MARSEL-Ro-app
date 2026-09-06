@@ -22,7 +22,8 @@ MARSEL и ROAPP — один проект. Issue, PR, workflow, документ
 | Evidence | Production evidence bundle | 1/8 | отсутствуют backup, restore, reconciliation, duplicate/reference, dry-run, idempotency, rollback evidence |
 | ERP Architecture | ERP master architecture | DONE / DESIGN | архитектура закреплена в `docs/MARSEL_ERP_MASTER_ARCHITECTURE_V1.md` |
 | ERP Data Dictionary | ERP data dictionary v1 | DONE / DESIGN | создан `docs/MARSEL_ERP_DATA_DICTIONARY_V1.md`; mapping продолжается по evidence |
-| ERP Entity/API Mapping | ERP ↔ RO App mapping | PARTIAL / WAREHOUSE-CONTRACT-VERIFIED | подтвердить stock, materials, products, customers и payments через официальные GET evidence |
+| ERP Repository Contract Audit | repository implementation audit | DONE / READ-ONLY | создан `docs/MARSEL_ERP_ROAPP_REPOSITORY_CONTRACT_AUDIT_2026-09-06.md`; не повышать live-статусы без свежего GET evidence |
+| ERP Entity/API Mapping | ERP ↔ RO App mapping | PARTIAL / WAREHOUSE-CONTRACT-VERIFIED | подтвердить stock, materials, products, customers и payments через официальные GET evidence; не создавать дублирующие коннекторы для уже реализованных read-only путей |
 | ERP Costing | Costing | NOT VERIFIED | подтвердить существующий engine, price sources, labor/overhead и planned-vs-actual; не создавать параллельный engine |
 | ERP Finance | Finance boundary | NOT VERIFIED | определить authoritative finance/accounting source и выполнить READ_ONLY mapping/reconciliation |
 | ERP Readiness | ERP production readiness | BLOCKED | не считать production ERP готовым до P0 gates; отдельно закрыть costing, finance, inventory, procurement, production и repair flows |
@@ -39,6 +40,7 @@ MARSEL и ROAPP — один проект. Issue, PR, workflow, документ
 - Warehouse-list contract получил прямое repository evidence: `evidence/marsel-unified-warehouse-contract.json` фиксирует `status=PASS`, `mode=READ_ONLY`, `write_requests_made=0`, `ro_app_data_mutated=false`, `warehouse_list_contract_verified=true` на `2026-09-05T08:41:00Z`.
 - Costing audit 2026-09-06 выполнен: архитектура подтверждена как DESIGN, production implementation и RO App cost API не подтверждены.
 - Finance boundary audit 2026-09-06 выполнен: financial control model подтверждена, production ledger/posting/integration не подтверждены.
+- Repository contract audit 2026-09-06 выполнен: существующая read-only инфраструктура найдена для orders, products, services и warehouse; наличие кода не приравнено к свежему live contract evidence.
 
 ## Текущие ограничения
 
@@ -61,11 +63,13 @@ ERP является обязательным контуром проекта, �
 
 Data dictionary: `docs/MARSEL_ERP_DATA_DICTIONARY_V1.md`.
 
+Repository contract audit: `docs/MARSEL_ERP_ROAPP_REPOSITORY_CONTRACT_AUDIT_2026-09-06.md`.
+
 Целевой сквозной поток:
 
 `клиенты → заказы → производство/ремонт → материалы → склад → себестоимость → оплаты → аналитика → автоматизация → повторные продажи`
 
-Следующий ERP-проход: официальные GET evidence для stock → materials/products/customers/payments → costing implementation → finance source/reconciliation.
+Следующий ERP-проход: свежие официальные GET evidence для stock → materials/products/customers/payments → costing implementation → finance source/reconciliation.
 
 ## Linear
 
