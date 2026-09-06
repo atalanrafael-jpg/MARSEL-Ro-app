@@ -20,7 +20,8 @@ MARSEL и ROAPP — один проект. Issue, PR, workflow, документ
 | Credentials | ROAPP API key | SECURITY GATE | подтвердить rotation/history scan при подозрении или подтверждённом exposure |
 | Gmail OAuth | Live read-only OAuth | NOT VERIFIED | выполнить реальный OAuth smoke test |
 | Evidence | Production evidence bundle | 1/8 | отсутствуют backup, restore, reconciliation, duplicate/reference, dry-run, idempotency, rollback evidence |
-| ERP Architecture | ERP master architecture | DONE / DESIGN | архитектура закреплена в `docs/MARSEL_ERP_MASTER_ARCHITECTURE_V1.md`; следующий шаг — ERP data dictionary и entity/API mapping |
+| ERP Architecture | ERP master architecture | DONE / DESIGN | архитектура закреплена в `docs/MARSEL_ERP_MASTER_ARCHITECTURE_V1.md` |
+| ERP Data Dictionary | ERP data dictionary v1 | DONE / DESIGN | создан `docs/MARSEL_ERP_DATA_DICTIONARY_V1.md`; следующий шаг — подтверждённый entity/API mapping |
 | ERP Readiness | ERP production readiness | BLOCKED | не считать production ERP готовым до P0 gates; отдельно проверить costing, finance, inventory, procurement, production и repair flows |
 
 ## Что уже подтверждено
@@ -31,6 +32,7 @@ MARSEL и ROAPP — один проект. Issue, PR, workflow, документ
 - Production Evidence Orchestrator корректно блокирует gate при неполном evidence.
 - Security issue, ранее ошибочно закрытая при состоянии NOT READY, была возвращена в OPEN.
 - ERP закреплён как обязательный бизнес-контур MARSEL ROAPP отдельной master-архитектурой.
+- ERP data dictionary v1 добавлен в репозиторий; его mapping-статусы намеренно не повышены без live/API evidence.
 
 ## Текущие ограничения
 
@@ -50,11 +52,13 @@ MARSEL и ROAPP — один проект. Issue, PR, workflow, документ
 
 ERP является обязательным контуром проекта, а RO App — его операционной/API-подсистемой в пределах подтверждённых контрактов. Каноническая архитектура: `docs/MARSEL_ERP_MASTER_ARCHITECTURE_V1.md`.
 
+Data dictionary: `docs/MARSEL_ERP_DATA_DICTIONARY_V1.md`.
+
 Целевой сквозной поток:
 
 `клиенты → заказы → производство/ремонт → материалы → склад → себестоимость → оплаты → аналитика → автоматизация → повторные продажи`
 
-Следующий ERP-проход: MDM/data dictionary → entity ownership → RO App API mapping → costing/finance validation → READ_ONLY smoke tests.
+Следующий ERP-проход: entity ownership → RO App API mapping → costing/finance validation → READ_ONLY smoke tests.
 
 ## Linear
 
