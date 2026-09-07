@@ -24,10 +24,16 @@ REQUIRED = {
     "idempotency": "idempotency_evidence.json",
     "rollback": "rollback_evidence.json",
 }
+# Detect credential-shaped material without matching harmless presence flags such
+# as api_key_configured=false. Patterns are deliberately value-based and
+# require realistic secret lengths to reduce false positives.
 SECRET_PATTERNS = [
     re.compile(r"ROAPP_API_KEY\s*=\s*['\"][^'\"]{12,}['\"]", re.I),
     re.compile(r"Bearer\s+[A-Za-z0-9._\-]{20,}", re.I),
     re.compile(r"(?:access|refresh)_token\s*[:=]\s*['\"][^'\"]{20,}['\"]", re.I),
+    re.compile(r"[\"'](?:api[_-]?key|client[_-]?secret|private[_-]?key)[\"']\s*[:=]\s*[\"'][^\"']{20,}[\"']", re.I),
+    re.compile(r"\bgh[pousr]_[A-Za-z0-9]{20,}\b"),
+    re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----", re.I),
 ]
 
 
