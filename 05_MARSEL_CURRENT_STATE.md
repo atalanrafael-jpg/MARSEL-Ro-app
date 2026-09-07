@@ -3,7 +3,7 @@
 **Role:** single living project checkpoint. Update after every material verified change.
 
 ## DATE
-2026-09-07
+2026-09-08
 
 ## CURRENT VERSION
 MARSEL ROAPP unified control plane with production-safety hardening, canonical GitHub governance, automated evidence orchestration, deterministic control-agent state transitions, fail-closed production gating, dependency/lock alignment, security hardening, and isolated optional Apple Core AI conversion path.
@@ -11,8 +11,9 @@ MARSEL ROAPP unified control plane with production-safety hardening, canonical G
 ## CONTROL CHECKPOINT
 - Canonical repository: `atalanrafael-jpg/MARSEL-Ro-app`.
 - Canonical branch: `main`.
-- Current `main` HEAD: `c84825442857bb9cc51585093bac68d338fac7d1`.
-- Commits after the previous checkpoint harden production-evidence secret scanning, add regression coverage for credential-shaped material, and reconcile project/task documentation.
+- Current repository `main` HEAD: `519113faf1f7e3fa1d3fc137a944248826a2aaae`.
+- Latest verified application/code HEAD: `c84825442857bb9cc51585093bac68d338fac7d1`.
+- Commit `519113faf...` is a documentation-only reconciliation after the verified code HEAD; it does not add production evidence or enable writes.
 - Production WRITE remains disabled.
 - Live repository metadata previously reported `main` as unprotected and required status checks not configured at branch level; this remains an account/repository administration gate until freshly verified as changed.
 
@@ -20,13 +21,13 @@ MARSEL ROAPP unified control plane with production-safety hardening, canonical G
 - `8dacd5a9dbc779041899a4215ef48b565a0f2645` hardened `scripts/marsel_production_gate_v1.py` secret scanning with value-based patterns for credential-shaped API keys, client/private secrets, GitHub tokens, and private-key headers while avoiding harmless configuration-presence flags.
 - `c84825442857bb9cc51585093bac68d338fac7d1` added regression tests covering allowed configuration-presence flags and rejection of credential-shaped material without storing a real credential.
 - Earlier PR #130 was merged on 2026-09-07 and fixed current-main test collection by registering the dynamically loaded control-agent module in `sys.modules` before `exec_module()`.
-- Subsequent documentation reconciliation commits aligned the project/task registries with the verified main state.
+- `519113faf1f7e3fa1d3fc137a944248826a2aaae` reconciled this checkpoint documentation with the latest security-hardening state; it is documentation-only.
 - No production WRITE was introduced by these changes.
 
 ## LATEST VERIFIED CI
-- Test workflow run `34129874333` completed successfully on current `main` HEAD `c84825442857bb9cc51585093bac68d338fac7d1`.
-- Scheduled `AI: generate drafts` run `34134525448` also completed successfully on the same HEAD.
-- Current repository status checks exposed through the combined-status endpoint are empty; this does not prove that GitHub branch protection or required checks are configured.
+- Test workflow run `34129874333` completed successfully on verified application/code HEAD `c84825442857bb9cc51585093bac68d338fac7d1`.
+- Scheduled `AI: generate drafts` run `34134525448` also completed successfully on the same verified application/code HEAD.
+- No CI result is currently verified for documentation commit `519113faf...`; its combined-status endpoint is empty.
 - CI success proves only the tested repository/workflow paths. It does not prove current live RO App API access, backup/restore, OAuth, MCP authorization, or production readiness.
 
 ## LATEST LIVE GATE FINDING
