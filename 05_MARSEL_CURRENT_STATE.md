@@ -11,27 +11,28 @@ MARSEL ROAPP unified control plane with production-safety hardening, canonical G
 ## CONTROL CHECKPOINT
 - Canonical repository: `atalanrafael-jpg/MARSEL-Ro-app`.
 - Canonical branch: `main`.
-- Current `main` HEAD: `f091ff1f792e63957531b1c9abdfc03eb618d909`.
-- The latest commit reconciles `docs/PROJECT_MASTER_CONTROL.md` with the current project state; it does not add production evidence or enable writes.
+- Current `main` HEAD: `c84825442857bb9cc51585093bac68d338fac7d1`.
+- Commits after the previous checkpoint harden production-evidence secret scanning, add regression coverage for credential-shaped material, and reconcile project/task documentation.
 - Production WRITE remains disabled.
 - Live repository metadata previously reported `main` as unprotected and required status checks not configured at branch level; this remains an account/repository administration gate until freshly verified as changed.
 
-## LATEST VERIFIED CHANGE
-- PR #130 was merged on 2026-09-07 and fixed current-main test collection by registering the dynamically loaded control-agent module in `sys.modules` before `exec_module()`.
-- Commit `c015e2bc2cf31909ddbb103119cf4fcf2e40d2a6` reconciled the MARSEL task registry after PR #130.
-- Commit `5779c4d7d78b6bdb139b9d1fff3792b8149eac37` reconciled the previous current-state checkpoint.
-- Commit `f091ff1f792e63957531b1c9abdfc03eb618d909` reconciled the master project-control document with the current checkpoint.
+## LATEST VERIFIED CHANGES
+- `8dacd5a9dbc779041899a4215ef48b565a0f2645` hardened `scripts/marsel_production_gate_v1.py` secret scanning with value-based patterns for credential-shaped API keys, client/private secrets, GitHub tokens, and private-key headers while avoiding harmless configuration-presence flags.
+- `c84825442857bb9cc51585093bac68d338fac7d1` added regression tests covering allowed configuration-presence flags and rejection of credential-shaped material without storing a real credential.
+- Earlier PR #130 was merged on 2026-09-07 and fixed current-main test collection by registering the dynamically loaded control-agent module in `sys.modules` before `exec_module()`.
+- Subsequent documentation reconciliation commits aligned the project/task registries with the verified main state.
 - No production WRITE was introduced by these changes.
 
 ## LATEST VERIFIED CI
-- Test workflow run `34087800404` completed successfully on the current application lineage.
-- Test/evidence artifact `marsel-test-evidence-34087800404` has SHA-256 `ae96d55fd3e98778e09546c96d1db5c8b5326c2db216af099ecd4c524d04eae5`.
-- This proves the tested repository build/test path for that run; it does not prove current live RO App API access, backup/restore, OAuth, MCP authorization, or production readiness.
+- Test workflow run `34129874333` completed successfully on current `main` HEAD `c84825442857bb9cc51585093bac68d338fac7d1`.
+- Scheduled `AI: generate drafts` run `34134525448` also completed successfully on the same HEAD.
+- Current repository status checks exposed through the combined-status endpoint are empty; this does not prove that GitHub branch protection or required checks are configured.
+- CI success proves only the tested repository/workflow paths. It does not prove current live RO App API access, backup/restore, OAuth, MCP authorization, or production readiness.
 
 ## LATEST LIVE GATE FINDING
-- The latest documented warehouse evidence gate failed during the RO App secret preflight because `ROAPP_API_KEY` was unavailable to the workflow.
-- Because the credential preflight failed, the documented warehouse diagnostic, read-only invariant verification, and evidence upload did not run.
-- The dependent Production Gate run was skipped; this is not production-readiness evidence and must not be counted as PASS.
+- The production control plane remains fail-closed and READ_ONLY.
+- The latest documented warehouse evidence gate remains dependent on a repository/environment `ROAPP_API_KEY` being available to the workflow and on fresh live verification.
+- Historical warehouse-list evidence is not promoted to current live evidence.
 - No fallback, synthetic key, bypass, or production WRITE was introduced.
 
 ## WAREHOUSE CONTRACT
@@ -65,13 +66,13 @@ MARSEL ROAPP unified control plane with production-safety hardening, canonical G
 - Production WRITE is not authorized.
 
 ## CURRENT EXECUTION QUEUE
-1. Provide `ROAPP_API_KEY` to the GitHub Actions repository/environment secret store, then rerun the warehouse live evidence workflow.
+1. Ensure `ROAPP_API_KEY` is present only in approved GitHub Actions/environment secret storage, then run fresh live warehouse evidence verification.
 2. Verify the fresh READ-ONLY warehouse result and evidence artifact on current `main`.
 3. Prove complete backup/export and independently tested restore/integrity.
 4. Complete current API/entity verification from authoritative contracts and verified identifiers.
 5. Complete Gmail OAuth read-only user authorization test.
 6. Complete official RO App MCP authorization verification.
-7. Complete credential-exposure remediation evidence for Issue #23.
+7. Complete credential-exposure remediation evidence for Issue #23, including rotation/revocation evidence where required.
 8. Enable and verify GitHub `main` protection, secret scanning/push protection, production environment controls, and required status checks through account/repository administration.
 9. Reconcile stale/open remediation issues and PRs against current `main`; do not merge stale branches without revalidation.
 10. Review the 12 Supabase unused-index INFO findings using actual query workload before any index removal.
@@ -82,6 +83,7 @@ MARSEL ROAPP unified control plane with production-safety hardening, canonical G
 - `MARSEL_WRITE_APPROVED=false` remains mandatory.
 - Unified Control Plane live checks are GET-only/read-only.
 - Evidence Orchestrator is fail-closed and rejects synthetic evidence.
+- Secret scanning is hardened against credential-shaped values while allowing harmless presence flags.
 - No production write, credential creation, reviewer fabrication, bypass, or synthetic evidence is authorized.
 
 ## REQUIRED UPDATE RULE
