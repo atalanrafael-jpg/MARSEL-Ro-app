@@ -1,6 +1,6 @@
 # MARSEL ROAPP — ЕДИНЫЙ РЕЕСТР ЗАДАЧ
 
-Дата контрольной точки: 2026-09-06
+Дата контрольной точки: 2026-09-07
 
 ## Правило
 
@@ -15,6 +15,8 @@ MARSEL и ROAPP — один проект. Issue, PR, workflow, документ
 | #19 | Production go-live | BLOCKED / NOT READY | собрать 8 обязательных production evidence; WRITE остаётся 0 |
 | #91 | GitHub account/security controls | OPEN / MANUAL | исправить target ruleset, secret scanning/push protection, production environment и Copilot controls через GitHub account UI/API |
 | PR #89 | Limits-resilient execution worker | CLOSED / NOT MERGED | не считать worker внедрённым в `main`; при необходимости создать/восстановить отдельный PR после проверки текущего состояния ветки |
+| PR #126 | Duplicate test-infrastructure fix | CLOSED / DUPLICATE | изменения заменены актуальным PR #130, который уже смёржен |
+| PR #130 | Control-agent test import fix | MERGED | squash-merge в `main`; post-merge CI идёт на commit `690e2d4b6111929d2cfb5ce18441b533020e9e8a` |
 | Warehouse | Warehouse API | LIVE-READ-VERIFIED / CONTRACT ONLY | подтвердить полный response schema и stock/stock-movement endpoints отдельными GET evidence |
 | MCP | ChatGPT/Codex MCP | AUTH PENDING | выполнить реальную authorization verification |
 | Credentials | ROAPP API key | SECURITY GATE | подтвердить rotation/history scan при подозрении или подтверждённом exposure |
@@ -47,6 +49,9 @@ MARSEL и ROAPP — один проект. Issue, PR, workflow, документ
 - Stock/materials evidence gate 2026-09-06 выполнен: repository evidence недостаточно для promotion stock, stock movements, materials, metals или stones; никаких новых production connectors не создано.
 - Customers/payments/costing/finance evidence gate 2026-09-06 выполнен: standalone customer/payment contracts, production costing engine и finance ledger/posting remain NOT VERIFIED.
 - Свежая проверка GitHub показала, что PR #89 фактически `CLOSED / NOT MERGED`; старый статус `OPEN / DRAFT / MERGEABLE` был устаревшим и исправлен этим реестром.
+- PR #130 (`fix(control-agent-test-import-current-main`) был проверен как `mergeable=true`; его workflow `MARSEL release readiness` завершился `success` до merge. PR #130 смёржен squash-методом в `main` с commit `690e2d4b6111929d2cfb5ce18441b533020e9e8a`.
+- После merge #130 запущен `MARSEL RO App API v2 Guard` на `main`; на момент контрольной точки он находится `in_progress`, поэтому post-merge CI ещё не считается завершённым.
+- PR #126, содержащий тот же test-infrastructure fix на устаревшей базе, закрыт как duplicate после успешного merge актуального PR #130.
 
 ## Текущие ограничения
 
