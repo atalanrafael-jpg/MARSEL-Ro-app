@@ -11,16 +11,22 @@ MARSEL ROAPP unified control plane with production-safety hardening, canonical G
 ## CONTROL CHECKPOINT
 - Canonical repository: `atalanrafael-jpg/MARSEL-Ro-app`.
 - Canonical branch: `main`.
-- Current canonical `main` HEAD verified from the latest repository commit history: `c015e2bc2cf31909ddbb103119cf4fcf2e40d2a6`.
-- The latest verified commits include the merge of PR #130 and the subsequent task-registry documentation reconciliation.
+- Current canonical `main` HEAD: `5779c4d7d78b6bdb139b9d1fff3792b8149eac37`.
+- This checkpoint commit reconciles the state document with the preceding task-registry reconciliation commit `c015e2bc2cf31909ddbb103119cf4fcf2e40d2a6`.
 - Production WRITE remains disabled.
 - Live repository metadata reports `main` as **unprotected**; required status checks are not configured at branch level. This is an account/repository administration blocker, not a code failure.
 
 ## LATEST VERIFIED CHANGE
 - PR #130 (`test(control-agent): fix dynamic import registration on current main`) was merged on 2026-09-07. It fixes current-main test collection by registering the dynamically loaded control-agent module in `sys.modules` before `exec_module()`.
-- The immediately following commit `c015e2bc2cf31909ddbb103119cf4fcf2e40d2a6` reconciles the MARSEL task registry after PR #130.
+- Commit `c015e2bc2cf31909ddbb103119cf4fcf2e40d2a6` reconciled the MARSEL task registry after PR #130.
+- Commit `5779c4d7d78b6bdb139b9d1fff3792b8149eac37` reconciled this current-state checkpoint with that lineage.
 - The dependency alignment from PR #125 and the security hardening from PR #129 are present in the current commit lineage.
 - No production WRITE was introduced by these changes.
+
+## LATEST VERIFIED CI
+- Test workflow run `34087800404` completed successfully on current `main` HEAD `5779c4d7d78b6bdb139b9d1fff3792b8149eac37`.
+- The run's test job completed successfully; the verified test/evidence artifact was `marsel-test-evidence-34087800404` with SHA-256 `ae96d55fd3e98778e09546c96d1db5c8b5326c2db216af099ecd4c524d04eae5`.
+- This CI result proves the repository test/build path for that run; it does not prove current live RO App API access, backup/restore, OAuth, MCP authorization, or production readiness.
 
 ## LATEST LIVE GATE FINDING
 - The latest documented warehouse evidence gate failed during the RO App secret preflight because `ROAPP_API_KEY` was unavailable to the workflow.
@@ -32,7 +38,8 @@ MARSEL ROAPP unified control plane with production-safety hardening, canonical G
 - The authoritative RO App documentation distinguishes the general v2 API root from the documented warehouse endpoint.
 - The previous `/v2/warehouse/` probe returned HTTP 404; the documented `/warehouse/` route was the basis for the correction in merged PR #114.
 - Code-level correction is present on `main`.
-- Fresh live evidence is still required before the warehouse evidence gate can be marked VERIFIED.
+- A repository evidence file records a READ-ONLY warehouse-list contract PASS observed at `2026-09-05T08:41:00Z`; this is historical evidence and does not replace the blocked fresh live gate.
+- Fresh current live evidence is still required before the warehouse evidence gate can be marked CURRENT/VERIFIED.
 
 ## RO APP STATUS
 🟢 **VERIFIED HISTORICAL LIVE ACCESS**
@@ -50,7 +57,7 @@ MARSEL ROAPP unified control plane with production-safety hardening, canonical G
 🔴 **BLOCKED / NOT VERIFIED**
 - Complete production backup is not proven.
 - Independently tested restore/integrity is not proven.
-- Fresh current-main evidence bundle is not established as production-gate evidence.
+- Fresh current-main unified evidence bundle is not established as production-gate evidence.
 - Gmail OAuth user-authorized verification is not complete.
 - Official RO App MCP authorization is not complete.
 - Credential-exposure remediation tracked by Issue #23 is not closed by direct evidence.
