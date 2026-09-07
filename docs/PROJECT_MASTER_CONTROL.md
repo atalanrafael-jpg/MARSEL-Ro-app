@@ -3,11 +3,12 @@
 ## Purpose
 Единая контрольная точка проекта: техническое состояние RO App integration, качество данных, безопасность, бизнес-автоматизация и коммерческий контур MARSEL.
 
-## Canonical state — 2026-09-07
+## Canonical state — 2026-09-08
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`
 - Branch: `main`
-- Current verified application checkpoint: `5779c4d7d78b6bdb139b9d1fff3792b8149eac37`.
-- A subsequent documentation-only reconciliation was applied to the current-state record; it does not constitute production evidence.
+- Current repository `main` HEAD: `a4ec23ed4ebe6616f111b9fa36507478b1379585`.
+- Latest verified application/code checkpoint: `c84825442857bb9cc51585093bac68d338fac7d1`.
+- Subsequent commits are documentation-only reconciliations unless explicitly stated otherwise.
 - Current integration mode: READ-ONLY.
 - Production WRITE: DISABLED.
 - Canonical live audit workflow: `.github/workflows/marsel-unified-control-plane.yml`.
@@ -15,9 +16,10 @@
 - Historical implementations and snapshots do not override current evidence.
 
 ## Latest verified CI
-- Test workflow run `34087800404` completed successfully on the current main lineage.
-- Test/evidence artifact `marsel-test-evidence-34087800404` was produced with SHA-256 `ae96d55fd3e98778e09546c96d1db5c8b5326c2db216af099ecd4c524d04eae5`.
-- This proves the tested repository build/test path for that run only; it does not prove production readiness, current live API access, backup/restore, OAuth, MCP, or WRITE readiness.
+- Test workflow run `34129874333` completed successfully on verified application/code checkpoint `c84825442857bb9cc51585093bac68d338fac7d1`.
+- Scheduled `AI: generate drafts` run `34134525448` also completed successfully on that checkpoint.
+- No CI result is currently verified for the documentation-only reconciliation commits.
+- This proves the tested repository build/test path for those runs only; it does not prove production readiness, current live API access, backup/restore, OAuth, MCP, or WRITE readiness.
 
 ## Evidence precedence
 1. Current `main` repository state.
@@ -29,8 +31,8 @@
 ## Completion gates
 
 ### Engineering
-- [ ] Unit tests GREEN on current main checkpoint
-- [ ] Required production/quality workflows GREEN on current main checkpoint
+- [ ] Unit tests GREEN on current verified application checkpoint
+- [ ] Required production/quality workflows GREEN on current verified application checkpoint
 - [ ] No known import/runtime failures
 - [ ] Canonical structure check PASS
 - [ ] Dependency/security review PASS
@@ -87,7 +89,7 @@
 9. ReadMe ↔ GitHub bi-directional sync requires external ReadMe configuration in a dedicated docs repository.
 10. Production WRITE remains disabled until every applicable safety gate passes and explicit authorization exists.
 
-## Issue consolidation — 2026-09-07
+## Issue consolidation — 2026-09-08
 Open issues currently include #19, #23, #27, #30, #77, #83, #85, #91 and #106. Their bodies have been reconciled where current evidence permits. No issue is marked completed merely because code or documentation exists.
 
 - #19: production gate — BLOCKED / NOT READY.
