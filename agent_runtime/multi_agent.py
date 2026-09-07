@@ -1,11 +1,12 @@
 """Safe multi-agent orchestration for MARSEL ROAPP.
 
-The runtime coordinates specialist agents but keeps production mutation disabled by
-construction. Agents return plans/results; a separate GitHub bridge may publish
-approved branch changes and PR metadata.
+The runtime coordinates independent specialist agents while keeping production
+mutation disabled by construction. Specialist handlers execute concurrently;
+aggregation and verification happen only after every handler completes.
 """
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable, Iterable
@@ -68,8 +69,9 @@ class MultiAgentCoordinator:
         AgentSpec("github", "change-management", frozenset({"read", "plan", "publish_branch", "open_pr"})),
     )
 
-    def __init__(self, agents: Iterable[AgentSpec] | None = None) -> None:
+    def __init__(self, agents: Iterable[AgentSpec] | None = None, *, max_workers: int | None = None) -> None:
         self.agents = {a.agent_id: a for a in (agents or self.DEFAULT_AGENTS)}
+        self.max_workers = max_workers
 
     def dispatch(
         self,
@@ -81,17 +83,30 @@ class MultiAgentCoordinator:
         if task.risk == Risk.CRITICAL:
             task.state = TaskState.BLOCKED
             return [AgentResult("coordinator", task.task_id, "BLOCKED", ("critical risk requires explicit external authorization",))]
+
+        unknown = set(handlers) - set(self.agents)
+        if unknown:
+            raise KeyError(f"unknown agent: {sorted(unknown)!r}")
+
         task.state = TaskState.RUNNING
-        results: list[AgentResult] = []
-        for agent_id, handler in handlers.items():
-            if agent_id not in self.agents:
-                raise KeyError(f"unknown agent: {agent_id}")
-            results.append(handler(task))
+        agent_ids = list(handlers)
+        with ThreadPoolExecutor(max_workers=self.max_workers or max(1, len(agent_ids))) as executor:
+            futures = [executor.submit(handlers[agent_id], task) for agent_id in agent_ids]
+            # Reading results in submission order keeps the public result order deterministic.
+            results = [future.result() for future in futures]
+
+        for agent_id, result in zip(agent_ids, results):
+            if result.agent_id != agent_id or result.task_id != task.task_id:
+                task.state = TaskState.BLOCKED
+                raise ValueError("agent result identity does not match dispatched task")
         return results
 
     @staticmethod
     def verify_and_complete(task: AgentTask, results: Iterable[AgentResult]) -> AgentTask:
         results = list(results)
+        if task.state != TaskState.RUNNING:
+            task.state = TaskState.BLOCKED
+            return task
         if not results or any(r.status != "PASS" for r in results):
             task.state = TaskState.BLOCKED
             return task
