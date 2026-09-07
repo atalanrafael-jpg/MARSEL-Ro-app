@@ -17,7 +17,7 @@ def test_secret_scan_allows_configuration_presence_flag(tmp_path: Path):
         '{"api_key": "A" * 24}',
         '{"client_secret": "A" * 24}',
         "Be" + "arer " + "A" * 24,
-        "gh" + "p_" + "A" * 24,
+        "gh" + "p" + "_" + "A" * 24,
         "-----BEGIN " + "PRIVATE KEY-----",
     ],
 )
