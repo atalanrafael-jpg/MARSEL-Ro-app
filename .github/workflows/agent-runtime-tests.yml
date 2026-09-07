@@ -13,4 +13,4 @@ jobs:
       - uses: actions/setup-python@v5
         with: {python-version: "3.11"}
       - run: python -m pip install pytest
-      - run: pytest -q tests/test_agent_runtime.py tests/test_agent_extensions.py
+      - run: PYTHONPATH=. pytest -q tests/test_agent_runtime.py tests/test_agent_extensions.py
