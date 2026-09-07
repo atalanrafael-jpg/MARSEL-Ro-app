@@ -3,31 +3,30 @@
 **Role:** single living project checkpoint. Update after every material verified change.
 
 ## DATE
-2026-09-05
+2026-09-07
 
 ## CURRENT VERSION
-MARSEL ROAPP unified control plane with production-safety hardening, canonical GitHub governance, automated evidence orchestration, deterministic control-agent state transitions, fail-closed production gating, and an isolated optional Apple Core AI conversion path.
+MARSEL ROAPP unified control plane with production-safety hardening, canonical GitHub governance, automated evidence orchestration, deterministic control-agent state transitions, fail-closed production gating, dependency/lock alignment, security hardening, and an isolated optional Apple Core AI conversion path.
 
 ## CONTROL CHECKPOINT
 - Canonical repository: `atalanrafael-jpg/MARSEL-Ro-app`.
 - Canonical branch: `main`.
-- Current canonical `main` HEAD verified: `21093bc82abd36627a788102209343d197764dd7`.
-- The code lineage immediately before this documentation reconciliation was `6c19d2eab166b014acca0d0047ddb835dc16c1bd`.
+- Current canonical `main` HEAD verified from the latest repository commit history: `c015e2bc2cf31909ddbb103119cf4fcf2e40d2a6`.
+- The latest verified commits include the merge of PR #130 and the subsequent task-registry documentation reconciliation.
 - Production WRITE remains disabled.
-- Live GitHub branch metadata reports `main` as **unprotected**; required status checks are not configured at branch level. This is an account/repository administration blocker, not a code failure.
+- Live repository metadata reports `main` as **unprotected**; required status checks are not configured at branch level. This is an account/repository administration blocker, not a code failure.
+
+## LATEST VERIFIED CHANGE
+- PR #130 (`test(control-agent): fix dynamic import registration on current main`) was merged on 2026-09-07. It fixes current-main test collection by registering the dynamically loaded control-agent module in `sys.modules` before `exec_module()`.
+- The immediately following commit `c015e2bc2cf31909ddbb103119cf4fcf2e40d2a6` reconciles the MARSEL task registry after PR #130.
+- The dependency alignment from PR #125 and the security hardening from PR #129 are present in the current commit lineage.
+- No production WRITE was introduced by these changes.
 
 ## LATEST LIVE GATE FINDING
-- The latest warehouse evidence job reached the secret preflight and failed at `Verify RO App secret` because `ROAPP_API_KEY` was not available to the workflow.
+- The latest documented warehouse evidence gate failed during the RO App secret preflight because `ROAPP_API_KEY` was unavailable to the workflow.
 - Because the credential preflight failed, the documented warehouse diagnostic, read-only invariant verification, and evidence upload did not run.
-- The dependent Production Gate run was `skipped`; this is not production-readiness evidence and must not be counted as PASS.
+- The dependent Production Gate run was skipped; this is not production-readiness evidence and must not be counted as PASS.
 - No fallback, synthetic key, bypass, or production WRITE was introduced.
-
-## VERIFIED REPOSITORY FACTS
-- PR #114 (`fix: restore verified RO App warehouse contract`) was merged into `main` on 2026-09-05. It aligns the canonical warehouse diagnostic with the documented `GET /warehouse/` endpoint and adds regression coverage.
-- PR #113 (Control Agent v3) is closed and not merged; its changes must not be treated as part of canonical `main`.
-- PR #112 (optional Apple Core AI Torch integration) was merged into `main` on 2026-09-05, but its hardware gate remains **NOT HARDWARE-VERIFIED**. The integration is isolated from production dependencies and does not introduce live RO App writes.
-- The latest commit sequence on `main` adds a deterministic control-agent state model, strict sequential stage transitions, write-gate tests, dependency/lock alignment, final audit reconciliation, and the isolated optional Core AI path.
-- The latest scheduled AI draft workflow run observed on current `main` completed successfully. This does not constitute production-readiness evidence.
 
 ## WAREHOUSE CONTRACT
 - The authoritative RO App documentation distinguishes the general v2 API root from the documented warehouse endpoint.
@@ -69,7 +68,7 @@ MARSEL ROAPP unified control plane with production-safety hardening, canonical G
 6. Complete official RO App MCP authorization verification.
 7. Complete credential-exposure remediation evidence for Issue #23.
 8. Enable and verify GitHub `main` protection, secret scanning/push protection, production environment controls, and required status checks through account/repository administration.
-9. Reconcile stale/open remediation issues and PRs against current `main`; do not merge stale branches without revalidation.
+9. Reconcile stale/open remediation issues and PRs against current `main`; do not merge stale branches without revalidation. In particular, open draft PRs #127, #128, and #123 are based on older `main` snapshots and require rebase/revalidation before consideration.
 10. Review the 12 Supabase unused-index INFO findings using actual query workload before any index removal.
 11. On a physical Apple Silicon host, run the documented Core AI conversion/runtime verification and attach fresh evidence; do not claim hardware verification from CI alone.
 12. Only after all applicable evidence gates pass, evaluate production safety gate. Production WRITE remains disabled until explicit authorization.
