@@ -187,4 +187,7 @@ def connector_readiness() -> dict[str, Any]:
 
 
 if __name__ == "__main__":
-    mcp.run(transport="streamable-http", stateless_http=True, json_response=True)
+    # Local Codex/plugin hosts launch MCP servers as subprocesses over stdio.
+    # Streamable HTTP remains available when the host explicitly selects it,
+    # e.g. `uv run mcp run server.py --transport streamable-http`.
+    mcp.run()
