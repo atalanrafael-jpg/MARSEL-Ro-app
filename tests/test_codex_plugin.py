@@ -9,7 +9,7 @@ PLUGIN = ROOT / "plugins" / "marsel-roapp"
 def test_codex_plugin_manifest_is_complete():
     manifest = json.loads((PLUGIN / ".codex-plugin" / "plugin.json").read_text())
     assert manifest["name"] == "marsel-roapp"
-    assert manifest["version"] == "1.1.0"
+    assert manifest["version"] == "1.2.0"
     assert manifest["description"]
     assert manifest["author"]["name"]
     interface = manifest["interface"]
