@@ -1,17 +1,17 @@
 ---
 name: roapp-mcp
-description: Safely inspect MARSEL RO App orders, run bounded data-quality audits, and verify connector readiness. Read-only by design.
+description: Safely inspect MARSEL ROAPP orders, run bounded data-quality audits, and verify connector readiness. Read-only by design.
 ---
 
-# MARSEL RO App
+# MARSEL ROAPP MCP
 
-Use the bundled MCP server for read-only RO App inspection and audit work.
+Use the bundled MCP server for read-only MARSEL ROAPP inspection and audit work.
 
 ## Tools
 
-- `get_orders(page)` — fetch one bounded orders page.
+- `get_orders(page)` — fetch one bounded MARSEL ROAPP orders page.
 - `audit_orders(max_pages)` — scan up to 100 pages for duplicate identifiers and missing common fields.
-- `connector_readiness()` — inspect non-secret local configuration without contacting RO App.
+- `connector_readiness()` — inspect non-secret local configuration without contacting MARSEL ROAPP.
 
 ## Workflow
 
