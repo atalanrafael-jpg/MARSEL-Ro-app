@@ -3,12 +3,11 @@
 ## Purpose
 Единая контрольная точка проекта: техническое состояние RO App integration, качество данных, безопасность, бизнес-автоматизация и коммерческий контур MARSEL.
 
-## Canonical state — 2026-09-08
+## Canonical state — 2026-09-09
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`
 - Branch: `main`
-- Current repository `main` HEAD: `a4ec23ed4ebe6616f111b9fa36507478b1379585`.
-- Latest verified application/code checkpoint: `c84825442857bb9cc51585093bac68d338fac7d1`.
-- Subsequent commits are documentation-only reconciliations unless explicitly stated otherwise.
+- Current repository `main` HEAD: `238d1c7121d902ae3bdacf59b33525b585c79090`.
+- Latest commit: `security: harden MARSEL ROAPP connector boundary`.
 - Current integration mode: READ-ONLY.
 - Production WRITE: DISABLED.
 - Canonical live audit workflow: `.github/workflows/marsel-unified-control-plane.yml`.
@@ -16,10 +15,10 @@
 - Historical implementations and snapshots do not override current evidence.
 
 ## Latest verified CI
-- Test workflow run `34129874333` completed successfully on verified application/code checkpoint `c84825442857bb9cc51585093bac68d338fac7d1`.
-- Scheduled `AI: generate drafts` run `34134525448` also completed successfully on that checkpoint.
-- No CI result is currently verified for the documentation-only reconciliation commits.
-- This proves the tested repository build/test path for those runs only; it does not prove production readiness, current live API access, backup/restore, OAuth, MCP, or WRITE readiness.
+- Earlier verified application/code checkpoint `c84825442857bb9cc51585093bac68d338fac7d1` had successful test/control-plane runs.
+- Current `main` has since advanced to `238d1c7121d902ae3bdacf59b33525b585c79090`, including connector-boundary security hardening and security regression tests.
+- A successful CI result on an earlier checkpoint does not prove the current HEAD is production-ready.
+- Current HEAD requires fresh CI verification before being treated as a fully verified application checkpoint.
 
 ## Evidence precedence
 1. Current `main` repository state.
@@ -31,8 +30,8 @@
 ## Completion gates
 
 ### Engineering
-- [ ] Unit tests GREEN on current verified application checkpoint
-- [ ] Required production/quality workflows GREEN on current verified application checkpoint
+- [ ] Unit tests GREEN on current HEAD
+- [ ] Required production/quality workflows GREEN on current HEAD
 - [ ] No known import/runtime failures
 - [ ] Canonical structure check PASS
 - [ ] Dependency/security review PASS
@@ -85,12 +84,13 @@
 5. Gmail OAuth requires actual user-authorized live verification.
 6. Official RO App MCP authorization requires separate live verification.
 7. Credential-exposure remediation tracked by Issue #23 requires direct rotation/exposure evidence.
-8. GitHub account/repository security controls require account-level administration; current `main` protection/status checks are not independently verified as enabled.
+8. GitHub branch protection/ruleset status is not sufficient for production approval: current branch metadata reports `protected=true` but protection enforcement/status checks are `enabled=false` / `off`; account-level security controls remain an open blocker.
 9. ReadMe ↔ GitHub bi-directional sync requires external ReadMe configuration in a dedicated docs repository.
-10. Production WRITE remains disabled until every applicable safety gate passes and explicit authorization exists.
+10. Current HEAD needs fresh CI verification after the 2026-09-09 security hardening commit.
+11. Production WRITE remains disabled until every applicable safety gate passes and explicit authorization exists.
 
-## Issue consolidation — 2026-09-08
-Open issues currently include #19, #23, #27, #30, #77, #83, #85, #91 and #106. Their bodies have been reconciled where current evidence permits. No issue is marked completed merely because code or documentation exists.
+## Issue consolidation — 2026-09-09
+Open control issues currently include #19, #23, #27, #30, #77, #83, #85, #91 and #106, plus the newer integration/observability/master-data issues #133, #134 and #135. No issue is marked completed merely because code or documentation exists.
 
 - #19: production gate — BLOCKED / NOT READY.
 - #23: credential exposure — SECURITY REMEDIATION REQUIRED.
@@ -98,9 +98,12 @@ Open issues currently include #19, #23, #27, #30, #77, #83, #85, #91 and #106. T
 - #30: API/entity coverage — REVIEW_REQUIRED.
 - #77: published RO App example token — security review/rotation responsibility remains external to this repository.
 - #83: evidence discovery — REVIEW_REQUIRED.
-- #85: security bridge — BLOCKED until gates 1–8 are directly evidenced.
+- #85: security bridge — BLOCKED until required gates are directly evidenced.
 - #91: GitHub account-level controls — MANUAL/EXTERNAL.
 - #106: ReadMe GitHub sync — EXTERNAL CONFIGURATION REQUIRED.
+- #133: canonical Master Data / Integration Contract — P1, not yet closed.
+- #134: observability and correlation contract — P1, not yet closed.
+- #135: external integration adapters — P2, READ_ONLY discovery/sandbox verification required before writes.
 
 ## Status rule
 A gate is `PASS` only when current direct evidence exists. `PLANNED`, `CODED`, `NOT_TESTED`, `ASSUMED`, `OLD_PASS`, or `UNVERIFIED` are not PASS.
