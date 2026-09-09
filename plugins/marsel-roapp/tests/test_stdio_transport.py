@@ -35,7 +35,7 @@ async def _handshake() -> tuple[str | None, list[str]]:
 
 def test_local_mcp_stdio_handshake() -> None:
     server_name, tool_names = asyncio.run(_handshake())
-    assert server_name == "MARSEL RO App"
+    assert server_name == "MARSEL ROAPP"
     assert set(tool_names) >= {
         "get_orders",
         "audit_orders",
