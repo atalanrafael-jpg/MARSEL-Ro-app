@@ -21,15 +21,37 @@ GitHub Actions are control-plane components of MARSEL ROAPP. A workflow is not a
 | `marsel-live-probes.yml` | Live probes | SUPPORTING |
 | `marsel-roapp-api-v2-guard.yml` | RO App API guard | SUPPORTING |
 | `marsel-secret-guard.yml` | Secret/source safety | SECURITY |
+| `marsel-backup-evidence-producer.yml` | Read-only backup/export evidence producer | CONTROL / REVIEW |
 | `marsel-warehouse-contract-v20-48.yml` | Warehouse contract diagnostic | CONTRACT / REVIEW |
 | `mcp-production.yml` | MCP application tests and dependency audit | ENGINEERING |
 | `codeql.yml` | Code security analysis | SECURITY |
 | `codex-plugin-validation.yml` | Codex/plugin validation | ENGINEERING |
 | `ai-os-runtime-tests.yml` | AI runtime tests | ENGINEERING |
+| `agent-runtime-tests.yml` | Agent runtime unit tests | ENGINEERING |
+| `marsel-control-agent-tests.yml` | MARSEL control-agent safety tests | ENGINEERING |
 | `language-quality.yml` | Language/code quality | ENGINEERING |
 | `github-account-health.yml` | GitHub account/repository health | SUPPORTING |
 | `generate-drafts.yml` | Draft generation | AUXILIARY |
 | `test.yml` | General test workflow | ENGINEERING / REVIEW |
+
+## Dependency-sensitive workflows
+
+### `marsel-backup-evidence-producer.yml`
+
+This workflow is not a production-data writer. It runs on `workflow_run` after the canonical Unified Control Plane on `main`, consumes the canonical API inventory artifact, verifies `ROAPP_API_KEY`, and executes a read-only export. Its contract requires zero write requests and no RO App mutation. The producer currently invokes:
+
+- `scripts/marsel_full_readonly_backup_v1.py`
+- `scripts/marsel_backup_evidence_v1.py`
+
+Both scripts are therefore control-plane dependencies and must not be archived or renamed without a dependency/test audit.
+
+### `agent-runtime-tests.yml`
+
+Dedicated unit-test workflow for `agent_runtime/**` and its test modules. It is scoped to those paths and is not a replacement for the MARSEL Unified Control Plane.
+
+### `marsel-control-agent-tests.yml`
+
+Dedicated safety/unit-test workflow for `control_agent/**` and `tests/test_control_agent.py`. It is scoped to control-agent changes and is not a replacement for the MARSEL Unified Control Plane.
 
 ## Consolidation policy
 
@@ -45,7 +67,7 @@ Production WRITE remains disabled until all mandatory gates have direct evidence
 
 ## Current blockers
 
-- Backup/export evidence: NOT VERIFIED
+- Backup/export evidence: NOT VERIFIED until a current successful `main` execution produces authoritative evidence
 - Restore/integrity evidence: NOT VERIFIED
 - Warehouse contract: NOT VERIFIED unless direct live contract evidence exists
 - Product-code collision review: unresolved items require review
