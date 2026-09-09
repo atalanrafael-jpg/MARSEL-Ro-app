@@ -6,7 +6,7 @@ from collections import Counter
 from typing import Any
 
 import httpx
-from mcp.server.mcpserver import MCPServer
+from mcp.server import MCPServer
 
 BASE_URL = os.getenv("ROAPP_BASE_URL", "https://api.roapp.io/v2").rstrip("/")
 MAX_RETRIES = 3

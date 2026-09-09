@@ -4,7 +4,7 @@ from typing import Any
 
 from mcp.server.auth.provider import TokenVerifier
 from mcp.server.auth.settings import AuthSettings
-from mcp.server.mcpserver import MCPServer
+from mcp.server import MCPServer
 from pydantic import AnyHttpUrl
 
 from .audit import audit_order_pages
