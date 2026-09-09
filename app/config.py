@@ -12,6 +12,11 @@ class Settings(BaseSettings):
     roapp_max_retries: int = 3
     roapp_retry_base_seconds: float = 0.75
 
+    # Protects the connector's RO App proxy/audit endpoints.
+    # This is deliberately separate from ROAPP_API_KEY: the former authorizes
+    # callers to MARSEL ROAPP, while the latter authenticates MARSEL to RO App.
+    marsel_internal_api_key: str = ""
+
     # OpenAI Ads Conversions API credentials must come from Ads Manager > Conversions.
     # Never use the general OpenAI Platform API key for this integration.
     openai_ads_pixel_id: str = ""
