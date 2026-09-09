@@ -6,9 +6,11 @@
 
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`
 - Branch: `main`
-- Canonical control plane: `.github/workflows/marsel-unified-control-plane.yml`
-- Canonical system document: [`MARSEL_ROAPP_UNIFIED_SYSTEM.md`](MARSEL_ROAPP_UNIFIED_SYSTEM.md)
-- Master project control: [`docs/PROJECT_MASTER_CONTROL.md`](docs/PROJECT_MASTER_CONTROL.md)
+- Canonical index: [`docs/MARSEL-CANONICAL-INDEX.md`](docs/MARSEL-CANONICAL-INDEX.md)
+- Permanent project core: [`MARSEL_ROAPP_MASTER_CORE.md`](MARSEL_ROAPP_MASTER_CORE.md)
+- Current project control: [`docs/PROJECT_MASTER_CONTROL.md`](docs/PROJECT_MASTER_CONTROL.md)
+- Canonical architecture: [`MARSEL_ROAPP_UNIFIED_SYSTEM.md`](MARSEL_ROAPP_UNIFIED_SYSTEM.md)
+- Canonical live audit: `.github/workflows/marsel-unified-control-plane.yml`
 - Historical material: `старые данные/`
 
 ## Operating model
@@ -29,18 +31,11 @@ All RO App live auditing is **READ-ONLY**. Parameterized identifiers are never g
 
 A successful CI run, the existence of write methods, or documentation alone is not proof of production synchronization or WRITE readiness.
 
-## Canonical technical components
+## Canonical control components
 
-- `scripts/marsel_api_inventory_v20_32.py`
-- `scripts/marsel_data_quality_v22_readonly.py`
-- `scripts/marsel_entity_audit_v20_35.py`
-- `scripts/marsel_product_code_collision_audit_v22_3.py`
-- `scripts/marsel_warehouse_contract_v20_48.py`
-- `scripts/marsel_api_v2_probe_v1.py`
-- `scripts/marsel_api_v2_canonical_registry_v1.py`
-- `scripts/marsel_canonical_self_check.py`
+The exact owner for each control responsibility is defined by [`docs/MARSEL-CANONICAL-INDEX.md`](docs/MARSEL-CANONICAL-INDEX.md). Do not create a parallel registry, workflow or implementation without first checking that index.
 
-Internal dependencies on older numbered implementations remain until separately refactored and verified; version numbers alone are not grounds for deletion.
+The active script set is governed by `02_ROAPP/CONTROL/ACTIVE-SCRIPT-REGISTRY.md`. Internal versioned dependencies remain until dependency analysis and fresh verification justify refactoring or archival.
 
 ## Current external gates
 
@@ -67,6 +62,11 @@ Evidence precedence:
 
 `DONE` / `PASS` requires current direct evidence. `PLANNED`, `CODED`, `NOT_TESTED`, `ASSUMED`, `OLD_PASS`, and `UNVERIFIED` are not `PASS`.
 
-## Documentation
+## Start here
 
-Use [`MARSEL_ROAPP_UNIFIED_SYSTEM.md`](MARSEL_ROAPP_UNIFIED_SYSTEM.md) for the canonical architecture and safety model, and [`docs/PROJECT_MASTER_CONTROL.md`](docs/PROJECT_MASTER_CONTROL.md) for the current gates, blockers, and continuation procedure.
+1. Read `docs/MARSEL-CANONICAL-INDEX.md`.
+2. Read `docs/PROJECT_MASTER_CONTROL.md` for the current checkpoint.
+3. Check current CI/evidence before continuing work.
+4. Fix the highest-priority safe blocker.
+5. Update the canonical control artifact and evidence.
+6. Do not create a second source of truth.
