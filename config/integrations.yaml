@@ -1,0 +1,68 @@
+version: 1
+project: MARSEL_ROAPP
+canonical_repository: atalanrafael-jpg/MARSEL-Ro-app
+canonical_branch: main
+mode: read_only
+production_write: disabled
+
+secrets:
+  - name: ROAPP_API_KEY
+    value_in_repo: false
+    source: github_actions_secret
+
+integrations:
+  github:
+    status: verified
+    repository: atalanrafael-jpg/MARSEL-Ro-app
+    branch: main
+    control_plane: .github/workflows/marsel-unified-control-plane.yml
+  ro_app:
+    status: partial
+    base_url: https://api.roapp.io/v2
+    auth: bearer_secret
+    default_mode: read_only
+  chatgpt:
+    status: partial
+    protocol: mcp
+    write_enabled: false
+    authorization: not_verified
+  codex:
+    status: not_verified
+  github_copilot:
+    status: not_verified
+  gmail:
+    status: blocked
+    authorization: user_required
+  readme:
+    status: blocked
+    synchronization: external_configuration_required
+  vercel:
+    status: not_verified
+  cloudflare:
+    status: not_verified
+  supabase:
+    status: not_verified
+  social_profiles:
+    status: not_verified
+    policy: authoritative_profile_only
+  maps_and_listings:
+    status: not_verified
+    policy: authoritative_provider_only
+  search_engines:
+    status: not_verified
+    policy: verified_ownership_required
+  analytics_and_ads:
+    status: not_verified
+
+synchronization:
+  flow: SOURCE -> AUTH -> MAPPING -> TRANSFORMATION -> VALIDATION -> DESTINATION -> RECONCILIATION -> VERIFY -> EVIDENCE
+  automatic_writes: false
+  automatic_deletion: false
+  credential_export: false
+  personal_geolocation_collection: false
+
+verification:
+  pass_requires_current_direct_evidence: true
+  historical_documents_override_current_state: false
+  guessed_endpoints_allowed: false
+  guessed_identifiers_allowed: false
