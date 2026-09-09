@@ -12,11 +12,11 @@ from .config import settings
 from .roapp_client import RoAppClient
 
 
-MCP_NAME = "MARSEL RO App"
+MCP_NAME = "MARSEL ROAPP"
 MCP_INSTRUCTIONS = (
-    "Read-only access to the MARSEL RO App connector. "
+    "Read-only access to the MARSEL ROAPP connector. "
     "Use these tools to inspect orders and run bounded data-quality audits. "
-    "No tool exposed by this server mutates RO App data."
+    "No tool exposed by this server mutates ROAPP data."
 )
 
 
@@ -43,20 +43,20 @@ def create_mcp_server(token_verifier: TokenVerifier | None = None) -> MCPServer:
 
     @mcp.tool(
         annotations={
-            "title": "Get RO App orders",
+            "title": "Get MARSEL ROAPP orders",
             "readOnlyHint": True,
             "openWorldHint": False,
         }
     )
     async def get_orders(page: int = 1) -> dict[str, Any]:
-        """Fetch one bounded RO App orders page without modifying RO App data."""
+        """Fetch one bounded MARSEL ROAPP orders page without modifying data."""
         if page < 1:
             raise ValueError("page must be >= 1")
         return await RoAppClient().get_orders(page)
 
     @mcp.tool(
         annotations={
-            "title": "Audit RO App orders",
+            "title": "Audit MARSEL ROAPP orders",
             "readOnlyHint": True,
             "openWorldHint": False,
         }
@@ -70,7 +70,7 @@ def create_mcp_server(token_verifier: TokenVerifier | None = None) -> MCPServer:
 
     @mcp.tool(
         annotations={
-            "title": "Check MARSEL connector readiness",
+            "title": "Check MARSEL ROAPP connector readiness",
             "readOnlyHint": True,
             "openWorldHint": False,
         }
