@@ -1,0 +1,16 @@
+---
+alwaysApply: true
+---
+
+# Testing and Verification
+
+Every material behavior change requires proportionate verification.
+
+Before declaring a task complete:
+- run relevant tests;
+- run static checks where configured;
+- inspect failures;
+- distinguish test execution from production verification;
+- report commands and outcomes honestly.
+
+A passing test suite is not proof of production readiness.

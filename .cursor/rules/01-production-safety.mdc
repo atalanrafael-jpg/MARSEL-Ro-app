@@ -1,0 +1,15 @@
+---
+alwaysApply: true
+---
+
+# Production Safety
+
+Production WRITE is disabled by default.
+
+Do not:
+- perform destructive operations without explicit authorization;
+- infer write readiness from API documentation;
+- infer synchronization success from a successful CI run;
+- bypass backup, rollback, idempotency, or verification gates.
+
+Missing evidence must produce REVIEW_REQUIRED or UNVERIFIED.

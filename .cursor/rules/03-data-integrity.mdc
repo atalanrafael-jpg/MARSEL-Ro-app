@@ -1,0 +1,18 @@
+---
+globs:
+  - "scripts/**"
+  - "docs/**"
+alwaysApply: false
+---
+
+# Data Integrity
+
+For duplicates, collisions, orphan records, and broken references:
+- detect;
+- classify;
+- measure impact;
+- preserve evidence;
+- define rollback;
+- only then propose remediation.
+
+Do not delete records based solely on heuristics.

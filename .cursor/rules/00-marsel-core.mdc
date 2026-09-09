@@ -1,0 +1,20 @@
+---
+alwaysApply: true
+---
+
+# MARSEL ROAPP Core Rule
+
+Follow the repository AGENTS.md.
+
+Operating model:
+OBSERVE → MEASURE → FIND → FIX → TEST → VERIFY → DOCUMENT → MONITOR
+
+Evidence precedence:
+1. Current main repository state.
+2. Current CI/workflow evidence tied to current main.
+3. Direct live API evidence with timestamps/artifacts.
+4. Current official RO App documentation.
+5. Historical project documents.
+
+Do not treat PLANNED, CODED, NOT_TESTED, ASSUMED, OLD_PASS, or UNVERIFIED as PASS.
+Missing, incomplete, or conflicting evidence means REVIEW_REQUIRED.
