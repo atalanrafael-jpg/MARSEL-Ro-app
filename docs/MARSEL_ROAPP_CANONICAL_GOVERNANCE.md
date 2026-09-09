@@ -85,3 +85,5 @@ Every project artifact must be traceable to:
 `MARSEL ROAPP → repository → branch/commit → task/PR → test/evidence → verification → result`
 
 Anything that cannot be traced through this chain is not an authoritative MARSEL ROAPP result.
+
+main is the only canonical integration branch.
