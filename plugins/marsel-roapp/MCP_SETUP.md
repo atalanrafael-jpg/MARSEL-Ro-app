@@ -15,7 +15,7 @@ The plugin declares the `marsel_roapp` MCP server in `.mcp.json`:
 - environment: `ROAPP_API_KEY`, `ROAPP_BASE_URL`, `ROAPP_TIMEOUT_SECONDS`
 - transport: stdio, provided by `mcp.run()` when `server.py` is launched without an explicit transport
 
-The server implementation uses `MCPServer` from the v2 SDK and exposes only read-only tools. It does not write to RO App.
+The server implementation uses `MCPServer` from the v2 SDK and exposes only read-only tools. It does not write to MARSEL ROAPP.
 
 ## Local/Codex setup
 
@@ -38,7 +38,7 @@ The server implementation uses `MCPServer` from the v2 SDK and exposes only read
 
 5. Configure the plugin through the repository `.mcp.json` definition.
 6. Configure `ROAPP_API_KEY`, `ROAPP_BASE_URL`, and `ROAPP_TIMEOUT_SECONDS` through the local Codex/plugin environment. Never commit the API key.
-7. Keep `ROAPP_BASE_URL` at the verified default unless RO App integration documentation or repository configuration confirms another endpoint.
+7. Keep `ROAPP_BASE_URL` at the verified default unless MARSEL ROAPP integration documentation or repository configuration confirms another endpoint.
 
 ## MARSEL safety gate
 
@@ -55,6 +55,6 @@ Credentials must not be placed in GitHub files, source code, tests, logs, artifa
 - Repository MCP v2 configuration: VERIFIED.
 - stdio server startup/handshake tests: VERIFIED in CI.
 - MCP SDK v2 tool registration compatibility: VERIFIED in CI.
-- Live RO App connectivity: **NOT VERIFIED** until a valid `ROAPP_API_KEY` is supplied to the local runtime and a read-only inspection call succeeds.
+- Live MARSEL ROAPP connectivity: **NOT VERIFIED** until a valid `ROAPP_API_KEY` is supplied to the local runtime and a read-only inspection call succeeds.
 
-This distinction is intentional: repository configuration and MCP protocol readiness must not be reported as proof of live RO App access.
+This distinction is intentional: repository configuration and MCP protocol readiness must not be reported as proof of live MARSEL ROAPP access.
