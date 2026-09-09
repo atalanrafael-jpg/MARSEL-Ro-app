@@ -1,56 +1,74 @@
 # MARSEL ROAPP — CANONICAL INDEX
 
-**Status:** CANONICAL CONTROL INDEX  
-**Repository:** `atalanrafael-jpg/MARSEL-Ro-app`  
-**Branch:** `main`
+**Status:** CANONICAL CONTROL INDEX
+**Repository:** `atalanrafael-jpg/MARSEL-Ro-app`
+**Canonical branch:** `main`
 
-## Rule
-There is one MARSEL ROAPP project. This index defines which documents and controls are authoritative. Historical or superseded material is not a second source of truth.
+## 1. One system
 
-## Source-of-truth map
+There is exactly one MARSEL ROAPP project/control plane. `MARSEL` is the business contour; `ROAPP` is the technology contour of the same system. No parallel project, repository, production audit path or duplicate source of truth is permitted.
 
-| Area | Canonical source | Role |
-|---|---|---|
-| Project core | `MARSEL_ROAPP_MASTER_CORE.md` | Permanent governance and operating principles |
-| Current unified state | `docs/MARSEL-UNIFIED-MASTER-2026-09-02.md` | Current project state, gates and priorities |
-| Repository governance | `docs/MARSEL_ROAPP_CANONICAL_GOVERNANCE.md` | Canonical repository/control-plane rules |
-| Task control | `docs/MARSEL_ROAPP_TASK_REGISTRY.md` | Active task registry |
-| Workflow control | `docs/MARSEL_ROAPP_WORKFLOW_REGISTRY.md` | Active workflow responsibilities |
-| Script control | `02_ROAPP/CONTROL/ACTIVE-SCRIPT-REGISTRY.md` | Active script registry |
-| Integration control | `docs/MARSEL_EXTERNAL_INTEGRATION_REGISTRY.md` | External integration boundary |
-| API control | `docs/MARSEL-API-REGISTRY.md` | API registry |
-| MCP control | `docs/ROAPP_MCP_CONTRACT.md` | MCP contract |
-| Data quality | `docs/MARSEL_DATA...` / current data-quality evidence | Data-quality controls; use newest verified evidence |
-| Production gate | `docs/MARSEL-PRODUCTION-GO-LIVE-GATES.md` + `.github/workflows/marsel-production-gate.yml` | Release/write gate |
-| Evidence | `evidence/` | Run-specific evidence only; never synthetic current truth |
-| Historical | `старые данные/` | Archive/context only |
+## 2. Source-of-truth hierarchy
 
-## Cleanup decisions
+1. Current `main` repository state.
+2. Current GitHub Actions evidence tied to that state.
+3. Direct live RO App evidence with timestamps/artifacts.
+4. Current authoritative RO App documentation.
+5. Historical documents/chats/evidence only as context.
 
-The following redundant active files were removed from the cleanup branch because they were superseded and had no repository references:
+## 3. Canonical ownership map
 
-- root `CODEOWNERS` — ineffective duplicate; `.github/CODEOWNERS` is the active GitHub location;
-- `docs/MARSEL-CURRENT-STATE-2026-08-21.md` — superseded current-state snapshot;
-- `docs/MARSEL-MASTER-REGISTER-V2.md` — superseded master register.
+| Responsibility | Canonical source |
+|---|---|
+| Permanent project principles | `MARSEL_ROAPP_MASTER_CORE.md` |
+| Current project control, gates and blockers | `docs/PROJECT_MASTER_CONTROL.md` |
+| Canonical architecture | `MARSEL_ROAPP_UNIFIED_SYSTEM.md` |
+| Repository governance | `docs/MARSEL_ROAPP_CANONICAL_GOVERNANCE.md` |
+| Task control | `docs/MARSEL_ROAPP_TASK_REGISTRY.md` |
+| Workflow control | `docs/MARSEL_ROAPP_WORKFLOW_REGISTRY.md` |
+| Script control | `02_ROAPP/CONTROL/ACTIVE-SCRIPT-REGISTRY.md` |
+| External integrations | `docs/MARSEL_EXTERNAL_INTEGRATION_REGISTRY.md` |
+| API registry | `docs/MARSEL-API-REGISTRY.md` |
+| MCP contract | `docs/ROAPP_MCP_CONTRACT.md` |
+| Data-quality controls | Current data-quality registry/evidence; newest verified evidence wins |
+| Production gate | `docs/MARSEL-PRODUCTION-GO-LIVE-GATES.md` + `.github/workflows/marsel-production-gate.yml` |
+| Live audit control plane | `.github/workflows/marsel-unified-control-plane.yml` |
+| Run-specific evidence | `evidence/` |
+| Historical material | `старые данные/` |
 
-Historical material remains preserved in `старые данные/` and is not deleted merely because it is old.
+## 4. Canonical continuation rule
 
-## Duplicate-control rule
+`PROJECT_MASTER_CONTROL.md` is the current operational checkpoint. It must be consulted before continuation. It contains the current gates, blockers and evidence precedence. The permanent Core and architecture documents define rules; they do not replace the current checkpoint.
 
-Before creating a new document, script, workflow or registry:
+## 5. Duplicate-control rule
 
-1. search this index and the repository;
-2. identify the existing owner of the responsibility;
+Before creating or retaining a document, script, workflow, registry or integration:
+
+1. search the repository for an existing responsibility owner;
+2. identify whether the candidate duplicates an active artifact;
 3. extend the canonical artifact instead of creating a parallel implementation;
-4. if replacement is necessary, mark the old artifact superseded and preserve traceability;
-5. run CI and the relevant production/control gate before promotion.
+4. if superseded, archive it and remove it from the active path only after dependency checks;
+5. preserve Git history and traceability;
+6. run the relevant CI/control gate before promotion.
 
-## System shape
+Version numbers alone are not a deletion criterion. Dependencies, imports, workflow references, tests and documentation references must be checked first.
 
-`MARSEL business` → `ROAPP technical layer` → `GitHub main` → `Actions / evidence / gates`.
+## 6. Active workflow rule
 
-Supporting components are allowed only when their responsibility is distinct, registered and non-duplicative.
+`docs/MARSEL_ROAPP_WORKFLOW_REGISTRY.md` is the single workflow registry. `.github/workflows/marsel-unified-control-plane.yml` is the single canonical live RO App audit path. Supporting workflows may exist only for distinct registered responsibilities and may not silently become a second live audit path.
 
-## Safety
+## 7. Archive rule
 
-`READ_ONLY` remains the default. Production WRITE remains blocked until the current production gates contain fresh direct evidence.
+`старые данные/` is historical context, not active configuration. Superseded files are archived only after dependency checks. Historical evidence and Git history are preserved.
+
+## 8. Safety invariant
+
+`READ_ONLY` is the default. Production WRITE remains disabled until current direct evidence closes all applicable safety gates:
+
+`backup/export → restore → reconciliation → full READ-ONLY inventory → duplicate/reference analysis → dry-run → idempotency → rollback → safety gate → controlled write → post-write verification`
+
+No guessed identifier, undocumented endpoint, synthetic evidence, mass deletion or production mutation may be promoted to PASS.
+
+## 9. Current project status
+
+Use `docs/PROJECT_MASTER_CONTROL.md` for the current verified blockers and gate status. Never infer current readiness from an older dated document.
