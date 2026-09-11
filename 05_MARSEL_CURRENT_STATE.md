@@ -3,19 +3,30 @@
 **Role:** single living project checkpoint. Update after every material verified change.
 
 ## DATE
-2026-09-08
+2026-09-11
 
 ## CURRENT VERSION
-MARSEL ROAPP unified control plane with production-safety hardening, canonical GitHub governance, automated evidence orchestration, deterministic control-agent state transitions, fail-closed production gating, dependency/lock alignment, security hardening, and isolated optional Apple Core AI conversion path.
+MARSEL ROAPP unified control plane with production-safety hardening, canonical GitHub governance, automated evidence orchestration, deterministic control-agent state transitions, fail-closed production gating, dependency/lock alignment, security hardening, Chrome 153 compatibility hardening, and isolated optional Apple Core AI conversion path.
 
 ## CONTROL CHECKPOINT
 - Canonical repository: `atalanrafael-jpg/MARSEL-Ro-app`.
 - Canonical branch: `main`.
-- Current repository `main` HEAD: `519113faf1f7e3fa1d3fc137a944248826a2aaae`.
-- Latest verified application/code HEAD: `c84825442857bb9cc51585093bac68d338fac7d1`.
-- Commit `519113faf...` is a documentation-only reconciliation after the verified code HEAD; it does not add production evidence or enable writes.
+- Current repository `main` HEAD before this compatibility change: `519113faf1f7e3fa1d3fc137a944248826a2aaae`.
+- Latest verified application/code HEAD before this compatibility change: `c84825442857bb9cc51585093bac68d338fac7d1`.
+- Chrome 153 compatibility work is isolated on branch `fix/chrome-153-compatibility` pending CI verification and PR review; `main` is not modified by this change.
 - Production WRITE remains disabled.
 - Live repository metadata previously reported `main` as unprotected and required status checks not configured at branch level; this remains an account/repository administration gate until freshly verified as changed.
+
+## CHROME 153 COMPATIBILITY
+- Official Chrome 153 Stable release date: 2026-09-08.
+- Chrome 153 removes non-standard navigation targets using `_current`.
+- Chrome 153 lists Protected Audience, Related Website Sets, Shared Storage, `document.requestStorageAccessFor`, and Attribution Reporting for deprecation/removal.
+- Chrome 153 moves several non-XSLT XML parsing paths (`DOMParser`, `XMLHttpRequest.responseXML`, standalone SVG, external SVG) to a memory-safe Rust implementation while preserving web-standard behavior; these APIs are therefore not treated as regressions by the guard.
+- Repository source search found no current `DOMParser`, `responseXML`, `requestStorageAccessFor`, or Protected Audience implementation that requires a code migration.
+- A fail-closed CI guard was added at `scripts/marsel_chrome_153_compatibility_guard.py` to reject `_current` navigation targets and the listed deprecated API identifiers in source/configuration files.
+- CI workflow added at `.github/workflows/marsel-chrome-153-compatibility.yml`.
+- The guard itself has not yet been accepted as VERIFIED until its GitHub Actions run completes successfully on this branch.
+- Chrome 153 also begins the two-week Stable release cadence; future browser compatibility checks should follow Beta-to-Stable cadence rather than waiting for four-week milestones.
 
 ## LATEST VERIFIED CHANGES
 - `8dacd5a9dbc779041899a4215ef48b565a0f2645` hardened `scripts/marsel_production_gate_v1.py` secret scanning with value-based patterns for credential-shaped API keys, client/private secrets, GitHub tokens, and private-key headers while avoiding harmless configuration-presence flags.
@@ -28,6 +39,7 @@ MARSEL ROAPP unified control plane with production-safety hardening, canonical G
 - Test workflow run `34129874333` completed successfully on verified application/code HEAD `c84825442857bb9cc51585093bac68d338fac7d1`.
 - Scheduled `AI: generate drafts` run `34134525448` also completed successfully on the same verified application/code HEAD.
 - No CI result is currently verified for documentation commit `519113faf...`; its combined-status endpoint is empty.
+- Chrome 153 compatibility CI is pending on branch `fix/chrome-153-compatibility`.
 - CI success proves only the tested repository/workflow paths. It does not prove current live RO App API access, backup/restore, OAuth, MCP authorization, or production readiness.
 
 ## LATEST LIVE GATE FINDING
@@ -67,18 +79,19 @@ MARSEL ROAPP unified control plane with production-safety hardening, canonical G
 - Production WRITE is not authorized.
 
 ## CURRENT EXECUTION QUEUE
-1. Ensure `ROAPP_API_KEY` is present only in approved GitHub Actions/environment secret storage, then run fresh live warehouse evidence verification.
-2. Verify the fresh READ-ONLY warehouse result and evidence artifact on current `main`.
-3. Prove complete backup/export and independently tested restore/integrity.
-4. Complete current API/entity verification from authoritative contracts and verified identifiers.
-5. Complete Gmail OAuth read-only user authorization test.
-6. Complete official RO App MCP authorization verification.
-7. Complete credential-exposure remediation evidence for Issue #23, including rotation/revocation evidence where required.
-8. Enable and verify GitHub `main` protection, secret scanning/push protection, production environment controls, and required status checks through account/repository administration.
-9. Reconcile stale/open remediation issues and PRs against current `main`; do not merge stale branches without revalidation.
-10. Review the 12 Supabase unused-index INFO findings using actual query workload before any index removal.
-11. On a physical Apple Silicon host, run the documented Core AI conversion/runtime verification and attach fresh evidence; do not claim hardware verification from CI alone.
-12. Only after all applicable evidence gates pass, evaluate production safety gate. Production WRITE remains disabled until explicit authorization.
+1. Merge the Chrome 153 compatibility guard only after its CI run passes and the PR is reviewed.
+2. Ensure `ROAPP_API_KEY` is present only in approved GitHub Actions/environment secret storage, then run fresh live warehouse evidence verification.
+3. Verify the fresh READ-ONLY warehouse result and evidence artifact on current `main`.
+4. Prove complete backup/export and independently tested restore/integrity.
+5. Complete current API/entity verification from authoritative contracts and verified identifiers.
+6. Complete Gmail OAuth read-only user authorization test.
+7. Complete official RO App MCP authorization verification.
+8. Complete credential-exposure remediation evidence for Issue #23, including rotation/revocation evidence where required.
+9. Enable and verify GitHub `main` protection, secret scanning/push protection, production environment controls, and required status checks through account/repository administration.
+10. Reconcile stale/open remediation issues and PRs against current `main`; do not merge stale branches without revalidation.
+11. Review the 12 Supabase unused-index INFO findings using actual query workload before any index removal.
+12. On a physical Apple Silicon host, run the documented Core AI conversion/runtime verification and attach fresh evidence; do not claim hardware verification from CI alone.
+13. Only after all applicable evidence gates pass, evaluate production safety gate. Production WRITE remains disabled until explicit authorization.
 
 ## SAFETY
 - `MARSEL_WRITE_APPROVED=false` remains mandatory.
