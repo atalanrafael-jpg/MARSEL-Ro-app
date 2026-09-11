@@ -3,4 +3,4 @@
 # acquire a platform-specific dependency by default.
 coreai-core==1.0.0b2
 coreai-torch==0.4.2
-torch>=2.8.0,<2.12
+torch>=2.14.0,<2.15
