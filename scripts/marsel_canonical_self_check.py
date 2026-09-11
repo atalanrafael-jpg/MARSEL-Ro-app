@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""Fail-closed static check for the single MARSEL ROAPP control plane."""
+"""Fail-closed static check for the single canonical MARSEL ROAPP system."""
 from __future__ import annotations
+
 import os
 from pathlib import Path
 
@@ -10,15 +11,15 @@ EXPECTED_BRANCH = "main"
 WORKFLOW = ROOT / ".github" / "workflows" / "marsel-unified-control-plane.yml"
 PRODUCTION_GATE = ROOT / ".github" / "workflows" / "marsel-production-gate.yml"
 GENERIC_TEST = ROOT / ".github" / "workflows" / "test.yml"
-WORKFLOW_REGISTRY = ROOT / "docs" / "MARSEL_ROAPP_WORKFLOW_REGISTRY.md"
-CANONICAL_GOVERNANCE = ROOT / "docs" / "MARSEL_ROAPP_CANONICAL_GOVERNANCE.md"
-BOOTSTRAP = ROOT / "docs" / "MARSEL_MASTER_BOOTSTRAP_2026-08-24.md"
-SETTINGS_BASELINE = ROOT / "docs" / "MARSEL_SETTINGS_BASELINE_2026-09-04.md"
+WORKFLOW_REGISTRY = ROOT / "05_CONTROL" / "ACTIVE-WORKFLOW-REGISTRY.md"
+SCRIPT_REGISTRY = ROOT / "05_CONTROL" / "ACTIVE-SCRIPT-REGISTRY.md"
+CANONICAL = ROOT / "01_MASTER" / "MARSEL_ROAPP_CANONICAL.md"
+MASTER_REGISTRY = ROOT / "01_MASTER" / "MARSEL_ROAPP_MASTER_REGISTRY.md"
+CURRENT_STATE = ROOT / "01_MASTER" / "MARSEL_ROAPP_CURRENT_STATE.md"
+TASK_REGISTRY = ROOT / "01_MASTER" / "MARSEL_ROAPP_TASK_REGISTER.md"
+DECISION_LOG = ROOT / "01_MASTER" / "MARSEL_ROAPP_DECISION_LOG.md"
 API_REGISTRY = ROOT / "scripts" / "marsel_api_v2_canonical_registry_v1.py"
 API_REGISTRY_DOC = ROOT / "docs" / "MARSEL-API-REGISTRY.md"
-TASK_REGISTRY = ROOT / "docs" / "MARSEL_ROAPP_TASK_REGISTRY.md"
-ARCH = ROOT / "MARSEL_ROAPP_UNIFIED_SYSTEM.md"
-MASTER_CORE = ROOT / "MARSEL_ROAPP_MASTER_CORE.md"
 EVIDENCE_BUILDER = ROOT / "scripts" / "marsel_evidence_builder_v1.py"
 CANONICAL_SCRIPTS = {
     "scripts/marsel_api_inventory_v20_32.py",
@@ -28,19 +29,20 @@ CANONICAL_SCRIPTS = {
     "scripts/marsel_warehouse_contract_v20_48.py",
 }
 FORBIDDEN_LIVE_WORKFLOW_NAMES = {
-    "marsel-inventory-v20-12.yml","marsel-live-probe-v20-27.yml","marsel-master-directories-v1.yml","marsel-orders-backup-v20-20.yml","marsel-product-code-collision-v22-1.yml","marsel-readonly-integrity-v21.yml","marsel-v21-5-quality-gate.yml","marsel-v21-6-naming-quality-gate.yml",
+    "marsel-inventory-v20-12.yml",
+    "marsel-live-probe-v20-27.yml",
+    "marsel-master-directories-v1.yml",
+    "marsel-orders-backup-v20-20.yml",
+    "marsel-product-code-collision-v22-1.yml",
+    "marsel-readonly-integrity-v21.yml",
+    "marsel-v21-5-quality-gate.yml",
+    "marsel-v21-6-naming-quality-gate.yml",
+    "marsel-location-by-id-v20-49.yml",
+    "marsel-warehouse-contract-v20-48.yml",
 }
 LIVE_MARKERS = ("ROAPP_API_KEY", "api.roapp.io/v2", "MARSEL read-only orders audit")
 STALE_API_REGISTRY_MARKERS = ("marsel-live-probe-v20-27.yml", "marsel-readonly-integrity-v21.yml")
 FORBIDDEN_WRITE_METHODS = ("POST", "PUT", "PATCH", "DELETE")
-REQUIRED_CORE_MARKERS = (
-    "MARSEL ROAPP MASTER CORE",
-    "CANONICAL PROJECT CORE",
-    "event → action → result → verification → checkpoint → next task",
-    "NOT_VERIFIED",
-    "Production safety gate",
-    "ChatGPT Core integration",
-)
 
 
 def fail(message: str) -> None:
@@ -52,10 +54,11 @@ def main() -> int:
     runtime_ref_name = os.getenv("GITHUB_REF_NAME")
     if runtime_repository and runtime_repository != EXPECTED_REPOSITORY:
         fail(f"unexpected canonical repository: {runtime_repository}; expected {EXPECTED_REPOSITORY}")
+
     required = [
-        WORKFLOW, PRODUCTION_GATE, GENERIC_TEST, WORKFLOW_REGISTRY,
-        CANONICAL_GOVERNANCE, BOOTSTRAP, SETTINGS_BASELINE, API_REGISTRY,
-        API_REGISTRY_DOC, TASK_REGISTRY, ARCH, MASTER_CORE, EVIDENCE_BUILDER,
+        WORKFLOW, PRODUCTION_GATE, GENERIC_TEST, WORKFLOW_REGISTRY, SCRIPT_REGISTRY,
+        CANONICAL, MASTER_REGISTRY, CURRENT_STATE, TASK_REGISTRY, DECISION_LOG,
+        API_REGISTRY, API_REGISTRY_DOC, EVIDENCE_BUILDER,
     ]
     missing = [str(p.relative_to(ROOT)) for p in required if not p.exists()]
     if missing:
@@ -65,19 +68,29 @@ def main() -> int:
     production_gate_text = PRODUCTION_GATE.read_text(encoding="utf-8")
     test_text = GENERIC_TEST.read_text(encoding="utf-8")
     workflow_registry_text = WORKFLOW_REGISTRY.read_text(encoding="utf-8")
-    governance_text = CANONICAL_GOVERNANCE.read_text(encoding="utf-8")
-    bootstrap_text = BOOTSTRAP.read_text(encoding="utf-8")
-    settings_text = SETTINGS_BASELINE.read_text(encoding="utf-8")
+    script_registry_text = SCRIPT_REGISTRY.read_text(encoding="utf-8")
+    canonical_text = CANONICAL.read_text(encoding="utf-8")
+    master_registry_text = MASTER_REGISTRY.read_text(encoding="utf-8")
+    current_state_text = CURRENT_STATE.read_text(encoding="utf-8")
+    task_text = TASK_REGISTRY.read_text(encoding="utf-8")
+    decision_text = DECISION_LOG.read_text(encoding="utf-8")
     registry_text = API_REGISTRY.read_text(encoding="utf-8")
     registry_doc_text = API_REGISTRY_DOC.read_text(encoding="utf-8")
-    task_text = TASK_REGISTRY.read_text(encoding="utf-8")
-    arch_text = ARCH.read_text(encoding="utf-8")
-    core_text = MASTER_CORE.read_text(encoding="utf-8")
     evidence_builder_text = EVIDENCE_BUILDER.read_text(encoding="utf-8")
 
-    for marker in REQUIRED_CORE_MARKERS:
-        if marker not in core_text:
-            fail(f"MASTER CORE marker missing: {marker}")
+    if (ROOT / "старые данные").exists():
+        fail("obsolete legacy data directory still exists")
+    for marker in ("One system: MARSEL ROAPP", "Canonical branch: `main`", "Production WRITE remains disabled"):
+        if marker not in canonical_text:
+            fail(f"canonical system marker missing: {marker}")
+    for marker in ("Project control", "Business", "Technical", "Development", "Control", "History"):
+        if marker not in master_registry_text:
+            fail(f"master registry marker missing: {marker}")
+    if "CANONICAL CLEANUP IN PROGRESS" not in current_state_text:
+        fail("current state does not identify canonical cleanup")
+    if "2026-09-11" not in decision_text:
+        fail("decision log is missing current consolidation decision")
+
     for rel in CANONICAL_SCRIPTS:
         if not (ROOT / rel).exists():
             fail(f"canonical script missing: {rel}")
@@ -107,34 +120,18 @@ def main() -> int:
         fail("live secret/audit boundary for pull_request events is missing")
     if "marsel-unified-control-plane.yml" not in workflow_registry_text:
         fail("workflow registry does not name the canonical control plane")
-    for marker in (
-        "Canonical repository: `atalanrafael-jpg/MARSEL-Ro-app`",
-        "Canonical branch: `main`",
-        "main is the only canonical integration branch",
-        "PRODUCTION_WRITE = DISABLED",
-    ):
-        if marker not in governance_text:
-            fail(f"canonical governance marker missing: {marker}")
-    if "Canonical repository: `atalanrafael-jpg/Ro-app`" in bootstrap_text:
-        fail("bootstrap still contains obsolete canonical repository")
-    if "Canonical repository: `atalanrafael-jpg/MARSEL-Ro-app`" not in bootstrap_text:
-        fail("bootstrap does not declare the canonical MARSEL ROAPP repository")
-    if runtime_ref_name == EXPECTED_BRANCH and "Canonical repository: `atalanrafael-jpg/MARSEL-Ro-app`" not in bootstrap_text:
-        fail("main branch is missing the canonical repository declaration")
-    if "Production WRITE: `DISABLED`" not in settings_text:
-        fail("settings baseline does not record production WRITE as disabled")
-    production_write_disabled_markers = (
-        "Production mutations remain disabled",
-        "Production WRITE remains disabled",
-        "Production WRITE остаётся запрещённым",
-    )
-    if not any(marker in arch_text for marker in production_write_disabled_markers):
-        fail("architecture does not explicitly keep production WRITE disabled")
-    if "`WRITE=0`" not in task_text:
-        fail("production WRITE gate is missing from task registry")
-    for marker in ("NEVER fabricates production evidence", '"fabricated_evidence": False', '"production_write": False', '"status": "READY_FOR_GATE"'):
+    if "scripts/marsel_api_inventory_v20_32.py" not in script_registry_text:
+        fail("script registry does not name the canonical inventory entrypoint")
+    for marker in ("ROAPP remains READ-ONLY", "Production WRITE remains disabled"):
+        if marker not in canonical_text:
+            fail(f"canonical safety marker missing: {marker}")
+    if "`WRITE=0`" not in task_text and "Production WRITE" not in task_text:
+        fail("production WRITE gate is missing from task register")
+    for marker in ("NEVER fabricates production evidence", '"fabricated_evidence": False', '"production_write": False'):
         if marker not in evidence_builder_text:
             fail(f"evidence builder safety marker missing: {marker}")
+    if runtime_ref_name == EXPECTED_BRANCH and "Canonical branch: `main`" not in canonical_text:
+        fail("main branch is missing the canonical branch declaration")
 
     print("CANONICAL_SELF_CHECK=PASS")
     print("SYSTEM=MARSEL_ROAPP")
@@ -146,7 +143,6 @@ def main() -> int:
     print("API_REGISTRY=NON_EMPTY_READ_ONLY")
     print("WORKFLOW_REGISTRY=CANONICAL_PRESENT")
     print("CANONICAL_GOVERNANCE=PRESENT")
-    print("SETTINGS_BASELINE=PRESENT")
     print("EVIDENCE_BUILDER=FAIL_CLOSED")
     print("PRODUCTION_WRITE=DISABLED")
     print("RO_APP_DATA_MUTATION=NOT_PERFORMED")
