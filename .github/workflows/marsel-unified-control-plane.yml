@@ -17,6 +17,8 @@ permissions:
 
 jobs:
   audit:
+    environment:
+      name: staging
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -166,14 +168,10 @@ jobs:
           import json, shutil
           from datetime import datetime, timezone
           from pathlib import Path
-          mapping={
-            'marsel-unified-evidence.json':'marsel-unified-evidence.json',
-            'duplicate_reference_evidence.json':'marsel-unified-product-collisions.json',
-          }
+          mapping={'marsel-unified-evidence.json':'marsel-unified-evidence.json','duplicate_reference_evidence.json':'marsel-unified-product-collisions.json'}
           for dst,src in mapping.items():
             p=Path(src)
-            if p.exists():
-              shutil.copyfile(p,Path('evidence')/dst)
+            if p.exists(): shutil.copyfile(p,Path('evidence')/dst)
           json.dump({'status':'INCOMPLETE','observed_at':datetime.now(timezone.utc).isoformat(),'source':'github-actions-readonly-control-plane','readonly':True,'write_requests_made':0,'ro_app_data_mutated':False,'reason':'Backup/restore/dry-run/idempotency/rollback evidence is not fabricated by CI.'},open('evidence/evidence-collection-status.json','w',encoding='utf-8'),ensure_ascii=False,indent=2)
           PY
       - name: Upload evidence collection bundle
