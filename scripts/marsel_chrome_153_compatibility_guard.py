@@ -27,18 +27,22 @@ TEXT_SUFFIXES = {
     ".env", ".sh", ".bash", ".ps1",
 }
 
-# Chrome 153 removed _current navigation targets.
 REMOVED_PATTERNS = [
-    (re.compile(r"(?:target\\s*=\\s*['\"]_current['\"]|['\"]_current['\"]\\s*[,)]|target\\s*[:=]\\s*['\"]_current['\"])", re.I), "removed _current navigation target"),
+    (
+        re.compile(
+            r"(?:target\s*=\s*['\"]_current['\"]|['\"]_current['\"]\s*[,)]|target\s*[:=]\s*['\"]_current['\"])",
+            re.I,
+        ),
+        "removed _current navigation target",
+    ),
 ]
 
-# APIs explicitly listed by Chrome 153 as planned for deprecation/removal.
 DEPRECATED_PATTERNS = [
-    (re.compile(r"\\brequestStorageAccessFor\\b", re.I), "deprecated document.requestStorageAccessFor API"),
-    (re.compile(r"\\bjoinAdInterestGroup\\b", re.I), "deprecated Protected Audience API"),
-    (re.compile(r"\\brunAdAuction\\b", re.I), "deprecated Protected Audience API"),
-    (re.compile(r"\\bsharedStorage\\b", re.I), "deprecated Shared Storage API"),
-    (re.compile(r"\\battributionReporting\\b", re.I), "deprecated Attribution Reporting API"),
+    (re.compile(r"\brequestStorageAccessFor\b", re.I), "deprecated document.requestStorageAccessFor API"),
+    (re.compile(r"\bjoinAdInterestGroup\b", re.I), "deprecated Protected Audience API"),
+    (re.compile(r"\brunAdAuction\b", re.I), "deprecated Protected Audience API"),
+    (re.compile(r"\bsharedStorage\b", re.I), "deprecated Shared Storage API"),
+    (re.compile(r"\battributionReporting\b", re.I), "deprecated Attribution Reporting API"),
 ]
 
 
