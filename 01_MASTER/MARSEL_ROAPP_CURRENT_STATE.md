@@ -1,22 +1,25 @@
 # MARSEL ROAPP — CURRENT STATE
 
 **Assessment date:** 2026-09-13
-**State:** CANONICAL STRUCTURE ESTABLISHED; FULL CLEANUP IN PROGRESS
+**State:** CANONICAL STRUCTURE ESTABLISHED; REPOSITORY CLEANUP VERIFIED; FINAL CI/EXTERNAL GATES REMAIN
 
 ## Verified
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`.
 - Current canonical/default branch: `main-MARSEL-ROAPP`.
-- `main` does not exist.
-- Unified system definition explicitly identifies `main-MARSEL-ROAPP` as current canonical branch.
+- `main` does not exist and is not authoritative.
+- Six canonical zones `01_MASTER` through `06_ARCHIVE` exist.
+- Historical `старые данные/` content was migrated into `06_ARCHIVE/legacy-old-data/` and the legacy tree removed.
+- Superseded root master documents were migrated into `06_ARCHIVE/legacy-root/` and removed from the active root.
+- Canonical governance, agent instructions and static self-check were aligned to the actual canonical branch.
+- PR #161 was closed without merge because it was stale/diverged and unsafe to merge as-is.
 - Production WRITE remains disabled.
 
-## Cleanup findings
-The repository still contains historical material and older root-level documentation that must be reconciled against the canonical structure. Historical content must not be deleted blindly; it should be moved to `06_ARCHIVE` when retention is useful.
+## Remaining gates
+- Fresh GitHub Actions/control-plane run after the final cleanup commits must be verified.
+- Real backup/restore integrity evidence remains required before any production-write consideration.
+- Remaining historical `docs/` snapshots and temporary branches require individual dependency/evidence review; they are not to be deleted blindly.
+- Open PRs #127 and #128 overlap and require reconciliation before merge.
+- Open PR #132 requires security review before merge.
 
-## Active blockers
-- PR #161 is stale/diverged: its base is 10 commits behind the current canonical branch and it cannot be merged safely as-is.
-- Full archive migration and duplicate cleanup are not yet verified complete.
-- `main` has not been created and must not be treated as canonical.
-
-## Target state
-Only one active definition per capability; historical material is archived or removed after verification; duplicate control layers are removed; the canonical structure is authoritative; CI/control-plane checks pass on the current branch.
+## Canonical rule
+Only `main-MARSEL-ROAPP` is current source of truth. Historical material under `06_ARCHIVE` is evidence only. No archived document may override newer verified state.
