@@ -6,8 +6,9 @@
 ## Canonical state — 2026-09-13
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`
 - Canonical branch: `main-MARSEL-ROAPP`
-- Canonical HEAD before this documentation reconciliation: `238d1c7121d902ae3bdacf59b33525b585c79090`.
-- The canonical HEAD commit is verified and contains the security hardening boundary; its message states that Production WRITE remains disabled.
+- Current canonical HEAD: `ca9944b5fbed9dd5bdcd975ed4a1505b06f3764f`.
+- Current HEAD message: `fix: scope canonical self-check to active source-of-truth set`.
+- The canonical HEAD is verified and keeps Production WRITE disabled.
 - Current integration mode: READ-ONLY.
 - Production WRITE: DISABLED.
 - Canonical live audit workflow: `.github/workflows/marsel-unified-control-plane.yml`.
@@ -17,8 +18,16 @@
 ## Canonical-branch correction
 The repository's live GitHub metadata identifies `main-MARSEL-ROAPP` as the default/canonical branch. Earlier project documents referred to `main`; those references were stale and are not current source-of-truth. They must not be used for routing current work.
 
+## Current GitHub branch-control state
+- `main-MARSEL-ROAPP` exists and is the repository default branch.
+- Direct GitHub branch metadata currently reports branch protection as **disabled** (`protected=false`, protection enforcement off).
+- This is an account/repository administration control and is therefore tracked as a blocker until explicitly configured and independently re-verified.
+
 ## Latest verified CI
 - Previously recorded successful CI runs remain historical evidence unless freshly tied to the current canonical HEAD.
+- Run `34754678464` is historical: it succeeded but produced zero artifacts because the workflow revision executed by that run did not yet contain the artifact-upload step.
+- The current canonical `language-quality.yml` contains an `actions/upload-artifact@v4` step for `marsel-language-quality-report`.
+- The current canonical `marsel-unified-control-plane.yml` contains artifact uploads for unified evidence and the immutable run marker.
 - No CI result is promoted to current PASS solely because an older checkpoint passed.
 - CI success proves only the tested repository/build path for that run; it does not prove production readiness, current live API access, backup/restore, OAuth, MCP, or WRITE readiness.
 
@@ -86,10 +95,10 @@ The repository's live GitHub metadata identifies `main-MARSEL-ROAPP` as the defa
 5. Gmail OAuth requires actual user-authorized live verification.
 6. Official RO App MCP authorization requires separate live verification.
 7. Credential-exposure remediation tracked by Issue #23 requires direct rotation/exposure evidence.
-8. GitHub account/repository security controls require account-level administration; branch-protection state was not independently readable through the current connector and is therefore NOT VERIFIED.
+8. GitHub branch protection is currently disabled and must be configured at account/repository level before it can be marked verified.
 9. ReadMe ↔ GitHub bi-directional sync requires external ReadMe configuration in a dedicated docs repository.
 10. Production WRITE remains disabled until every applicable safety gate passes and explicit authorization exists.
-11. Repository branch consolidation is not complete: 157 branches were discovered in the current branch inventory. Historical/candidate branches must be classified by commit ancestry and divergence before any deletion. No branch is deleted automatically.
+11. Repository branch consolidation is not complete: the current branch inventory returned 160 branches. Historical/candidate branches must be classified by commit ancestry and divergence before any deletion. No branch is deleted automatically.
 
 ## Branch governance
 - Canonical branch: `main-MARSEL-ROAPP`.
