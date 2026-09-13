@@ -1,0 +1,18 @@
+---
+globs:
+  - "scripts/**"
+  - "**/*api*"
+  - "**/*contract*"
+alwaysApply: false
+---
+
+# API Contracts
+
+Never invent endpoint schemas or identifiers.
+
+Before changing API integration:
+1. inspect the current contract;
+2. distinguish documented evidence from live evidence;
+3. preserve backward compatibility where possible;
+4. add tests or probes appropriate to the changed contract;
+5. explicitly record unresolved fields as REVIEW_REQUIRED.
