@@ -6,9 +6,7 @@
 ## Canonical state — 2026-09-13
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`
 - Canonical branch: `main-MARSEL-ROAPP`
-- Current canonical HEAD: `ca9944b5fbed9dd5bdcd975ed4a1505b06f3764f`.
-- Current HEAD message: `fix: scope canonical self-check to active source-of-truth set`.
-- The canonical HEAD is verified and keeps Production WRITE disabled.
+- Canonical checkpoint: current HEAD of `main-MARSEL-ROAPP`.
 - Current integration mode: READ-ONLY.
 - Production WRITE: DISABLED.
 - Canonical live audit workflow: `.github/workflows/marsel-unified-control-plane.yml`.
