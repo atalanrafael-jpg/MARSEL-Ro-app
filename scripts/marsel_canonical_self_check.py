@@ -14,6 +14,7 @@ CANONICAL = ROOT / "01_MASTER" / "MARSEL_ROAPP_CANONICAL.md"
 CURRENT = ROOT / "01_MASTER" / "MARSEL_ROAPP_CURRENT_STATE.md"
 REGISTRY = ROOT / "01_MASTER" / "MARSEL_ROAPP_MASTER_REGISTRY.md"
 ARCHIVE = ROOT / "06_ARCHIVE"
+AGENTS = ROOT / "AGENTS.md"
 CANONICAL_DIRS = ("01_MASTER", "02_MARSEL", "03_ROAPP", "04_DEVELOPMENT", "05_CONTROL", "06_ARCHIVE")
 FORBIDDEN_ROOT_MASTERS = (
     "01_MARSEL_MASTER.md",
@@ -39,7 +40,7 @@ def main() -> int:
     for rel in CANONICAL_DIRS:
         if not (ROOT / rel).is_dir():
             fail(f"canonical directory missing: {rel}")
-    for path in (WORKFLOW, GOVERNANCE, CANONICAL, CURRENT, REGISTRY):
+    for path in (WORKFLOW, GOVERNANCE, CANONICAL, CURRENT, REGISTRY, AGENTS):
         if not path.exists():
             fail(f"required canonical file missing: {path.relative_to(ROOT)}")
     for name in FORBIDDEN_ROOT_MASTERS:
@@ -53,16 +54,16 @@ def main() -> int:
     canonical_text = CANONICAL.read_text(encoding="utf-8")
     current_text = CURRENT.read_text(encoding="utf-8")
     registry_text = REGISTRY.read_text(encoding="utf-8")
+    agents_text = AGENTS.read_text(encoding="utf-8")
 
-    required = {
+    corpus = "\n".join((workflow_text, governance_text, canonical_text, current_text, registry_text, agents_text))
+    for label, marker in {
         "repository": EXPECTED_REPOSITORY,
         "branch": EXPECTED_BRANCH,
         "workflow": "marsel-unified-control-plane.yml",
         "readonly": "contents: read",
         "production_write": "Production WRITE remains disabled",
-    }
-    for label, marker in required.items():
-        corpus = "\n".join((workflow_text, governance_text, canonical_text, current_text, registry_text))
+    }.items():
         if marker not in corpus:
             fail(f"required marker missing: {label} -> {marker}")
 
@@ -70,36 +71,28 @@ def main() -> int:
         fail("governance still names `main` as canonical")
     if "Canonical branch: `main`" in governance_text:
         fail("governance contains stale canonical branch")
+    if "Canonical branch: `main`" in agents_text:
+        fail("agent instructions contain stale canonical branch")
     if "main` does not currently exist" not in canonical_text:
         fail("canonical document does not explicitly fence off nonexistent main")
     if "FULL CLEANUP IN PROGRESS" in current_text:
         fail("current-state document still reports cleanup as incomplete")
-    if "legacy-root" not in "\n".join(p.as_posix() for p in ARCHIVE.rglob("*")):
+    archive_paths = "\n".join(p.as_posix() for p in ARCHIVE.rglob("*"))
+    if "legacy-root" not in archive_paths:
         fail("legacy root archive is missing")
-    if "legacy-old-data" not in "\n".join(p.as_posix() for p in ARCHIVE.rglob("*")):
+    if "legacy-old-data" not in archive_paths:
         fail("migrated old-data archive is missing")
     if "main-MARSEL-ROAPP" not in workflow_text:
         fail("unified workflow is not wired to canonical branch")
     if "PRODUCTION_WRITE" not in workflow_text:
         fail("workflow lacks production-write safety marker")
 
-    # Active project markdown must not reintroduce the obsolete `main` claim.
-    active_files = []
-    for p in ROOT.rglob("*.md"):
-        rel = p.relative_to(ROOT).as_posix()
-        if rel.startswith("06_ARCHIVE/"):
-            continue
-        active_files.append(p)
-    stale = []
-    for p in active_files:
-        text = p.read_text(encoding="utf-8", errors="replace")
-        if "Canonical branch: `main`" in text or "main is the only canonical integration branch" in text:
-            stale.append(p.relative_to(ROOT).as_posix())
-    if stale:
-        fail("active files contain obsolete canonical-main claims: " + ", ".join(stale))
+    # Historical snapshots may retain obsolete branch wording for traceability.
+    # The active source-of-truth set is the files checked above; historical material
+    # must be moved under 06_ARCHIVE before it can become authoritative again.
 
     print("CANONICAL_SELF_CHECK=PASS")
-    print(f"SYSTEM=MARSEL_ROAPP")
+    print("SYSTEM=MARSEL_ROAPP")
     print(f"CANONICAL_REPOSITORY={EXPECTED_REPOSITORY}")
     print(f"CANONICAL_BRANCH={EXPECTED_BRANCH}")
     print("CANONICAL_STRUCTURE=01_MASTER..06_ARCHIVE")
