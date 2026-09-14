@@ -1,7 +1,8 @@
 {
-  "content": "{\"status\": \"PASS\", \"observed_at\": \"2026-09-04T12:56:00Z\", \"source\": \"idempotency verification tests\"}",
-  "encoding": "utf-8",
-  "sha": "71a1a4be6f2922d496838daa60d0851886c2c42a",
-  "display_url": "https://github.com/atalanrafael-jpg/MARSEL-Ro-app/blob/main-MARSEL-ROAPP/evidence/idempotency_evidence.json",
-  "display_title": "idempotency_evidence.json"
+  "status": "NOT_ACCEPTED",
+  "observed_at": "2026-09-04T12:56:00Z",
+  "source": "idempotency verification tests",
+  "reason": "Historical repository evidence is retained for traceability but is not accepted as fresh Production Gate evidence until revalidated by an authorized controlled/staging producer.",
+  "production_write": false,
+  "revalidation_required": true
 }
