@@ -32,9 +32,14 @@ def fail(message: str) -> None:
 def main() -> int:
     runtime_repository = os.getenv("GITHUB_REPOSITORY")
     runtime_ref_name = os.getenv("GITHUB_REF_NAME")
+    runtime_event = os.getenv("GITHUB_EVENT_NAME")
+    runtime_base_ref = os.getenv("GITHUB_BASE_REF")
     if runtime_repository and runtime_repository != EXPECTED_REPOSITORY:
         fail(f"unexpected repository: {runtime_repository}")
-    if runtime_ref_name and runtime_ref_name != EXPECTED_BRANCH:
+    if runtime_event == "pull_request":
+        if runtime_base_ref and runtime_base_ref != EXPECTED_BRANCH:
+            fail(f"unexpected pull request base: {runtime_base_ref}; expected {EXPECTED_BRANCH}")
+    elif runtime_ref_name and runtime_ref_name != EXPECTED_BRANCH:
         fail(f"unexpected canonical branch: {runtime_ref_name}; expected {EXPECTED_BRANCH}")
 
     for rel in CANONICAL_DIRS:
