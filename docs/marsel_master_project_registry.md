@@ -1,4 +1,4 @@
-# MARSEL BUSINESS — Canonical Project Registry
+# MARSEL ROAPP — Canonical Project Registry
 
 Status: canonical structure
 
@@ -11,7 +11,7 @@ One goal = one master domain. Same-name projects are aliases of the canonical do
 3. FINANCE — cost, pricing, revenue, profit.
 4. CATALOG & E-COMMERCE — catalog, website, prices, online orders.
 5. MARKETING & GROWTH — traffic, leads, conversion, analytics.
-6. RO APP / ERP — API, data quality, backup, integrity, endpoint registry, post-audit.
+6. ROAPP / ERP — API, data quality, backup, integrity, endpoint registry, post-audit.
 7. AUTOMATION & INFRASTRUCTURE — GitHub, Actions, webhooks, scheduled checks, monitoring.
 8. QA & CONTROL — duplicates, validation, evidence, risks, decisions.
 
@@ -22,8 +22,8 @@ One goal = one master domain. Same-name projects are aliases of the canonical do
 - Every migration must be auditable and reversible.
 - ChatGPT Project/UI objects cannot be physically merged by this repository automation; this registry is the canonical data/operational structure.
 
-## RO APP placement
-RO APP is an ERP/API operational subsystem under MARSEL BUSINESS, not a separate business goal.
+## ROAPP placement
+ROAPP is the technical/API operational subsystem within MARSEL ROAPP, not a separate project or business goal.
 
 ## Completion gate
 Consolidation is considered complete only when migration inventory, duplicate resolution, integrity checks, and post-audit all pass.
