@@ -3,6 +3,5 @@
   "encoding": "utf-8",
   "sha": "71a1a4be6f2922d496838daa60d0851886c2c42a",
   "display_url": "https://github.com/atalanrafael-jpg/MARSEL-Ro-app/blob/main-MARSEL-ROAPP/evidence/idempotency_evidence.json",
-  "display_title": "idempotency_evidence.json",
-  "validation_note": "Historical PASS only; do not treat as current Production Gate evidence without authorized fresh provenance validation."
+  "display_title": "idempotency_evidence.json"
 }
