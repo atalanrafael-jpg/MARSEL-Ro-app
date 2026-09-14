@@ -10,6 +10,7 @@ from .audit import audit_order_pages
 from .config import settings
 from .mcp_auth import JWTTokenVerifier
 from .mcp_server import create_mcp_server
+from .observability import observability_middleware
 from .roapp_client import RoAppClient
 
 
@@ -50,10 +51,11 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(
-    title="MARSEL RO App Connector",
+    title="MARSEL ROAPP Connector",
     version="0.4.1",
     lifespan=lifespan,
 )
+app.middleware("http")(observability_middleware)
 
 if mcp_http is not None:
     app.mount("/mcp", mcp_http.streamable_http_app())
