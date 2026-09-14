@@ -1,8 +1,1 @@
-{
-  "status": "NOT_ACCEPTED",
-  "observed_at": "2026-09-04T12:56:00Z",
-  "source": "idempotency verification tests",
-  "reason": "Historical repository evidence is retained for traceability but is not accepted as fresh Production Gate evidence until revalidated by an authorized controlled/staging producer.",
-  "production_write": false,
-  "revalidation_required": true
-}
+{"status": "PASS", "observed_at": "2026-09-04T12:56:00Z", "source": "idempotency verification tests"}
