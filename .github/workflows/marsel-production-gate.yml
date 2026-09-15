@@ -5,10 +5,10 @@ on:
     inputs:
       unified_control_plane_run_id:
         description: 'Successful Unified Control Plane run ID to use for evidence'
-        required: false
+        required: true
         type: string
   workflow_run:
-    workflows: ["MARSEL Unified Control Plane"]
+    workflows: ["MARSEL Backup Evidence Producer"]
     types: [completed]
     branches: [main-MARSEL-ROAPP]
 
@@ -20,15 +20,18 @@ jobs:
   production-gate:
     if: >-
       github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main-MARSEL-ROAPP')
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     env:
       ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
       MARSEL_WRITE_APPROVED: "false"
       MARSEL_EVIDENCE_DIR: evidence
       MARSEL_EVIDENCE_INDEX: evidence/evidence-index.json
-      UNIFIED_CONTROL_PLANE_RUN_ID: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || inputs.unified_control_plane_run_id }}
+      BACKUP_PRODUCER_RUN_ID: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || '' }}
+      UNIFIED_CONTROL_PLANE_RUN_ID: ${{ inputs.unified_control_plane_run_id || '' }}
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -40,7 +43,7 @@ jobs:
         run: |
           set -euo pipefail
           if grep -RInE --exclude-dir=.git --exclude='*.lock' \
-            -e 'ROAPP_API_KEY[[:space:]]*=[[:space:]]*"[^\"]{12,}"' \
+            -e 'ROAPP_API_KEY[[:space:]]*=[[:space:]*"[^\"]{12,}"' \
             -e "ROAPP_API_KEY[[:space:]]*=[[:space:]]*'[^']{12,}'" \
             -e 'Bearer[[:space:]]+[A-Za-z0-9._-]{20,}' .; then
             echo 'Credential-like material detected in trusted source.'
@@ -59,7 +62,28 @@ jobs:
         shell: bash
         run: mkdir -p "$MARSEL_EVIDENCE_DIR"
 
-      - name: Validate unified control-plane run ID
+      - name: Resolve Unified Control Plane run for automatic gate
+        if: github.event_name == 'workflow_run'
+        env:
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$HEAD_SHA"
+          RUN_ID="$(gh run list \
+            --repo "$GITHUB_REPOSITORY" \
+            --workflow "MARSEL Unified Control Plane" \
+            --branch main-MARSEL-ROAPP \
+            --limit 50 \
+            --json databaseId,headSha,conclusion \
+            --jq '.[] | select(.headSha == env.HEAD_SHA and .conclusion == "success") | .databaseId' \
+            | head -n 1)"
+          test -n "$RUN_ID"
+          echo "UNIFIED_CONTROL_PLANE_RUN_ID=$RUN_ID" >> "$GITHUB_ENV"
+          echo "Resolved successful Unified Control Plane run: $RUN_ID"
+
+      - name: Validate Unified Control Plane run ID
         shell: bash
         run: |
           set -euo pipefail
@@ -75,15 +99,49 @@ jobs:
           run-id: ${{ env.UNIFIED_CONTROL_PLANE_RUN_ID }}
           name: marsel-unified-evidence
           path: ${{ env.MARSEL_EVIDENCE_DIR }}
+          repository: ${{ github.repository }}
+          digest-mismatch: error
 
-      - name: Record upstream control-plane conclusion
+      - name: Download backup evidence from backup producer
+        if: github.event_name == 'workflow_run'
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ env.BACKUP_PRODUCER_RUN_ID }}
+          name: marsel-backup-evidence
+          path: ${{ env.MARSEL_EVIDENCE_DIR }}/backup
+          repository: ${{ github.repository }}
+          digest-mismatch: error
+
+      - name: Download restore evidence from backup producer
+        if: github.event_name == 'workflow_run'
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ env.BACKUP_PRODUCER_RUN_ID }}
+          name: marsel-restore-evidence
+          path: ${{ env.MARSEL_EVIDENCE_DIR }}/restore
+          repository: ${{ github.repository }}
+          digest-mismatch: error
+
+      - name: Promote external backup and restore evidence into gate input
+        if: github.event_name == 'workflow_run'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f "$MARSEL_EVIDENCE_DIR/backup/backup_evidence.json"
+          test -f "$MARSEL_EVIDENCE_DIR/restore/restore_evidence.json"
+          cp "$MARSEL_EVIDENCE_DIR/backup/backup_evidence.json" "$MARSEL_EVIDENCE_DIR/backup_evidence.json"
+          cp "$MARSEL_EVIDENCE_DIR/restore/restore_evidence.json" "$MARSEL_EVIDENCE_DIR/restore_evidence.json"
+
+      - name: Record upstream provenance
         if: github.event_name == 'workflow_run'
         shell: bash
         run: |
           printf '%s\n' \
-            "upstream_run_id=${{ github.event.workflow_run.id }}" \
-            "upstream_conclusion=${{ github.event.workflow_run.conclusion }}" \
-            "upstream_sha=${{ github.event.workflow_run.head_sha }}" \
+            "unified_control_plane_run_id=$UNIFIED_CONTROL_PLANE_RUN_ID" \
+            "unified_control_plane_head_sha=${{ github.event.workflow_run.head_sha }}" \
+            "backup_producer_run_id=$BACKUP_PRODUCER_RUN_ID" \
             > "$MARSEL_EVIDENCE_DIR/unified-upstream-run.txt"
 
       - name: Validate evidence inventory (fail-closed)
