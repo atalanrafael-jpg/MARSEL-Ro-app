@@ -3,7 +3,7 @@
 ## Canonical identity
 
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`
-- Branch: `main`
+- Branch: `main-MARSEL-ROAPP`
 - Canonical live RO App audit: `.github/workflows/marsel-unified-control-plane.yml`
 
 ## Rule
@@ -54,19 +54,18 @@ Production WRITE remains disabled. Live RO App audit invariant:
 - no undocumented endpoint promoted to PASS;
 - skipped, stale, synthetic or incomplete evidence cannot produce production PASS.
 
-## Current blockers — 2026-09-02
+## Current blockers
 
-- Backup/export: NOT VERIFIED
-- Restore/integrity: NOT VERIFIED
-- Warehouse official contract: NOT VERIFIED
-- Full current API/entity coverage: NOT VERIFIED
 - Credential-exposure remediation: NOT VERIFIED
 - Gmail OAuth live authorization: NOT VERIFIED
 - Official RO App MCP authorization: NOT VERIFIED
 - Current GitHub account/ruleset security controls: PARTIAL / external verification required
+- Current production evidence chain: REVIEW_REQUIRED / NO-GO FOR PRODUCTION WRITE
 
 ## Current status
 
 `REVIEW_REQUIRED / NO-GO FOR PRODUCTION WRITE`
 
-Current priority source: `docs/MARSEL-UNIFIED-MASTER-2026-09-02.md`.
+## Maintenance note
+
+Historical workflow and repository references remain under `06_ARCHIVE` for traceability and are not authoritative. Active workflows must use the canonical repository `atalanrafael-jpg/MARSEL-Ro-app` and canonical branch `main-MARSEL-ROAPP`.
