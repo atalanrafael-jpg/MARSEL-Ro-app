@@ -6,15 +6,15 @@
 ## Canonical state — 2026-09-14
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`
 - Canonical branch: `main-MARSEL-ROAPP`
-- Current canonical HEAD: `70ca0e90af011c9330e30ed49590e7f824b9f314`
-- Latest canonical commit: `fix: canonicalize MARSEL ROAPP master operating system naming`
+- Current canonical HEAD: `1f25aab7a10d8f35996eeb10a1db8c4b2834e809`
+- Latest canonical commit: `docs: sync master control with current MARSEL ROAPP canonical HEAD`
 - Canonical control plane: `.github/workflows/marsel-unified-control-plane.yml`
 - Current integration mode: READ-ONLY.
 - Production WRITE: DISABLED.
 
 ## Verified current state
-- Canonical branch `main-MARSEL-ROAPP` is the repository default branch and currently points to `70ca0e90af011c9330e30ed49590e7f824b9f314`.
-- The latest canonical commit explicitly canonicalizes the master operating-system naming to `MARSEL ROAPP`.
+- Canonical branch `main-MARSEL-ROAPP` is the repository default branch and currently points to `1f25aab7a10d8f35996eeb10a1db8c4b2834e809`.
+- The latest canonical commit synchronizes this master control document with the current canonical HEAD.
 - `README.md` identifies `main-MARSEL-ROAPP` as the canonical branch and the unified control plane as the canonical control mechanism.
 - GitHub ruleset `main MARSEL ROAPP PROTECTION` (ID `21230907`) is documented as active and targeting `refs/heads/main-MARSEL-ROAPP`; account-level enforcement controls still require independent administration verification.
 - Production WRITE remains disabled.
