@@ -6,14 +6,14 @@
 ## Canonical state — 2026-09-16
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`
 - Canonical branch: `main-MARSEL-ROAPP`
-- Current canonical HEAD: `b05254bea15caf0a77530cd6128c0e5b8c06c10f`
-- Latest canonical commit: `chore: update OpenAI Python requirement to 3.13.0 (#173)`
+- Current canonical HEAD: `ec5876ecb44891b0d468a73d1ad7888d8ccfa783`
+- Latest canonical commit: `docs: sync master control with current canonical HEAD 2026-09-16`
 - Canonical control plane: `.github/workflows/marsel-unified-control-plane.yml`
 - Current integration mode: READ-ONLY.
 - Production WRITE: DISABLED.
 
 ## Verified current state
-- Canonical branch `main-MARSEL-ROAPP` is the repository default branch and currently points to `b05254bea15caf0a77530cd6128c0e5b8c06c10f`.
+- Canonical branch `main-MARSEL-ROAPP` is the repository default branch and currently points to `ec5876ecb44891b0d468a73d1ad7888d8ccfa783`.
 - PR #173 is merged into the canonical branch and updates the OpenAI Python requirement to `>=3.13.0,<4`.
 - `README.md` identifies `main-MARSEL-ROAPP` as the canonical branch and the unified control plane as the canonical control mechanism.
 - GitHub ruleset `main MARSEL ROAPP PROTECTION` (ID `21230907`) is documented as active and targeting `refs/heads/main-MARSEL-ROAPP`; account-level enforcement controls still require independent administration verification.
