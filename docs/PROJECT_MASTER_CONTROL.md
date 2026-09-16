@@ -6,33 +6,38 @@
 ## Canonical state — 2026-09-16
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`
 - Canonical branch: `main-MARSEL-ROAPP`
-- Canonical code HEAD before this control-document sync: `ec5876ecb44891b0d468a73d1ad7888d8ccfa783`
-- Latest control-document sync commit: `5d06460d202897dbfc91484a9110d58c9b132606`
+- Current canonical HEAD: `6e00890324a809eb20a1d79e1c47d5620fc5d050`
+- Previous control-plane implementation commits: `149b713509c98d18791590d2132e31e77c8fa9ff`, `3d9f340e2b6d99150bbc0ad4452374cc86e47c03`
 - Canonical control plane: `.github/workflows/marsel-unified-control-plane.yml`
+- Canonical control contract: `01_MASTER/MARSEL_ROAPP_CONTROL_PLANE_V2.md`
+- Repository validator: `scripts/marsel_control_plane_validate.py`
 - Current integration mode: READ-ONLY.
 - Production WRITE: DISABLED.
 
-## Verified current state
-- Canonical branch `main-MARSEL-ROAPP` is the repository default branch.
-- The code state immediately before this documentation-only sync was `ec5876ecb44891b0d468a73d1ad7888d8ccfa783`, whose parent canonical update was PR #173: OpenAI Python requirement `>=3.13.0,<4`.
-- `README.md` identifies `main-MARSEL-ROAPP` as the canonical branch and the unified control plane as the canonical control mechanism.
-- GitHub ruleset `main MARSEL ROAPP PROTECTION` (ID `21230907`) is documented as active and targeting `refs/heads/main-MARSEL-ROAPP`; account-level enforcement controls still require independent administration verification.
-- Production WRITE remains disabled.
+## Implemented in this checkpoint
+- Added a fail-closed repository-local control-plane validator.
+- Added the V2 control contract covering lifecycle, statuses, evidence, safety, multi-agent orchestration and drift control.
+- Added the validator as a mandatory step in the unified GitHub Actions control plane.
+- Preserved the existing live RO App audits as READ-ONLY and secret-protected.
+
+## Verified current repository state
+- `main-MARSEL-ROAPP` is the repository default branch.
+- The repository's canonical structure separates `01_MASTER`, `02_MARSEL`, `03_ROAPP`, `04_DEVELOPMENT`, `05_CONTROL` and `06_ARCHIVE`; historical control documents are archived and explicitly marked superseded. fileciteturn3file2
+- The unified workflow is scoped to the canonical branch, uses read-only repository permissions, keeps production WRITE disabled, and obtains `ROAPP_API_KEY` only from GitHub Actions Secrets. fileciteturn5file0
 - Backup/export and isolated restore/integrity are recorded as already verified in the project control issues; they are not repeated merely because other gates remain open.
-- Supabase project health and external deployment status remain subject to their connected-account evidence and are not treated as production deployment proof.
+- Observability/correlation is recorded as verified under Issue #134.
 
 ## Hard blockers for 100% production readiness
-1. `ROAPP_API_KEY` is not available to the canonical GitHub Actions workflow for fresh authorized RO App GET audits. The secret must be rotated/verified through approved secret storage; the value must never be committed or sent in chat.
-2. Complete current API/entity coverage is not proven with fresh authorized evidence.
-3. Warehouse/stock live contract is not proven with fresh authoritative evidence.
-4. Current duplicate/reference reconciliation is not closed.
-5. Credential-exposure remediation remains open under Issue #23.
-6. Official RO App MCP authorization is not independently verified.
-7. Gmail OAuth requires actual user authorization if this integration remains in scope.
-8. A production deployment target is not verified as configured in Vercel or Railway.
-9. Current Wix ↔ RO App reconciliation, mutation dry-run, idempotency and rollback evidence remain open under the production-gate issues.
-10. GitHub account-level security controls and branch hygiene requiring administration remain open under Issue #91.
-11. Production WRITE remains disabled until every applicable safety gate passes and explicit authorization exists.
+1. Fresh authorized RO App GET evidence must prove complete applicable API/entity coverage.
+2. Warehouse/stock live contract must be proven with fresh authoritative evidence.
+3. Current duplicate/reference reconciliation must be closed.
+4. Credential-exposure remediation remains open under Issue #23 until rotation/revocation and exposure verification are directly evidenced.
+5. Official RO App MCP authorization is not independently verified.
+6. Gmail OAuth requires actual user authorization if this integration remains in scope.
+7. A production deployment target is not verified as configured in Vercel or Railway.
+8. Current Wix ↔ RO App reconciliation, mutation dry-run, idempotency and rollback evidence remain open under the production-gate issues.
+9. GitHub account-level security controls and branch hygiene requiring administration remain open under Issue #91.
+10. Production WRITE remains disabled until every applicable safety gate passes and explicit authorization exists.
 
 ## Safety
 Never claim backup, restore, reconciliation, security rotation, OAuth, MCP authorization, deployment, synchronization or WRITE readiness without direct evidence. Never guess an API endpoint or identifier. Never execute a production mutation merely to make a test green. Never expose or commit `ROAPP_API_KEY`.
