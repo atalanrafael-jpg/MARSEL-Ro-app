@@ -1,0 +1,59 @@
+{
+  "system": "MARSEL ROAPP",
+  "mode": "GOVERNED_AI",
+  "production_write": false,
+  "default_action": "REVIEW_REQUIRED",
+  "evidence_classes": [
+    "VERIFIED_LIVE_DATA",
+    "VERIFIED_DOCUMENTATION",
+    "PROJECT_CONFIGURATION",
+    "BUSINESS_REQUIREMENT",
+    "PROPOSED",
+    "UNVERIFIED"
+  ],
+  "decision_pipeline": [
+    "OBSERVE",
+    "VALIDATE",
+    "CLASSIFY",
+    "ASSESS_IMPACT",
+    "ASSESS_RISK",
+    "RECOMMEND",
+    "APPROVAL_GATE",
+    "ACTION",
+    "VERIFY",
+    "DOCUMENT"
+  ],
+  "automation_pipeline": [
+    "TRIGGER",
+    "VALIDATE",
+    "ACTION",
+    "LOG",
+    "VERIFY",
+    "ALERT"
+  ],
+  "write_gate": {
+    "enabled": false,
+    "required_evidence": [
+      "backup_export",
+      "restore_integrity",
+      "schema_reconciliation",
+      "full_read_only_inventory",
+      "duplicate_orphan_reference_analysis",
+      "dry_run",
+      "idempotency",
+      "rollback_plan",
+      "explicit_approval",
+      "post_write_verification"
+    ]
+  },
+  "critical_domains_requiring_approval": [
+    "financial",
+    "inventory",
+    "pricing",
+    "customer_data",
+    "orders",
+    "security",
+    "integrations",
+    "production_configuration"
+  ]
+}
