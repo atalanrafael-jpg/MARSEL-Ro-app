@@ -1,0 +1,39 @@
+name: MARSEL ROAPP Category Audit READ ONLY
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# PRODUCTION_WRITE=DISABLED. GET only; no RO App mutation is permitted.
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+      - name: Install dependency
+        run: python -m pip install --disable-pip-version-check --no-input 'httpx==0.28.1'
+      - name: Verify RO App secret
+        env:
+          ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+        run: test -n "$ROAPP_API_KEY"
+      - name: Audit product category relations READ ONLY
+        env:
+          ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+          ROAPP_API_BASE: https://api.roapp.io/v2
+          MARSEL_CATEGORY_AUDIT_OUTPUT: marsel-roapp-category-audit-readonly.json
+          ROAPP_TIMEOUT: '30'
+          ROAPP_MIN_REQUEST_INTERVAL: '0.34'
+        run: python scripts/marsel_category_audit_readonly_v1.py
+      - name: Upload category evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: marsel-roapp-category-audit-readonly
+          path: marsel-roapp-category-audit-readonly.json
+          if-no-files-found: error
+          retention-days: 30
