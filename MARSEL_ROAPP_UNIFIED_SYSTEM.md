@@ -1,6 +1,6 @@
 # MARSEL ROAPP — ЕДИНАЯ СИСТЕМА
 
-Дата контрольной ревизии: 2026-09-13
+Дата контрольной ревизии: 2026-09-17
 
 MARSEL и ROAPP — единая система Ювелирной студии MARSEL, а не независимые проекты.
 
@@ -21,6 +21,27 @@ MARSEL и ROAPP — единая система Ювелирной студии 
 `API inventory → data quality → entity audit → product-code review → warehouse contract → safety gate → evidence`
 
 Все live-аудиты RO App выполняются READ-ONLY. Идентификаторы не угадываются. Недостаточные или конфликтующие доказательства дают `REVIEW_REQUIRED`, а не `PASS`.
+
+## Governed AI control plane
+
+AI является надстройкой над доказательствами, а не источником истины.
+
+`OBSERVE → VALIDATE → CLASSIFY → ASSESS_IMPACT → ASSESS_RISK → RECOMMEND → APPROVAL_GATE → ACTION → VERIFY → DOCUMENT`
+
+Автоматизация:
+
+`TRIGGER → VALIDATE → ACTION → LOG → VERIFY → ALERT`
+
+Нормализованный exception engine использует контролируемые категории: `FACTUAL`, `DUPLICATE`, `MISSING_DATA`, `INVALID_RELATION`, `CLASSIFICATION`, `CONFIGURATION`, `API`, `SECURITY`, `INTEGRATION`, `PERFORMANCE`, `LEGAL_TAX`, `UNVERIFIED`.
+
+Текущая AI/control-policy реализация находится в:
+
+- `config/marsel_ai_control_policy.json`
+- `scripts/marsel_exception_engine.py`
+- `tests/test_exception_engine.py`
+- `docs/MARSEL_AI_CONTROL_PLANE.md`
+
+Текущий exception engine не вызывает внешние сервисы и не выполняет production WRITE.
 
 ## Canonical implementations
 
