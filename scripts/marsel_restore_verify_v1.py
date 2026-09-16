@@ -12,12 +12,16 @@ import hashlib
 import json
 import os
 import sqlite3
+from datetime import datetime, timezone
 from pathlib import Path
 
 BACKUP = Path(os.environ.get("MARSEL_FULL_BACKUP_INPUT", "marsel-full-readonly-backup-v1.json"))
 EVIDENCE = Path(os.environ.get("MARSEL_BACKUP_EVIDENCE_INPUT", "backup_evidence.json"))
 DB = Path(os.environ.get("MARSEL_RESTORE_DB", "marsel-restore-staging.sqlite"))
 OUT = Path(os.environ.get("MARSEL_RESTORE_EVIDENCE_OUTPUT", "restore_evidence.json"))
+SOURCE_VERSION = os.environ.get("GITHUB_SHA", "unknown")
+RUN_ID = os.environ.get("GITHUB_RUN_ID", "unknown")
+ENVIRONMENT = os.environ.get("MARSEL_EVIDENCE_ENVIRONMENT", "staging")
 
 if not BACKUP.exists():
     raise SystemExit(f"backup missing: {BACKUP}")
@@ -81,14 +85,31 @@ finally:
 result = {
     "schema": "marsel-restore-evidence/v1",
     "status": "PASS",
-    "mode": "ISOLATED_LOCAL_STAGING_RESTORE",
-    "production_write_attempted": False,
+    "readonly": True,
+    "write_requests_made": 0,
     "ro_app_data_mutated": False,
+    "source_system": "roapp",
+    "environment": ENVIRONMENT,
+    "producing_job_or_run": f"github-actions:{RUN_ID}",
+    "source_version": SOURCE_VERSION,
+    "producer_identity": "github-actions:marsel-backup-evidence-producer",
+    "scope": "isolated local staging reconstruction from canonical read-only RO App backup",
+    "generated_at": datetime.now(timezone.utc).isoformat(),
+    "operation": "restore/verification",
+    "tested_backup": str(BACKUP),
+    "target_environment": "isolated-local-staging",
+    "restore_result": "PASS",
+    "verification_result": "PASS",
+    "production_write_attempted": False,
     "backup_sha256": stored_sha,
     "restored_endpoint_entries": endpoint_count,
     "restored_records": record_count,
     "staging_database": str(DB),
 }
+canonical_result = dict(result)
+canonical_result["sha256"] = ""
+canonical = json.dumps(canonical_result, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+result["sha256"] = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 OUT.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 print("RESTORE_EVIDENCE=PASS")
 print("MODE=ISOLATED_LOCAL_STAGING_RESTORE")
