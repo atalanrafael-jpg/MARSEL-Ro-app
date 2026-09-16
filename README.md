@@ -9,6 +9,7 @@
 - Canonical control plane: `.github/workflows/marsel-unified-control-plane.yml`
 - Canonical system document: [`MARSEL_ROAPP_UNIFIED_SYSTEM.md`](MARSEL_ROAPP_UNIFIED_SYSTEM.md)
 - Master project control: [`docs/PROJECT_MASTER_CONTROL.md`](docs/PROJECT_MASTER_CONTROL.md)
+- AI control plane: [`docs/MARSEL_AI_CONTROL_PLANE.md`](docs/MARSEL_AI_CONTROL_PLANE.md)
 - Historical material: `старые данные/`
 
 ## Operating model
@@ -20,6 +21,12 @@ For RO App live work:
 `INVENTORY → DATA QUALITY → ENTITY AUDIT → COLLISION REVIEW → WAREHOUSE CONTRACT → SAFETY GATE → EVIDENCE`
 
 All RO App live auditing is **READ-ONLY**. Parameterized identifiers are never guessed. Missing, incomplete, or conflicting evidence produces `REVIEW_REQUIRED`, not `PASS`.
+
+For governed AI decisions:
+
+`OBSERVE → VALIDATE → CLASSIFY → ASSESS_IMPACT → ASSESS_RISK → RECOMMEND → APPROVAL_GATE → ACTION → VERIFY → DOCUMENT`
+
+AI recommendations are not proof and are not implicit authorization to mutate production data.
 
 ## Production safety
 
@@ -39,6 +46,8 @@ A successful CI run, the existence of write methods, or documentation alone is n
 - `scripts/marsel_api_v2_probe_v1.py`
 - `scripts/marsel_api_v2_canonical_registry_v1.py`
 - `scripts/marsel_canonical_self_check.py`
+- `scripts/marsel_exception_engine.py`
+- `config/marsel_ai_control_policy.json`
 
 Internal dependencies on older numbered implementations remain until separately refactored and verified; version numbers alone are not grounds for deletion.
 
@@ -69,4 +78,4 @@ Evidence precedence:
 
 ## Documentation
 
-Use [`MARSEL_ROAPP_UNIFIED_SYSTEM.md`](MARSEL_ROAPP_UNIFIED_SYSTEM.md) for the canonical architecture and safety model, and [`docs/PROJECT_MASTER_CONTROL.md`](docs/PROJECT_MASTER_CONTROL.md) for the current gates, blockers, and continuation procedure.
+Use [`MARSEL_ROAPP_UNIFIED_SYSTEM.md`](MARSEL_ROAPP_UNIFIED_SYSTEM.md) for the canonical architecture and safety model, [`docs/MARSEL_AI_CONTROL_PLANE.md`](docs/MARSEL_AI_CONTROL_PLANE.md) for governed AI/automation, and [`docs/PROJECT_MASTER_CONTROL.md`](docs/PROJECT_MASTER_CONTROL.md) for current gates, blockers, and continuation procedure.
