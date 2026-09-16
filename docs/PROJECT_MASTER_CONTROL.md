@@ -3,10 +3,10 @@
 ## Purpose
 Единая контрольная точка проекта: техническое состояние RO App integration, качество данных, безопасность, бизнес-автоматизация, deployment и коммерческий контур MARSEL.
 
-## Canonical state — 2026-09-16
+## Canonical state — 2026-09-17
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`
 - Canonical branch: `main-MARSEL-ROAPP`
-- Current canonical HEAD: `6e00890324a809eb20a1d79e1c47d5620fc5d050`
+- Current canonical HEAD: `7aa02f2e6d33219240973b9157f9117aa1a073ba`
 - Previous control-plane implementation commits: `149b713509c98d18791590d2132e31e77c8fa9ff`, `3d9f340e2b6d99150bbc0ad4452374cc86e47c03`
 - Canonical control plane: `.github/workflows/marsel-unified-control-plane.yml`
 - Canonical control contract: `01_MASTER/MARSEL_ROAPP_CONTROL_PLANE_V2.md`
@@ -19,13 +19,17 @@
 - Added the V2 control contract covering lifecycle, statuses, evidence, safety, multi-agent orchestration and drift control.
 - Added the validator as a mandatory step in the unified GitHub Actions control plane.
 - Preserved the existing live RO App audits as READ-ONLY and secret-protected.
+- Aligned `python/requirements.txt` to `openai>=3.14.1,<4`.
+- Aligned `requirements.lock` to `openai==3.14.1` and restored the complete locked dependency set.
+- Added the current canonical HEAD to this control record so the registry does not remain one checkpoint behind the repository.
 
 ## Verified current repository state
-- `main-MARSEL-ROAPP` is the repository default branch.
-- The repository's canonical structure separates `01_MASTER`, `02_MARSEL`, `03_ROAPP`, `04_DEVELOPMENT`, `05_CONTROL` and `06_ARCHIVE`; historical control documents are archived and explicitly marked superseded. fileciteturn3file2
-- The unified workflow is scoped to the canonical branch, uses read-only repository permissions, keeps production WRITE disabled, and obtains `ROAPP_API_KEY` only from GitHub Actions Secrets. fileciteturn5file0
+- `main-MARSEL-ROAPP` is the repository default branch and is protected at the branch level; GitHub reports required status-check enforcement as off, so CI completion must still be verified from actual workflow evidence.
+- The repository's canonical structure separates `01_MASTER`, `02_MARSEL`, `03_ROAPP`, `04_DEVELOPMENT`, `05_CONTROL` and `06_ARCHIVE`; historical control documents are archived and explicitly marked superseded.
+- The unified workflow is scoped to the canonical branch, uses read-only repository permissions, keeps production WRITE disabled, and obtains `ROAPP_API_KEY` only from GitHub Actions Secrets.
 - Backup/export and isolated restore/integrity are recorded as already verified in the project control issues; they are not repeated merely because other gates remain open.
 - Observability/correlation is recorded as verified under Issue #134.
+- The latest dependency maintenance commit has no workflow run visible yet; therefore dependency alignment is `CODED / NOT_TESTED`, not `PASS`.
 
 ## Hard blockers for 100% production readiness
 1. Fresh authorized RO App GET evidence must prove complete applicable API/entity coverage.
