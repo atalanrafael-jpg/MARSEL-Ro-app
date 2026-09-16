@@ -2,6 +2,13 @@ name: MARSEL Execution Worker
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main-MARSEL-ROAPP
+    paths:
+      - '.github/workflows/marsel-execution-worker.yml'
+      - 'config/marsel-execution-manifest.yml'
+      - 'scripts/**'
   schedule:
     - cron: '43 */6 * * *'
   pull_request:
@@ -66,7 +73,7 @@ jobs:
               raise SystemExit(f'ROAPP_API_HTTP_STATUS={status}')
           if not isinstance(payload, dict):
               raise SystemExit('ROAPP_API_RESPONSE_SHAPE=INVALID')
-          print(f'ROAPP_API_READONLY=PASS')
+          print('ROAPP_API_READONLY=PASS')
           print(f'ROAPP_API_HTTP_STATUS={status}')
           print(f'ROAPP_API_CONTENT_TYPE={content_type}')
           print('ROAPP_API_RESPONSE_SHAPE=dict')
