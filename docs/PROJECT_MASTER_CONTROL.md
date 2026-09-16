@@ -6,9 +6,8 @@
 ## Canonical state — 2026-09-17
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`
 - Canonical branch: `main-MARSEL-ROAPP`
-- Current canonical HEAD: `878194a2210f948765676b6b1c203ecce6a58072`
-- Previous canonical checkpoint referenced by the prior control record: `7aa02f2e6d33219240973b9157f9117aa1a073ba`
-- Previous control-plane implementation commits: `149b713509c98d18791590d2132e31e77c8fa9ff`, `3d9f340e2b6d99150bbc0ad4452374cc86e47c03`
+- Current canonical HEAD: **the current HEAD of `main-MARSEL-ROAPP`; do not hardcode a SHA in this self-updating control file.**
+- Previous canonical checkpoint: `7aa02f2e6d33219240973b9157f9117aa1a073ba`
 - Canonical control plane: `.github/workflows/marsel-unified-control-plane.yml`
 - Canonical control contract: `01_MASTER/MARSEL_ROAPP_CONTROL_PLANE_V2.md`
 - Repository validator: `scripts/marsel_control_plane_validate.py`
@@ -22,7 +21,7 @@
 - Preserved the existing live RO App audits as READ-ONLY and secret-protected.
 - Aligned `python/requirements.txt` to `openai>=3.14.1,<4`.
 - Aligned `requirements.lock` to `openai==3.14.1` and restored the complete locked dependency set.
-- Corrected this control record so its HEAD matches the actual current canonical branch HEAD.
+- Removed the self-referential hardcoded HEAD pin so future documentation commits cannot make the registry one checkpoint behind the repository.
 
 ## Verified current repository state
 - `main-MARSEL-ROAPP` is the repository default branch and is protected at the branch level; GitHub reports required status-check enforcement as off, so CI completion must still be verified from actual workflow evidence.
@@ -30,7 +29,7 @@
 - The unified workflow is scoped to the canonical branch, uses read-only repository permissions, keeps production WRITE disabled, and obtains `ROAPP_API_KEY` only from GitHub Actions Secrets.
 - Backup/export and isolated restore/integrity are recorded as already verified in the project control issues; they are not repeated merely because other gates remain open.
 - Observability/correlation is recorded as verified under Issue #134.
-- Current commit status for `878194a2210f948765676b6b1c203ecce6a58072` currently reports no status entries through the connected GitHub API; therefore CI is not marked PASS.
+- The current canonical branch commit status must be checked from live GitHub evidence before CI is marked PASS.
 
 ## Hard blockers for 100% production readiness
 1. Fresh authorized RO App GET evidence must prove complete applicable API/entity coverage.
