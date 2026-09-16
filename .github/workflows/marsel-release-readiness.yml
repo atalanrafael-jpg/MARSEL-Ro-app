@@ -2,6 +2,8 @@ name: MARSEL release readiness
 
 on:
   push:
+    branches:
+      - main-MARSEL-ROAPP
   pull_request:
   workflow_dispatch:
 
@@ -59,3 +61,4 @@ jobs:
             echo "Production gate incorrectly accepted write approval" >&2
             exit 1
           fi
+          echo "FAIL_CLOSED=PASS"
