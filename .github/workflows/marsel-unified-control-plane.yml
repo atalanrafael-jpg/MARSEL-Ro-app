@@ -32,6 +32,8 @@ jobs:
         run: python -m pip install --disable-pip-version-check --no-input "httpx==0.28.1"
       - name: Verify canonical structure
         run: python scripts/marsel_canonical_self_check.py
+      - name: Verify canonical control plane
+        run: python scripts/marsel_control_plane_validate.py
       - name: Verify RO App secret
         if: github.event_name != 'pull_request'
         env:
