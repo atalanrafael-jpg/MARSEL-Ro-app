@@ -149,7 +149,9 @@ jobs:
           from pathlib import Path
           files=['marsel-unified-api-inventory.json','marsel-unified-data-quality.json','marsel-unified-entity-audit.json','marsel-unified-product-collisions.json','marsel-unified-warehouse-contract.json']
           missing=[x for x in files if not Path(x).exists()]
-          out={'system':'MARSEL Unified Control Plane','status':'INCOMPLETE','generated_at':datetime.now(timezone.utc).isoformat(),'readonly':True,'write_requests_made':0,'ro_app_data_mutated':False,'quality_gate_outcome':os.environ.get('QUALITY_GATE_OUTCOME','unknown'),'missing_evidence':missing}
+          qgo=os.environ.get('QUALITY_GATE_OUTCOME','unknown')
+          status='PASS' if qgo=='success' and not missing else 'INCOMPLETE'
+          out={'system':'MARSEL Unified Control Plane','status':status,'generated_at':datetime.now(timezone.utc).isoformat(),'readonly':True,'write_requests_made':0,'ro_app_data_mutated':False,'quality_gate_outcome':qgo,'missing_evidence':missing}
           json.dump(out,open('marsel-unified-evidence.json','w',encoding='utf-8'),ensure_ascii=False,indent=2)
           PY
       - name: Upload unified evidence
