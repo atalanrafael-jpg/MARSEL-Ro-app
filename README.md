@@ -5,7 +5,7 @@
 ## Canonical source
 
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`
-- Branch: `main-MARSEL-ROAPP`
+- Branch: `main`
 - Canonical control plane: `.github/workflows/marsel-unified-control-plane.yml`
 - Canonical system document: [`MARSEL_ROAPP_UNIFIED_SYSTEM.md`](MARSEL_ROAPP_UNIFIED_SYSTEM.md)
 - Master project control: [`docs/PROJECT_MASTER_CONTROL.md`](docs/PROJECT_MASTER_CONTROL.md)
@@ -68,8 +68,8 @@ The following must not be reported as completed without fresh direct evidence:
 
 Evidence precedence:
 
-1. Current `main-MARSEL-ROAPP` repository state.
-2. Current CI/workflow evidence tied to current `main-MARSEL-ROAPP`.
+1. Current `main` repository state.
+2. Current CI/workflow evidence tied to current `main`.
 3. Direct live API evidence with timestamps/artifacts.
 4. Current official RO App documentation.
 5. Older project documents as historical context only.
