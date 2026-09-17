@@ -5,8 +5,8 @@
 
 ## Canonical state — 2026-09-17
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`
-- Canonical branch: `main-MARSEL-ROAPP`
-- Current canonical HEAD: **the current HEAD of `main-MARSEL-ROAPP`; do not hardcode a SHA in this self-updating control file.**
+- Canonical branch: `main`
+- Current canonical HEAD: **the current HEAD of `main`; do not hardcode a SHA in this self-updating control file.**
 - Previous canonical checkpoint: `7aa02f2e6d33219240973b9157f9117aa1a073ba`
 - Canonical control plane: `.github/workflows/marsel-unified-control-plane.yml`
 - Canonical control contract: `01_MASTER/MARSEL_ROAPP_CONTROL_PLANE_V2.md`
@@ -24,7 +24,9 @@
 - Removed the self-referential hardcoded HEAD pin so future documentation commits cannot make the registry one checkpoint behind the repository.
 
 ## Verified current repository state
-- `main-MARSEL-ROAPP` is the repository default branch and is protected at the branch level; GitHub reports required status-check enforcement as off, so CI completion must still be verified from actual workflow evidence.
+- `main` is the intended canonical branch. GitHub currently reports `main-MARSEL-ROAPP` as the repository default branch; this account-level default cannot be changed by the available repository connector action and therefore remains a user/admin setting to change in GitHub.
+- `main` and `main-MARSEL-ROAPP` are synchronized to the same current commit after canonicalization.
+- `main` is protected at the branch level; GitHub reports required status-check enforcement as off, so CI completion must still be verified from actual workflow evidence.
 - The repository's canonical structure separates `01_MASTER`, `02_MARSEL`, `03_ROAPP`, `04_DEVELOPMENT`, `05_CONTROL` and `06_ARCHIVE`; historical control documents are archived and explicitly marked superseded.
 - The unified workflow is scoped to the canonical branch, uses read-only repository permissions, keeps production WRITE disabled, and obtains `ROAPP_API_KEY` only from GitHub Actions Secrets.
 - Backup/export and isolated restore/integrity are recorded as already verified in the project control issues; they are not repeated merely because other gates remain open.
@@ -47,4 +49,4 @@
 Never claim backup, restore, reconciliation, security rotation, OAuth, MCP authorization, deployment, synchronization or WRITE readiness without direct evidence. Never guess an API endpoint or identifier. Never execute a production mutation merely to make a test green. Never expose or commit `ROAPP_API_KEY`.
 
 ## Continuation rule
-Every execution starts from this file and the current `main-MARSEL-ROAPP` checkpoint. Verify current CI/live evidence, fix the highest-priority safe defect, verify the result, document the checkpoint, and continue. If an external authorization or secret is required and unavailable to the connected tools, mark the gate `BLOCKED` rather than simulating completion.
+Every execution starts from this file and the current `main` checkpoint. Verify current CI/live evidence, fix the highest-priority safe defect, verify the result, document the checkpoint, and continue. If an external authorization or secret is required and unavailable to the connected tools, mark the gate `BLOCKED` rather than simulating completion.
