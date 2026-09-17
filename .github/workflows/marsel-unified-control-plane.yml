@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   pull_request:
   push:
-    branches: [main-MARSEL-ROAPP]
+    branches: [main]
   schedule:
     - cron: '17 */6 * * *'
 
