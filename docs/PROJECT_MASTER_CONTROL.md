@@ -6,7 +6,7 @@
 ## Canonical state — 2026-09-18
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`
 - Canonical branch: `main`
-- Latest verified canonical checkpoint: **`78d06f601ca722d231aeaf285bd6da97e6c1f5f0`**
+- Latest verified canonical checkpoint: **`0bd204f889593a41253a0b8d88094da4f31e06e8`**
 - Repository default branch reported by GitHub: `main-MARSEL-ROAPP` (legacy/default branch; no longer canonical).
 - Canonical control plane: `.github/workflows/marsel-unified-control-plane.yml`
 - Canonical control contract: `01_MASTER/MARSEL_ROAPP_CONTROL_PLANE_V2.md`
@@ -16,9 +16,8 @@
 
 ## Latest verified action
 - Corrected the unified workflow evidence builder so a PASS status is emitted only when the quality gate succeeds and all required evidence files exist.
-- 
-- Verified the corrected workflow content on `main`.
-- A post-fix GitHub Actions run for this commit was not found; CI execution after the fix is therefore NOT VERIFIED.
+- Verified the corrected workflow and canonical self-check content on `main`.
+- The GitHub connector does not expose a workflow-dispatch operation; a post-fix run is therefore NOT VERIFIED.
 
 ## Mandatory execution sequence
 1. READ current `main` and live project state.
