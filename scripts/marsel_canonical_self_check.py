@@ -7,7 +7,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 EXPECTED_REPOSITORY = "atalanrafael-jpg/MARSEL-Ro-app"
-EXPECTED_BRANCH = "main-MARSEL-ROAPP"
+EXPECTED_BRANCH = "main"
 WORKFLOW = ROOT / ".github" / "workflows" / "marsel-unified-control-plane.yml"
 GOVERNANCE = ROOT / "docs" / "MARSEL_ROAPP_CANONICAL_GOVERNANCE.md"
 CANONICAL = ROOT / "01_MASTER" / "MARSEL_ROAPP_CANONICAL.md"
