@@ -6,8 +6,8 @@
 ## Canonical state — 2026-09-18
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`
 - Canonical branch: `main`
-- Latest verified canonical checkpoint: **`e1ea7e720d11823cb78c440323ee8b82cce22ae9`**
-- Repository default branch reported by GitHub: `main-MARSEL-ROAPP` (account/repository administration gate; not changed by the available connector).
+- Latest verified canonical checkpoint: **`78d06f601ca722d231aeaf285bd6da97e6c1f5f0`**
+- Repository default branch reported by GitHub: `main-MARSEL-ROAPP` (legacy/default branch; no longer canonical).
 - Canonical control plane: `.github/workflows/marsel-unified-control-plane.yml`
 - Canonical control contract: `01_MASTER/MARSEL_ROAPP_CONTROL_PLANE_V2.md`
 - Repository validator: `scripts/marsel_control_plane_validate.py`
@@ -16,8 +16,8 @@
 
 ## Latest verified action
 - Corrected the unified workflow evidence builder so a PASS status is emitted only when the quality gate succeeds and all required evidence files exist.
-- Synchronized `main` and `main-MARSEL-ROAPP` to the same commit `e1ea7e720d11823cb78c440323ee8b82cce22ae9`.
-- Verified the corrected workflow content on `main-MARSEL-ROAPP`.
+- 
+- Verified the corrected workflow content on `main`.
 - A post-fix GitHub Actions run for this commit was not found; CI execution after the fix is therefore NOT VERIFIED.
 
 ## Mandatory execution sequence
@@ -41,7 +41,7 @@
 
 ## Verified current repository state
 - `main` is the intended canonical branch.
-- `main` and `main-MARSEL-ROAPP` were synchronized at the latest checkpoint.
+- `main` is the canonical branch; `main-MARSEL-ROAPP` is retained as a legacy branch pending cleanup.
 - GitHub currently reports `main-MARSEL-ROAPP` as the repository default branch; changing the default remains an account/repository administration action not exposed by the available connector.
 - Production WRITE remains disabled and fail-closed.
 - Existing backup/export and isolated restore/integrity evidence is not to be repeated without a reason.
