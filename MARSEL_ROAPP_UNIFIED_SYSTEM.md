@@ -87,4 +87,4 @@ AI является надстройкой над доказательствам
 
 ## Branch rule
 
-`main` — единственная техническая каноническая интеграционная ветка системы MARSEL ROAPP. `main-MARSEL-ROAPP` — legacy/default branch до выполнения отдельной административной миграции default branch.
+`main` — единственная техническая каноническая интеграционная ветка систем MARSEL ROAPP. `main-MARSEL-ROAPP`, `Main` и `main-MARSEL-ROAPP-PROTECTION` — неканонические compatibility/snapshot branches, синхронизированные с текущим `main`; они не являются отдельными системами.
