@@ -17,7 +17,7 @@ Prioritize delivery of a usable owner product over adding further strategic fram
 - Production WRITE is disabled.
 
 ## Current product gap
-The owner does not yet have a verified deployed UI that supports the daily studio workflow end-to-end. The owner control center is currently a Python snapshot, not a user-facing application. Supabase currently has zero application rows and is not yet the owner-facing runtime data layer.
+The owner UI vertical slice is now implemented in the repository and served by the FastAPI runtime at `/app`. It uses Supabase Auth and RLS for application data, with RO App remaining READ-ONLY. The remaining Gate A work is live deployment and direct end-to-end verification; Supabase application tables currently have zero rows.
 
 ## MVP vertical slice
 AUTH → OWNER DASHBOARD → CLIENT → REPAIR → ITEM → STATUS → ATTACHMENT → AUDIT → DEPLOY → VERIFY
