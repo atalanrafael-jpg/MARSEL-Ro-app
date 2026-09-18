@@ -3,7 +3,7 @@ name: MARSEL release readiness
 on:
   push:
     branches:
-      - main-MARSEL-ROAPP
+      - main
   pull_request:
   workflow_dispatch:
 
