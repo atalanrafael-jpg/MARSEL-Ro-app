@@ -7,13 +7,14 @@
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`.
 - Technical canonical branch: `main`.
 - `main` is the current execution source.
+- GitHub repository default branch is `main`.
 - Six canonical zones `01_MASTER` through `06_ARCHIVE` exist.
 - Historical `старые данные/` content was migrated into `06_ARCHIVE/legacy-old-data/` and the legacy tree removed.
 - Superseded root master documents were migrated into `06_ARCHIVE/legacy-root/` and removed from the active root.
 - Canonical governance, agent instructions and static self-check were aligned to the technical canonical branch.
 - Production WRITE remains disabled.
-- `main`, `Main`, `main-MARSEL-ROAPP` and `main-MARSEL-ROAPP-PROTECTION` were verified/aligned to the canonical HEAD `e18953056718f162cbf96d8cfe64196634f259ce` on 2026-09-18.
-- GitHub repository default branch is `main`.
+- Current canonical HEAD is `934bb8f8193b534ff21eb753b65310b47fce69f6`.
+- `Main`, `main-MARSEL-ROAPP` and `main-MARSEL-ROAPP-PROTECTION` are currently identical to `main`.
 
 ## Branch policy
 - `main` = one technical canonical source of truth.
@@ -22,7 +23,7 @@
 - Branch deletion remains a GitHub administration operation and is not claimed as completed.
 
 ## Remaining gates
-- Fresh GitHub Actions/control-plane run after the final cleanup corrections must be directly verified.
+- Fresh GitHub Actions/control-plane run after the final corrections must be directly verified.
 - Fresh authorized RO App evidence for complete applicable API/entity coverage remains required.
 - Fresh warehouse/stock contract evidence remains required.
 - Current duplicate/orphan/reference reconciliation remains required.
