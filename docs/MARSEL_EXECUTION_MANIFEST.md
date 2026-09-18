@@ -6,7 +6,7 @@ Canonical manifest for repeatable, limits-resilient execution without bypassing 
 ## Control plane
 - Project: MARSEL ROAPP
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`
-- Canonical branch: `main-MARSEL-ROAPP`
+- Canonical branch: `main`
 - Default operating mode: `READ_ONLY`
 - Production WRITE: disabled / fail-closed
 
@@ -41,4 +41,4 @@ A CI success proves only the CI assertion it executed. It does not prove live RO
 Update this manifest when execution layers, credential scope, retry policy, or evidence locations materially change.
 
 ## Canonicality note
-Historical references to superseded repository/branch identities may remain in `06_ARCHIVE` for traceability. They are not active execution sources. Active execution must use `atalanrafael-jpg/MARSEL-Ro-app` / `main-MARSEL-ROAPP`.
+Historical references to superseded repository/branch identities may remain in `06_ARCHIVE` for traceability. They are not active execution sources. Active execution must use `atalanrafael-jpg/MARSEL-Ro-app` / `main`.
