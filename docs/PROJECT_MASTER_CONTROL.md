@@ -7,7 +7,7 @@
 - System: **MARSEL ROAPP** — единая каноническая система.
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`
 - Technical canonical branch: `main`
-- Latest repository checkpoint: **`b793411fc06f1b1e482af372cb0edce37c3ba554`**
+- Latest repository checkpoint: **`29db5737823cb17d28ac02c1fa0c28caa93c9efa`**
 - Repository default branch reported by GitHub: `main-MARSEL-ROAPP` (legacy/default branch; no longer canonical).
 - Canonical control plane: `.github/workflows/marsel-unified-control-plane.yml`
 - Canonical control contract: `01_MASTER/MARSEL_ROAPP_CONTROL_PLANE_V2.md`
@@ -46,7 +46,7 @@
 ## Verified current repository state
 - `main` is the technical canonical branch of the MARSEL ROAPP system.
 - `main-MARSEL-ROAPP` is retained as a legacy branch pending administrative cleanup.
-- GitHub currently reports `main-MARSEL-ROAPP` as the repository default branch; changing the default remains an account/repository administration action not exposed by the available connector.
+- GitHub currently reports `main-MARSEL-ROAPP` as the repository default branch; changing the default to `main` remains an account/repository administration action not exposed by the available connector.
 - Production WRITE remains disabled and fail-closed.
 - Existing backup/export and isolated restore/integrity evidence is not to be repeated without a reason.
 - Observability/correlation is already recorded as verified under Issue #134.
