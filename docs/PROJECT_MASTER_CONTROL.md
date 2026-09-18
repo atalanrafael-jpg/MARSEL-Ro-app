@@ -4,9 +4,10 @@
 Единая контрольная точка проекта: техническое состояние RO App integration, качество данных, безопасность, бизнес-автоматизация, deployment и коммерческий контур MARSEL.
 
 ## Canonical state — 2026-09-18
+- System: **MARSEL ROAPP** — единая каноническая система.
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`
-- Canonical branch: `main`
-- Latest verified canonical checkpoint: **`0bd204f889593a41253a0b8d88094da4f31e06e8`**
+- Technical canonical branch: `main`
+- Latest verified repository checkpoint: **`0d05f97c3ea8bdf1d95e185f7fa3341df89a2981`**
 - Repository default branch reported by GitHub: `main-MARSEL-ROAPP` (legacy/default branch; no longer canonical).
 - Canonical control plane: `.github/workflows/marsel-unified-control-plane.yml`
 - Canonical control contract: `01_MASTER/MARSEL_ROAPP_CONTROL_PLANE_V2.md`
@@ -16,6 +17,7 @@
 
 ## Latest verified action
 - Corrected the unified workflow evidence builder so a PASS status is emitted only when the quality gate succeeds and all required evidence files exist.
+- Corrected canonical self-check/branch semantics so the technical canonical branch is `main`.
 - Verified the corrected workflow and canonical self-check content on `main`.
 - The GitHub connector does not expose a workflow-dispatch operation; a post-fix run is therefore NOT VERIFIED.
 
@@ -39,8 +41,8 @@
 - Never convert historical, synthetic, repository-only or assumed evidence into VERIFIED.
 
 ## Verified current repository state
-- `main` is the intended canonical branch.
-- `main` is the canonical branch; `main-MARSEL-ROAPP` is retained as a legacy branch pending cleanup.
+- `main` is the technical canonical branch of the MARSEL ROAPP system.
+- `main-MARSEL-ROAPP` is retained as a legacy branch pending administrative cleanup.
 - GitHub currently reports `main-MARSEL-ROAPP` as the repository default branch; changing the default remains an account/repository administration action not exposed by the available connector.
 - Production WRITE remains disabled and fail-closed.
 - Existing backup/export and isolated restore/integrity evidence is not to be repeated without a reason.
