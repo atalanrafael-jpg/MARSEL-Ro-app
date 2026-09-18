@@ -6,7 +6,7 @@ Only active tasks belong here. Historical tasks belong in `06_ARCHIVE` or Git hi
 - PR #161 reconciled as stale/diverged and closed without merge.
 - Historical material from `старые данные/` migrated into `06_ARCHIVE/legacy-old-data/` and the legacy tree removed.
 - Superseded root master documents migrated into `06_ARCHIVE/legacy-root/` and removed from the active root.
-- Active agent/governance/self-check references aligned to `main-MARSEL-ROAPP`.
+- Active agent/governance/self-check references aligned to `main`.
 
 ## ACTIVE / NEEDS VERIFICATION
 - Verify current GitHub Actions/control-plane evidence after the cleanup commits.
