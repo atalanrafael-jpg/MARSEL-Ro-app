@@ -8,7 +8,8 @@ Canonical:
 - System: MARSEL ROAPP
 - Repository: atalanrafael-jpg/MARSEL-Ro-app
 - Technical canonical branch: main
-- Legacy/default branch: main-MARSEL-ROAPP until GitHub administration changes the default
+- GitHub repository default branch: main
+- Legacy/snapshot branches: main-MARSEL-ROAPP, Main, main-MARSEL-ROAPP-PROTECTION
 - Production WRITE: disabled
 
 ## 2. Correct request pattern
@@ -129,7 +130,7 @@ Do not expand the architecture faster than the evidence and working product just
 
 ## 10. What was previously going wrong
 
-- Treating `main-MARSEL-ROAPP` as canonical because GitHub still reports it as default.
+- Treating `main-MARSEL-ROAPP` as canonical because it was historically reported as default.
 - Repeating historical audits after their evidence was already verified.
 - Mixing implementation, external authorization and production readiness into one status.
 - Adding integrations before defining their role and acceptance criteria.
