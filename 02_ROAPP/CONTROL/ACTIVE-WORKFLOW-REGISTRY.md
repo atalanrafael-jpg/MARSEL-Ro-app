@@ -3,7 +3,7 @@
 ## Canonical identity
 
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`
-- Branch: `main-MARSEL-ROAPP`
+- Branch: `main`
 - Canonical live RO App audit: `.github/workflows/marsel-unified-control-plane.yml`
 
 ## Rule
@@ -68,4 +68,4 @@ Production WRITE remains disabled. Live RO App audit invariant:
 
 ## Maintenance note
 
-Historical workflow and repository references remain under `06_ARCHIVE` for traceability and are not authoritative. Active workflows must use the canonical repository `atalanrafael-jpg/MARSEL-Ro-app` and canonical branch `main-MARSEL-ROAPP`.
+Historical workflow and repository references remain under `06_ARCHIVE` for traceability and are not authoritative. Active workflows must use the canonical repository `atalanrafael-jpg/MARSEL-Ro-app` and canonical branch `main`.
