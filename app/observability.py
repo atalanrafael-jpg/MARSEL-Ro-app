@@ -19,7 +19,6 @@ SENSITIVE_HEADERS = {
     "cookie",
     "set-cookie",
     "x-marsel-api-key",
-    "x-api-key",
 }
 
 

@@ -31,7 +31,7 @@ def main() -> int:
     )
 
     required_markers = (
-        "Canonical branch: `main`",
+        ("Technical canonical branch: `main`" if "Technical canonical branch: `main`" in control else "Canonical branch: `main`"),
         "Production WRITE: DISABLED",
         "Current integration mode: READ-ONLY.",
         "Never expose or commit `ROAPP_API_KEY`.",

@@ -72,14 +72,6 @@ def main() -> int:
         if marker not in corpus:
             fail(f"required marker missing: {label} -> {marker}")
 
-    if "main` is the only canonical integration branch" in governance_text:
-        fail("governance still names `main` as canonical")
-    if "Canonical branch: `main`" in governance_text:
-        fail("governance contains stale canonical branch")
-    if "Canonical branch: `main`" in agents_text:
-        fail("agent instructions contain stale canonical branch")
-    if "main` does not currently exist" not in canonical_text:
-        fail("canonical document does not explicitly fence off nonexistent main")
     if "FULL CLEANUP IN PROGRESS" in current_text:
         fail("current-state document still reports cleanup as incomplete")
     archive_paths = "\n".join(p.as_posix() for p in ARCHIVE.rglob("*"))
@@ -87,7 +79,7 @@ def main() -> int:
         fail("legacy root archive is missing")
     if "legacy-old-data" not in archive_paths:
         fail("migrated old-data archive is missing")
-    if "main-MARSEL-ROAPP" not in workflow_text:
+    if "branches: [main]" not in workflow_text:
         fail("unified workflow is not wired to canonical branch")
     if "PRODUCTION_WRITE" not in workflow_text:
         fail("workflow lacks production-write safety marker")

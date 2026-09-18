@@ -4,21 +4,25 @@
 Единая контрольная точка проекта: техническое состояние RO App integration, качество данных, безопасность, бизнес-автоматизация, deployment и коммерческий контур MARSEL.
 
 ## Canonical state — 2026-09-18
+- System: **MARSEL ROAPP** — единая каноническая система.
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`
-- Canonical branch: `main`
-- Latest verified canonical checkpoint: **`78d06f601ca722d231aeaf285bd6da97e6c1f5f0`**
+- Technical canonical branch: `main`
+- Latest repository checkpoint: **`b793411fc06f1b1e482af372cb0edce37c3ba554`**
 - Repository default branch reported by GitHub: `main-MARSEL-ROAPP` (legacy/default branch; no longer canonical).
 - Canonical control plane: `.github/workflows/marsel-unified-control-plane.yml`
 - Canonical control contract: `01_MASTER/MARSEL_ROAPP_CONTROL_PLANE_V2.md`
+- ChatGPT operating protocol: `docs/MARSEL_CHATGPT_OPERATING_PROTOCOL.md`
 - Repository validator: `scripts/marsel_control_plane_validate.py`
 - Current integration mode: READ-ONLY.
 - Production WRITE: DISABLED.
 
 ## Latest verified action
 - Corrected the unified workflow evidence builder so a PASS status is emitted only when the quality gate succeeds and all required evidence files exist.
-- 
-- Verified the corrected workflow content on `main`.
-- A post-fix GitHub Actions run for this commit was not found; CI execution after the fix is therefore NOT VERIFIED.
+- Corrected canonical self-check/branch semantics so the technical canonical branch is `main`.
+- Verified the corrected workflow and canonical self-check content on `main`.
+- Added the ChatGPT operating protocol defining request routing, evidence hierarchy, tool/app roles, launch stages and owner-vs-agent responsibilities.
+- Corrected the control-plane validator to accept the canonical `Technical canonical branch: main` wording.
+- A post-protocol workflow run exposed a validator wording mismatch (`Canonical branch` vs `Technical canonical branch`); the validator was corrected on `main`. A fresh post-fix unified workflow run is still NOT VERIFIED.
 
 ## Mandatory execution sequence
 1. READ current `main` and live project state.
@@ -40,8 +44,8 @@
 - Never convert historical, synthetic, repository-only or assumed evidence into VERIFIED.
 
 ## Verified current repository state
-- `main` is the intended canonical branch.
-- `main` is the canonical branch; `main-MARSEL-ROAPP` is retained as a legacy branch pending cleanup.
+- `main` is the technical canonical branch of the MARSEL ROAPP system.
+- `main-MARSEL-ROAPP` is retained as a legacy branch pending administrative cleanup.
 - GitHub currently reports `main-MARSEL-ROAPP` as the repository default branch; changing the default remains an account/repository administration action not exposed by the available connector.
 - Production WRITE remains disabled and fail-closed.
 - Existing backup/export and isolated restore/integrity evidence is not to be repeated without a reason.
