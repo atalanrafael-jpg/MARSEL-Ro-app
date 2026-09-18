@@ -4,7 +4,7 @@ This directory is the single project-control source of truth for MARSEL ROAPP.
 
 ## Canonical rules
 - One system: MARSEL ROAPP.
-- Current canonical branch: `main-MARSEL-ROAPP`.
+- Current canonical branch: `main`.
 - `main` does not currently exist and is not authoritative.
 - Canonical repository: `atalanrafael-jpg/MARSEL-Ro-app`.
 - No parallel master/project definitions.
