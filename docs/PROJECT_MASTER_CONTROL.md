@@ -15,7 +15,9 @@
 - ChatGPT operating protocol: `docs/MARSEL_CHATGPT_OPERATING_PROTOCOL.md`
 - Repository validator: `scripts/marsel_control_plane_validate.py`
 - Current integration mode: READ-ONLY.
+- Owner MVP vertical slice implementation is now present in `web/index.html`, served at `/app`, backed by Supabase Auth/RLS; deployment evidence is still pending.
 - Production WRITE: DISABLED.
+- Supabase owner-MVP security advisor: 0 lints after RLS hardening; application data remains empty until user-authenticated use.
 
 ## Latest verified action
 - Re-read current GitHub repository metadata, canonical branch and branch comparisons.
