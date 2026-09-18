@@ -7,10 +7,9 @@
 - System: **MARSEL ROAPP** — единая каноническая система.
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`
 - Technical canonical branch: `main`
-- Latest verified source checkpoint: **`d31a3701aef3a0f9c763225beaefbece0b892753`**
+- Latest verified source checkpoint: **`934bb8f8193b534ff21eb753b65310b47fce69f6`**
 - Repository default branch reported by GitHub: **`main`**.
-- Legacy compatibility branch `main-MARSEL-ROAPP` is aligned to the same source checkpoint.
-- Non-canonical snapshot branches `Main` and `main-MARSEL-ROAPP-PROTECTION` were safely fast-forwarded to the same source checkpoint; they are not separate systems.
+- `Main`, `main-MARSEL-ROAPP` and `main-MARSEL-ROAPP-PROTECTION` are non-canonical compatibility/snapshot branches currently identical to `main`.
 - Canonical control plane: `.github/workflows/marsel-unified-control-plane.yml`
 - Canonical control contract: `01_MASTER/MARSEL_ROAPP_CONTROL_PLANE_V2.md`
 - ChatGPT operating protocol: `docs/MARSEL_CHATGPT_OPERATING_PROTOCOL.md`
@@ -19,12 +18,12 @@
 - Production WRITE: DISABLED.
 
 ## Latest verified action
-- Re-read current GitHub refs and repository metadata.
+- Re-read current GitHub repository metadata, canonical branch and branch comparisons.
 - Confirmed `main` is the repository default and technical canonical branch.
-- Confirmed `main`, `Main`, `main-MARSEL-ROAPP` and `main-MARSEL-ROAPP-PROTECTION` were aligned at the consolidation checkpoint.
-- Refreshed the active canonical control, state, system, ChatGPT protocol and changelog documents to remove stale default-branch claims.
-- Documentation-only commits after the source checkpoint do not change the safety state.
-- Production WRITE remains disabled/fail-closed.
+- Confirmed the current main HEAD is `934bb8f8193b534ff21eb753b65310b47fce69f6`.
+- Confirmed `Main`, `main-MARSEL-ROAPP` and `main-MARSEL-ROAPP-PROTECTION` are identical to `main`.
+- Corrected this control document and the current-state document so the recorded checkpoint matches the actual current `main` HEAD.
+- Confirmed production WRITE remains disabled/fail-closed.
 - No unresolved external gate was falsely closed.
 
 ## Mandatory execution sequence
@@ -49,7 +48,7 @@
 ## Verified current repository state
 - `main` is the technical canonical branch of the MARSEL ROAPP system.
 - GitHub default branch is `main`.
-- `main-MARSEL-ROAPP`, `Main` and `main-MARSEL-ROAPP-PROTECTION` are non-canonical compatibility/snapshot branches aligned to the canonical source checkpoint.
+- `main-MARSEL-ROAPP`, `Main` and `main-MARSEL-ROAPP-PROTECTION` are non-canonical compatibility/snapshot branches currently identical to `main`.
 - Production WRITE remains disabled and fail-closed.
 - Existing backup/export and isolated restore/integrity evidence is not to be repeated without a reason.
 - Observability/correlation is already recorded as verified under Issue #134.
