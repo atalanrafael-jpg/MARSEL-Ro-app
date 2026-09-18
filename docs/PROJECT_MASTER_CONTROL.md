@@ -7,8 +7,7 @@
 - System: **MARSEL ROAPP** — единая каноническая система.
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`
 - Technical canonical branch: `main`
-- Latest verified baseline checkpoint: **`4fd2944b7f4fc0fb385648b44730eec1b9031da1`**
-- Checkpoint semantics: this records the last verified baseline before subsequent control-document corrections; re-reading `main` remains mandatory.
+- Current main HEAD observed before this control-document commit: **`0e26c00b488ccbc02144765c4388090f20516dda`**
 - Repository default branch reported by GitHub: `main-MARSEL-ROAPP` (legacy/default branch; no longer canonical).
 - Canonical control plane: `.github/workflows/marsel-unified-control-plane.yml`
 - Canonical control contract: `01_MASTER/MARSEL_ROAPP_CONTROL_PLANE_V2.md`
@@ -23,7 +22,7 @@
 - Verified the corrected workflow and canonical self-check content on `main`.
 - Added the ChatGPT operating protocol defining request routing, evidence hierarchy, tool/app roles, launch stages and owner-vs-agent responsibilities.
 - Corrected the control-plane validator to accept the canonical `Technical canonical branch: main` wording.
-- A post-protocol workflow run exposed a validator wording mismatch (`Canonical branch` vs `Technical canonical branch`); the validator was corrected on `main`. A fresh post-fix unified workflow run is still NOT VERIFIED.
+- The current `main` HEAD is `0e26c00...`; GitHub Actions shows successful push-triggered workflow executions for this commit, but the available evidence has not yet directly verified a fresh successful execution of the specific `MARSEL Unified Control Plane` workflow.
 
 ## Mandatory execution sequence
 1. READ current `main` and live project state.
@@ -48,6 +47,7 @@
 - `main` is the technical canonical branch of the MARSEL ROAPP system.
 - `main-MARSEL-ROAPP` is retained as a legacy branch pending administrative cleanup.
 - GitHub currently reports `main-MARSEL-ROAPP` as the repository default branch; changing the default to `main` remains an account/repository administration action not exposed by the available connector.
+- `main` and `main-MARSEL-ROAPP` currently point to the same observed commit `0e26c00...`.
 - Production WRITE remains disabled and fail-closed.
 - Existing backup/export and isolated restore/integrity evidence is not to be repeated without a reason.
 - Observability/correlation is already recorded as verified under Issue #134.
