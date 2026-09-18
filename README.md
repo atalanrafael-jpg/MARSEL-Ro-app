@@ -76,6 +76,10 @@ Evidence precedence:
 
 `DONE` / `PASS` requires current direct evidence. `PLANNED`, `CODED`, `NOT_TESTED`, `ASSUMED`, `OLD_PASS`, and `UNVERIFIED` are not `PASS`.
 
+## Productization priority
+
+The current delivery priority is the **Owner MVP**, not another strategic framework. The canonical vertical slice is `AUTH → OWNER DASHBOARD → CLIENT → REPAIR → ITEM → STATUS → ATTACHMENT → AUDIT → DEPLOY → VERIFY`. See [`01_MASTER/MARSEL_ROAPP_PRODUCTIZATION_MVP.md`](01_MASTER/MARSEL_ROAPP_PRODUCTIZATION_MVP.md) and GitHub Issue #183. RO App remains READ-ONLY until all production safety gates pass.
+
 ## Documentation
 
 Use [`MARSEL_ROAPP_UNIFIED_SYSTEM.md`](MARSEL_ROAPP_UNIFIED_SYSTEM.md) for the canonical architecture and safety model, [`docs/MARSEL_AI_CONTROL_PLANE.md`](docs/MARSEL_AI_CONTROL_PLANE.md) for governed AI/automation, and [`docs/PROJECT_MASTER_CONTROL.md`](docs/PROJECT_MASTER_CONTROL.md) for current gates, blockers, and continuation procedure.
