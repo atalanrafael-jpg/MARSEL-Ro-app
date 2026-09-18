@@ -81,7 +81,7 @@ Agents must not override safety invariants or invent missing evidence.
 
 ## 8. Drift control
 
-`main` is the technical canonical branch. `main-MARSEL-ROAPP` is the legacy/default branch until GitHub repository administration changes the default. Feature, audit, backup and historical branches are non-canonical. Branch deletion or default-branch changes are administration operations and must not be simulated by the connector.
+`main` is the technical canonical branch. `Main`, `main-MARSEL-ROAPP` and `main-MARSEL-ROAPP-PROTECTION` were verified as non-canonical aliases/snapshots and aligned to the current `main` commit on 2026-09-18. Feature, audit, backup and historical branches are non-canonical. Their unique changes are not incorporated automatically. Branch deletion or default-branch changes are administration operations and must not be simulated by the connector.
 
 ## 9. Current unresolved external gates
 
