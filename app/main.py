@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query
+from fastapi.responses import HTMLResponse, JSONResponse
 
 from .audit import audit_order_pages
 from .config import settings
@@ -52,7 +53,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(
     title="MARSEL ROAPP Connector",
-    version="0.4.1",
+    version="0.5.0",
     lifespan=lifespan,
 )
 app.middleware("http")(observability_middleware)
@@ -84,6 +85,18 @@ def ready():
         "version": app.version,
         "mcp_http_enabled": settings.mcp_http_enabled,
     }
+
+
+@app.get("/app", response_class=HTMLResponse)
+def owner_app():
+    from pathlib import Path
+    path = Path(__file__).resolve().parent.parent / "web" / "index.html"
+    return HTMLResponse(path.read_text(encoding="utf-8"))
+
+
+@app.get("/app/config", response_class=JSONResponse)
+def owner_app_config():
+    return {"supabase_url": settings.supabase_url, "supabase_publishable_key": settings.supabase_publishable_key}
 
 
 @app.get("/roapp/orders", dependencies=[Depends(require_internal_auth)])
