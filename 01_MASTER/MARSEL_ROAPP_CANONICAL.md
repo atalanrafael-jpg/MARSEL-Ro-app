@@ -27,12 +27,12 @@ Only this canonical structure and the registries referenced from `01_MASTER` def
 - Secrets: never committed, printed, rotated, or copied into repository files.
 - Evidence: never fabricated or downgraded to make a gate pass.
 - `main` is the technical canonical branch and current execution source.
-- `Main`, `main-MARSEL-ROAPP` and `main-MARSEL-ROAPP-PROTECTION` were verified as non-canonical aliases/snapshots and aligned to the current `main` commit on 2026-09-18.
-- GitHub still reports `main-MARSEL-ROAPP` as the repository default branch; the default-branch name itself remains an administrative setting and does not change the technical canonical rule.
+- `Main`, `main-MARSEL-ROAPP` and `main-MARSEL-ROAPP-PROTECTION` are non-canonical compatibility/snapshot branches, aligned to the current `main` commit on 2026-09-18.
+- GitHub repository default branch is `main`.
 
 ## Consolidation rule
 A capability has one implementation, one owner, one registry entry, and one active workflow. Historical implementations are archived or removed only after dependency and recovery checks.
 
 Feature, audit, backup, temporary and historical branches remain non-canonical until their unique changes are independently reviewed and safely incorporated into `main`. They must not be treated as separate MARSEL ROAPP systems.
 
-Branch deletion and repository default-branch changes are administrative operations; they are not simulated by documentation or by moving a branch ref.
+Branch deletion is an administrative operation and must not be simulated by documentation or by moving a branch ref.
