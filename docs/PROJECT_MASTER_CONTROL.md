@@ -7,7 +7,7 @@
 - System: **MARSEL ROAPP** — единая каноническая система.
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`
 - Technical canonical branch: `main`
-- Latest verified repository checkpoint: **`969ca10d5b7ff74c1b9ce1a562f611e918ff33fd`**
+- Latest repository checkpoint: **`b793411fc06f1b1e482af372cb0edce37c3ba554`**
 - Repository default branch reported by GitHub: `main-MARSEL-ROAPP` (legacy/default branch; no longer canonical).
 - Canonical control plane: `.github/workflows/marsel-unified-control-plane.yml`
 - Canonical control contract: `01_MASTER/MARSEL_ROAPP_CONTROL_PLANE_V2.md`
@@ -21,7 +21,8 @@
 - Corrected canonical self-check/branch semantics so the technical canonical branch is `main`.
 - Verified the corrected workflow and canonical self-check content on `main`.
 - Added the ChatGPT operating protocol defining request routing, evidence hierarchy, tool/app roles, launch stages and owner-vs-agent responsibilities.
-- The GitHub connector does not expose a workflow-dispatch operation; a post-fix run is therefore NOT VERIFIED.
+- Corrected the control-plane validator to accept the canonical `Technical canonical branch: main` wording.
+- A post-protocol workflow run exposed a validator wording mismatch (`Canonical branch` vs `Technical canonical branch`); the validator was corrected on `main`. A fresh post-fix unified workflow run is still NOT VERIFIED.
 
 ## Mandatory execution sequence
 1. READ current `main` and live project state.
