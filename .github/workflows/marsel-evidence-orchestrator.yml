@@ -4,7 +4,7 @@ on:
   workflow_run:
     workflows: ["MARSEL Unified Control Plane"]
     types: [completed]
-    branches: [main-MARSEL-ROAPP]
+    branches: [main]
 
 concurrency:
   group: marsel-evidence-orchestrator-${{ github.event.workflow_run.head_sha }}
@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   collect:
-    if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main-MARSEL-ROAPP' }}
+    if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
