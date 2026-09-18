@@ -5,7 +5,7 @@
 This repository is the canonical technical contour for MARSEL ROAPP.
 - MARSEL = business contour.
 - ROAPP = technical contour.
-- Canonical branch: `main-MARSEL-ROAPP`.
+- Canonical branch: `main`.
 - `main` does not currently exist and is not authoritative.
 
 ## Operating priorities
