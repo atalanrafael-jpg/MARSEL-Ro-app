@@ -6,13 +6,20 @@
 ## Verified
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`.
 - Technical canonical branch: `main`.
-- `main` is the current execution source.
+- `main) is the current execution source.
 - Six canonical zones `01_MASTER` through `06_ARCHIVE` exist.
 - Historical `старые данные/` content was migrated into `06_ARCHIVE/legacy-old-data/` and the legacy tree removed.
 - Superseded root master documents were migrated into `06_ARCHIVE/legacy-root/` and removed from the active root.
 - Canonical governance, agent instructions and static self-check were aligned to the technical canonical branch.
 - Production WRITE remains disabled.
-- GitHub currently reports `main-MARSEL-ROAPP` as the repository default branch; this is an administrative/default-branch state and does not override the project technical canonical rule.
+- `Main`, `main-MARSEL-ROAPP` and `main-MARSEL-ROAPP-PROTECTION` were compared with `main`; each had no ahead-by file changes requiring incorporation, and each was aligned to the current canonical `main` commit.
+- GitHub still reports `main-MARSEL-ROAPP` as the repository default branch; this administrative setting does not override the project technical canonical rule.
+
+## Branch policy
+- `main` = one technical canonical source of truth.
+- Exact duplicate/default/protection aliases above are synchronized to the current canonical commit.
+- Feature/audit/backup/temporary branches are not separate projects. Their unique changes must be reviewed and incorporated into `main` only when safe and verified.
+- Branch deletion and changing the repository default branch remain GitHub administration operations and are not claimed as completed.
 
 ## Remaining gates
 - Fresh GitHub Actions/control-plane run after the final cleanup corrections must be directly verified.
