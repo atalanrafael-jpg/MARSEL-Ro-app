@@ -9,7 +9,7 @@ MARSEL ROAPP is one system:
 - Business contour: **Ювелирная студия MARSEL**
 - Technology contour: **ROAPP**
 - Canonical repository: `atalanrafael-jpg/MARSEL-Ro-app`
-- Canonical branch: `main-MARSEL-ROAPP`
+- Canonical branch: `main`
 - `main` does not currently exist and is not authoritative.
 - Canonical live audit control plane: `.github/workflows/marsel-unified-control-plane.yml`
 
@@ -17,7 +17,7 @@ No other repository, branch, workflow, application, integration, deployment, tes
 
 ## 2. Branch policy
 
-`main-MARSEL-ROAPP` is the current canonical integration branch.
+`main` is the current canonical integration branch.
 
 All other branches are temporary working branches and must have a documented MARSEL ROAPP purpose. They are not independent project sources.
 
@@ -66,11 +66,11 @@ Do not delete or merge branches solely because their names overlap. First inspec
 
 The consolidation target is:
 
-`many temporary work branches → reviewed changes → main-MARSEL-ROAPP → historical branches retained only when justified`
+`many temporary work branches → reviewed changes → main → historical branches retained only when justified`
 
 ## 8. Evidence precedence
 
-1. Current `main-MARSEL-ROAPP`.
+1. Current `main`.
 2. Current CI evidence tied to the relevant commit.
 3. Direct live evidence with timestamp/artifact.
 4. Current official RO App documentation.
