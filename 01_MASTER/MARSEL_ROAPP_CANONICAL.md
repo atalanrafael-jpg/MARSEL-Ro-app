@@ -26,7 +26,8 @@ Only this canonical structure and the registries referenced from `01_MASTER` def
 - Production WRITE: disabled.
 - Secrets: never committed, printed, rotated, or copied into repository files.
 - Evidence: never fabricated or downgraded to make a gate pass.
-- `main` does not currently exist and must not be represented as canonical or verified.
+- `main` is the technical canonical branch and current execution source.
+- `main-MARSEL-ROAPP` remains the GitHub default/legacy branch until an account-level administrative change is independently verified.
 
 ## Consolidation rule
 A capability has one implementation, one owner, one registry entry, and one active workflow. Historical implementations are archived or removed only after dependency and recovery checks.
