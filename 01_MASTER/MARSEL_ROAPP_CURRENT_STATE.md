@@ -5,7 +5,7 @@
 
 ## Verified
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`.
-- Current canonical/default branch: `main-MARSEL-ROAPP`.
+- Current canonical/default branch: `main`.
 - `main` does not exist and is not authoritative.
 - Six canonical zones `01_MASTER` through `06_ARCHIVE` exist.
 - Historical `старые данные/` content was migrated into `06_ARCHIVE/legacy-old-data/` and the legacy tree removed.
@@ -22,4 +22,4 @@
 - Open PR #132 requires security review before merge.
 
 ## Canonical rule
-Only `main-MARSEL-ROAPP` is current source of truth. Historical material under `06_ARCHIVE` is evidence only. No archived document may override newer verified state.
+Only `main` is current source of truth. Historical material under `06_ARCHIVE` is evidence only. No archived document may override newer verified state.
