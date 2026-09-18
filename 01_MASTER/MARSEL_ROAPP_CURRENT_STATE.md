@@ -12,7 +12,7 @@
 - Superseded root master documents were migrated into `06_ARCHIVE/legacy-root/` and removed from the active root.
 - Canonical governance, agent instructions and static self-check were aligned to the technical canonical branch.
 - Production WRITE remains disabled.
-- `main`, `Main`, `main-MARSEL-ROAPP` and `main-MARSEL-ROAPP-PROTECTION` are aligned to the current canonical commit `d31a3701aef3a0f9c763225beaefbece0b892753`.
+- `main`, `Main`, `main-MARSEL-ROAPP` and `main-MARSEL-ROAPP-PROTECTION` were verified/aligned to the current canonical HEAD `e0a1fbacbc40af77061377aeaf4a6994d5a7b1bc` on 2026-09-18.
 - GitHub repository default branch is `main`.
 
 ## Branch policy
