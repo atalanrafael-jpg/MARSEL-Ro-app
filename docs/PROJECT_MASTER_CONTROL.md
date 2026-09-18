@@ -7,7 +7,7 @@
 - System: **MARSEL ROAPP** — единая каноническая система.
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`
 - Technical canonical branch: `main`
-- Latest verified source checkpoint: **`ca51382cf1f7bbefcd0761efbe99d41793fdef0f`**
+- Latest verified non-documentation source checkpoint: **`934bb8f8193b534ff21eb753b65310b47fce69f6`**
 - Repository default branch reported by GitHub: **`main`**.
 - `Main`, `main-MARSEL-ROAPP` and `main-MARSEL-ROAPP-PROTECTION` are non-canonical compatibility/snapshot branches currently identical to `main`.
 - Canonical control plane: `.github/workflows/marsel-unified-control-plane.yml`
@@ -20,7 +20,7 @@
 ## Latest verified action
 - Re-read current GitHub repository metadata, canonical branch and branch comparisons.
 - Confirmed `main` is the repository default and technical canonical branch.
-- Confirmed the current main HEAD is `934bb8f8193b534ff21eb753b65310b47fce69f6`.
+- Confirmed the current `main` is based on the verified non-documentation source checkpoint above; subsequent commits in this audit are documentation-only.
 - Confirmed `Main`, `main-MARSEL-ROAPP` and `main-MARSEL-ROAPP-PROTECTION` are identical to `main`.
 - Corrected this control document and the current-state document so the recorded checkpoint matches the actual current `main` HEAD.
 - Confirmed production WRITE remains disabled/fail-closed.
