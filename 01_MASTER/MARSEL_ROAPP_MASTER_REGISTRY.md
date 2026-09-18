@@ -16,7 +16,7 @@
 - ROAPP MCP: READ-ONLY boundary.
 - Production WRITE: disabled.
 - GitHub: canonical repository; current canonical branch is `main`.
-- `main` does not currently exist.
+- `main` is the technical canonical branch.
 - Unified Control Plane: canonical control workflow.
 - Release readiness: fail-closed.
 
