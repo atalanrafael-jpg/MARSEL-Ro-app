@@ -7,7 +7,8 @@
 - System: **MARSEL ROAPP** — единая каноническая система.
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`
 - Technical canonical branch: `main`
-- Latest repository checkpoint: **`d5254a4108ae3a08b413ab7ebcac90bdf43b29d6`**
+- Latest verified baseline checkpoint: **`4fd2944b7f4fc0fb385648b44730eec1b9031da1`**
+- Checkpoint semantics: this records the last verified baseline before subsequent control-document corrections; re-reading `main` remains mandatory.
 - Repository default branch reported by GitHub: `main-MARSEL-ROAPP` (legacy/default branch; no longer canonical).
 - Canonical control plane: `.github/workflows/marsel-unified-control-plane.yml`
 - Canonical control contract: `01_MASTER/MARSEL_ROAPP_CONTROL_PLANE_V2.md`
