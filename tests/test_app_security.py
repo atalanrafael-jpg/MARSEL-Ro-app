@@ -41,3 +41,16 @@ def test_ready_does_not_disclose_secret_presence(monkeypatch):
     assert "api_key_configured" not in payload
     assert "real-looking-secret" not in str(payload)
     assert "another-secret" not in str(payload)
+
+
+def test_owner_app_is_available():
+    response = TestClient(app).get("/app")
+    assert response.status_code == 200
+    assert "MARSEL ROAPP" in response.text
+    assert "Вход владельца" in response.text
+
+
+def test_owner_app_config_does_not_expose_roapp_key():
+    response = TestClient(app).get("/app/config")
+    assert response.status_code == 200
+    assert "roapp_api_key" not in response.text
