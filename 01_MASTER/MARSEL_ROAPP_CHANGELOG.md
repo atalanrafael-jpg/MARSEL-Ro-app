@@ -3,12 +3,11 @@
 ## 2026-09-18 — Canonical branch consolidation
 - Confirmed the unified system identity: **MARSEL ROAPP**.
 - Confirmed canonical repository: `atalanrafael-jpg/MARSEL-Ro-app`.
-- Confirmed technical canonical branch: `main`.
-- Verified `Main` and `main-MARSEL-ROAPP` are byte/commit-equivalent to `main` at the current verified comparison point; no unique branch delta remains to merge.
-- Closed/superseded duplicate branch-merger PRs #179, #180 and #181 without introducing additional changes.
-- `main-MARSEL-ROAPP` remains the GitHub repository default branch only because the available connector cannot perform the repository-level default-branch administration change. It is not the technical canonical source.
-- Historical/temporary branches remain non-authoritative. They are not treated as separate MARSEL ROAPP projects.
+- Confirmed technical canonical branch and GitHub default branch: `main`.
+- Verified `main-MARSEL-ROAPP`, `Main` and `main-MARSEL-ROAPP-PROTECTION` are non-canonical compatibility/snapshot branches with no unique work requiring incorporation at the verified consolidation point, and aligned them to the canonical `main` commit.
+- Refreshed the active canonical control documents to remove stale default-branch claims and record the current branch state.
 - Production WRITE remains disabled/fail-closed.
+- External security, API, OAuth/MCP, CI and production-gate evidence remains subject to direct verification; no unresolved gate was closed by documentation alone.
 
 ## 2026-09-13
 - Established the canonical `01_MASTER` project-control structure.
