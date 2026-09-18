@@ -4,7 +4,7 @@
 MARSEL ROAPP is one unified system. No parallel MARSEL, ROAPP, ERP, AI, MCP or automation project is authoritative.
 
 ## 2026-09-13 — Current GitHub source
-`main-MARSEL-ROAPP` is the current canonical/default branch. `main` does not currently exist and is not authoritative.
+`main` is the current canonical/default branch. `main` does not currently exist and is not authoritative.
 
 ## 2026-09-13 — Safety
 ROAPP access remains READ-ONLY and Production WRITE remains disabled.
