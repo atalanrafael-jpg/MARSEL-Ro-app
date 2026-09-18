@@ -6,7 +6,7 @@
 ## Verified
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`.
 - Technical canonical branch: `main`.
-- `main) is the current execution source.
+- `main` is the current execution source.
 - Six canonical zones `01_MASTER` through `06_ARCHIVE` exist.
 - Historical `старые данные/` content was migrated into `06_ARCHIVE/legacy-old-data/` and the legacy tree removed.
 - Superseded root master documents were migrated into `06_ARCHIVE/legacy-root/` and removed from the active root.
