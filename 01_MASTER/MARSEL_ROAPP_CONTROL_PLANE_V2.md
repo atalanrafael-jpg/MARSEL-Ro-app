@@ -1,7 +1,7 @@
 # MARSEL ROAPP — CONTROL PLANE V2
 
-Status: IMPLEMENTED — 2026-09-16
-Canonical branch: `main-MARSEL-ROAPP`
+Status: IMPLEMENTED — 2026-09-18
+Canonical branch: `main`
 Production WRITE: DISABLED
 
 ## 1. Single authority
@@ -81,8 +81,8 @@ Agents must not override safety invariants or invent missing evidence.
 
 ## 8. Drift control
 
-The canonical branch is `main-MARSEL-ROAPP`. Feature, audit, backup and historical branches are non-canonical. Work may be developed elsewhere, but only verified changes become canonical. Branch deletion is an administration operation and must not be simulated by the connector.
+`main` is the technical canonical branch. `main-MARSEL-ROAPP` is the legacy/default branch until GitHub repository administration changes the default. Feature, audit, backup and historical branches are non-canonical. Branch deletion or default-branch changes are administration operations and must not be simulated by the connector.
 
 ## 9. Current unresolved external gates
 
-The current project control record remains authoritative for unresolved external gates, including credential remediation, fresh RO App evidence, Wix reconciliation, official MCP authorization, Gmail authorization, production deployment configuration and GitHub account-level administration. These are not closed by this document.
+The current project control record remains authoritative for unresolved external gates, including credential remediation, fresh RO App evidence, warehouse contract, Wix reconciliation, official MCP authorization, Gmail authorization, production deployment configuration and GitHub account-level administration. These are not closed by this document.
