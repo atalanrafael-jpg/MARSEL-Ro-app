@@ -11,6 +11,7 @@ RUN python -m pip install --no-cache-dir -r requirements.lock \
     && useradd --create-home --uid 10001 --shell /usr/sbin/nologin appuser
 
 COPY app ./app
+COPY web ./web
 
 RUN chown -R appuser:appuser /app
 USER appuser
