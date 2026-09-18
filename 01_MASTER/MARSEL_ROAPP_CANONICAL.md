@@ -3,7 +3,7 @@
 **Status:** CANONICAL
 **System:** MARSEL ROAPP
 **Repository:** `atalanrafael-jpg/MARSEL-Ro-app`
-**Current canonical branch:** `main-MARSEL-ROAPP`
+**Current canonical branch:** `main`
 
 ## Identity
 MARSEL ROAPP is one unified business and technical system. MARSEL and ROAPP are internal contours of the same system, not separate projects.
