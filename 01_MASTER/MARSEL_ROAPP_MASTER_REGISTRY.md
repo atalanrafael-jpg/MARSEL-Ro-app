@@ -15,7 +15,7 @@
 - ROAPP API: READ-ONLY.
 - ROAPP MCP: READ-ONLY boundary.
 - Production WRITE: disabled.
-- GitHub: canonical repository; current canonical branch is `main-MARSEL-ROAPP`.
+- GitHub: canonical repository; current canonical branch is `main`.
 - `main` does not currently exist.
 - Unified Control Plane: canonical control workflow.
 - Release readiness: fail-closed.
