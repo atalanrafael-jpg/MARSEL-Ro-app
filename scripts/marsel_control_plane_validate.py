@@ -31,7 +31,7 @@ def main() -> int:
     )
 
     required_markers = (
-        "Canonical branch: `main-MARSEL-ROAPP`",
+        ("Technical canonical branch: `main`" if "Technical canonical branch: `main`" in control else "Canonical branch: `main`"),
         "Production WRITE: DISABLED",
         "Current integration mode: READ-ONLY.",
         "Never expose or commit `ROAPP_API_KEY`.",
@@ -41,7 +41,7 @@ def main() -> int:
         raise SystemExit(f"CONTROL_PLANE_INVALID control_markers={missing_markers}")
 
     workflow_markers = (
-        "branches: [main-MARSEL-ROAPP]",
+        "branches: [main]",
         "permissions:\n  contents: read",
         "PRODUCTION_WRITE=DISABLED",
         "ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}",
@@ -53,7 +53,7 @@ def main() -> int:
         )
 
     print("CONTROL_PLANE_RESULT=PASS")
-    print("CANONICAL_BRANCH=main-MARSEL-ROAPP")
+    print("CANONICAL_BRANCH=main")
     print("PRODUCTION_WRITE=DISABLED")
     print("LIVE_MUTATIONS=0")
     return 0
