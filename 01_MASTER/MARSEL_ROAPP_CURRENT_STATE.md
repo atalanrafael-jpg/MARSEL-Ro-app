@@ -12,14 +12,14 @@
 - Superseded root master documents were migrated into `06_ARCHIVE/legacy-root/` and removed from the active root.
 - Canonical governance, agent instructions and static self-check were aligned to the technical canonical branch.
 - Production WRITE remains disabled.
-- `Main`, `main-MARSEL-ROAPP` and `main-MARSEL-ROAPP-PROTECTION` were compared with `main`; each had no ahead-by file changes requiring incorporation, and each was aligned to the current canonical `main` commit.
-- GitHub still reports `main-MARSEL-ROAPP` as the repository default branch; this administrative setting does not override the project technical canonical rule.
+- `main`, `Main`, `main-MARSEL-ROAPP` and `main-MARSEL-ROAPP-PROTECTION` are aligned to the current canonical commit `d31a3701aef3a0f9c763225beaefbece0b892753`.
+- GitHub repository default branch is `main`.
 
 ## Branch policy
 - `main` = one technical canonical source of truth.
-- Exact duplicate/default/protection aliases above are synchronized to the current canonical commit.
+- Compatibility/snapshot aliases above are synchronized to the current canonical commit and are not separate projects.
 - Feature/audit/backup/temporary branches are not separate projects. Their unique changes must be reviewed and incorporated into `main` only when safe and verified.
-- Branch deletion and changing the repository default branch remain GitHub administration operations and are not claimed as completed.
+- Branch deletion remains a GitHub administration operation and is not claimed as completed.
 
 ## Remaining gates
 - Fresh GitHub Actions/control-plane run after the final cleanup corrections must be directly verified.
