@@ -10,7 +10,7 @@ on:
   workflow_run:
     workflows: ["MARSEL Backup Evidence Producer"]
     types: [completed]
-    branches: [main-MARSEL-ROAPP]
+    branches: [main]
 
 permissions:
   contents: read
@@ -22,7 +22,7 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'workflow_run' &&
        github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.head_branch == 'main-MARSEL-ROAPP')
+       github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -74,7 +74,7 @@ jobs:
           RUN_ID="$(gh run list \
             --repo "$GITHUB_REPOSITORY" \
             --workflow "MARSEL Unified Control Plane" \
-            --branch main-MARSEL-ROAPP \
+            --branch main \
             --limit 50 \
             --json databaseId,headSha,conclusion \
             --jq '.[] | select(.headSha == env.HEAD_SHA and .conclusion == "success") | .databaseId' \
