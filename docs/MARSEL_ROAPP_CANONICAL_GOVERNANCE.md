@@ -10,7 +10,7 @@ MARSEL ROAPP is one system:
 - Technology contour: **ROAPP**
 - Canonical repository: `atalanrafael-jpg/MARSEL-Ro-app`
 - Canonical branch: `main`
-- `main` does not currently exist and is not authoritative.
+- `main` is the technical canonical branch and current execution source.
 - Canonical live audit control plane: `.github/workflows/marsel-unified-control-plane.yml`
 
 No other repository, branch, workflow, application, integration, deployment, test suite, or document may silently become a competing MARSEL ROAPP source of truth.
