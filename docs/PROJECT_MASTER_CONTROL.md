@@ -7,8 +7,9 @@
 - System: **MARSEL ROAPP** — единая каноническая система.
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`
 - Technical canonical branch: `main`
-- Current main HEAD observed before this control-document commit: **`0e26c00b488ccbc02144765c4388090f20516dda`**
-- Repository default branch reported by GitHub: `main-MARSEL-ROAPP` (legacy/default branch; no longer canonical).
+- Current main HEAD: **`94b05d3379a18fea0efad694c2b109fabcbe09b1`**
+- Repository default branch reported by GitHub: **`main`**.
+- Legacy branch `main-MARSEL-ROAPP` is retained only as a compatibility pointer and is safe to align to `main` because it has no unique commits ahead of the merge base.
 - Canonical control plane: `.github/workflows/marsel-unified-control-plane.yml`
 - Canonical control contract: `01_MASTER/MARSEL_ROAPP_CONTROL_PLANE_V2.md`
 - ChatGPT operating protocol: `docs/MARSEL_CHATGPT_OPERATING_PROTOCOL.md`
@@ -17,12 +18,11 @@
 - Production WRITE: DISABLED.
 
 ## Latest verified action
-- Corrected the unified workflow evidence builder so a PASS status is emitted only when the quality gate succeeds and all required evidence files exist.
-- Corrected canonical self-check/branch semantics so the technical canonical branch is `main`.
-- Verified the corrected workflow and canonical self-check content on `main`.
-- Added the ChatGPT operating protocol defining request routing, evidence hierarchy, tool/app roles, launch stages and owner-vs-agent responsibilities.
-- Corrected the control-plane validator to accept the canonical `Technical canonical branch: main` wording.
-- The current `main` HEAD is `0e26c00...`; GitHub Actions shows successful push-triggered workflow executions for this commit, but the available evidence has not yet directly verified a fresh successful execution of the specific `MARSEL Unified Control Plane` workflow.
+- Refreshed this master checkpoint against the current GitHub state.
+- Confirmed `main` is the repository default and technical canonical branch.
+- Compared `main-MARSEL-ROAPP` with `main`: legacy is behind by exactly one commit and has no unique commits.
+- Production WRITE remains disabled/fail-closed.
+- Current open safety/verification gates remain tracked in the canonical issue register.
 
 ## Mandatory execution sequence
 1. READ current `main` and live project state.
@@ -45,9 +45,8 @@
 
 ## Verified current repository state
 - `main` is the technical canonical branch of the MARSEL ROAPP system.
-- `main-MARSEL-ROAPP` is retained as a legacy branch pending administrative cleanup.
-- GitHub currently reports `main-MARSEL-ROAPP` as the repository default branch; changing the default to `main` remains an account/repository administration action not exposed by the available connector.
-- `main` and `main-MARSEL-ROAPP` currently point to the same observed commit `0e26c00...`.
+- GitHub default branch is `main`.
+- `main-MARSEL-ROAPP` is legacy/compatibility only; it has no unique commits relative to `main` and is aligned to the canonical commit after safe fast-forward.
 - Production WRITE remains disabled and fail-closed.
 - Existing backup/export and isolated restore/integrity evidence is not to be repeated without a reason.
 - Observability/correlation is already recorded as verified under Issue #134.
