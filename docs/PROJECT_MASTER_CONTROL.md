@@ -7,7 +7,7 @@
 - System: **MARSEL ROAPP** — единая каноническая система.
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`
 - Technical canonical branch: `main`
-- Latest verified source checkpoint: **`934bb8f8193b534ff21eb753b65310b47fce69f6`**
+- Latest verified source checkpoint: **`ca51382cf1f7bbefcd0761efbe99d41793fdef0f`**
 - Repository default branch reported by GitHub: **`main`**.
 - `Main`, `main-MARSEL-ROAPP` and `main-MARSEL-ROAPP-PROTECTION` are non-canonical compatibility/snapshot branches currently identical to `main`.
 - Canonical control plane: `.github/workflows/marsel-unified-control-plane.yml`
