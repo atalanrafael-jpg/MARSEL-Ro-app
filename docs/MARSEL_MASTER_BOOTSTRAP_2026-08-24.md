@@ -7,7 +7,7 @@ Status: historical control-point record, superseded by current `01_MASTER/*` doc
 
 Establish a fresh canonical control point for MARSEL / ROAPP without changing RO App production data.
 
-## Canonical system at current verification
+## Canonical system at historical checkpoint
 
 - Business contour: MARSEL
 - Technology contour: ROAPP
@@ -17,7 +17,7 @@ Establish a fresh canonical control point for MARSEL / ROAPP without changing RO
 - Canonical live audit workflow: `.github/workflows/marsel-unified-control-plane.yml`
 - Historical implementations are preserved under `06_ARCHIVE/`.
 
-## Verified current control facts
+## Historical control facts
 
 - Repository is active, public, not archived.
 - `main-MARSEL-ROAPP` is the default/canonical branch.
