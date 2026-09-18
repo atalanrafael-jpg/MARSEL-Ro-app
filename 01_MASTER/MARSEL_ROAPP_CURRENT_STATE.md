@@ -13,7 +13,7 @@
 - Superseded root master documents were migrated into `06_ARCHIVE/legacy-root/` and removed from the active root.
 - Canonical governance, agent instructions and static self-check were aligned to the technical canonical branch.
 - Production WRITE remains disabled.
-- Current canonical HEAD is `ca51382cf1f7bbefcd0761efbe99d41793fdef0f`.
+- Current verified non-documentation source checkpoint is `934bb8f8193b534ff21eb753b65310b47fce69f6`. Documentation-only commits after this checkpoint do not change the recorded code/safety state.
 - `Main`, `main-MARSEL-ROAPP` and `main-MARSEL-ROAPP-PROTECTION` are currently identical to `main`.
 
 ## Branch policy
