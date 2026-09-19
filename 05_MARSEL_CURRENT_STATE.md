@@ -3,7 +3,7 @@
 **Role:** single living project checkpoint. Update after every material verified change.
 
 ## DATE
-2026-09-19
+2026-09-20
 
 ## CURRENT VERSION
 MARSEL ROAPP unified control plane with production-safety hardening, canonical GitHub governance, automated evidence orchestration, deterministic control-agent state transitions, fail-closed production gating, dependency/lock alignment, security hardening, Chrome 153 compatibility hardening, and isolated optional Apple Core AI conversion path.
@@ -11,7 +11,7 @@ MARSEL ROAPP unified control plane with production-safety hardening, canonical G
 ## CONTROL CHECKPOINT
 - Canonical repository: `atalanrafael-jpg/MARSEL-Ro-app`.
 - Canonical branch: `main`.
-- Current application/code checkpoint: `4285253e204fd19269d5fda1782373705f500ef9`.
+- Current application/code checkpoint: `77e96c1dec0590ac2b2f14502da5f570a8f70419`.
 - Repository default branch: `main`.
 - Owner MVP vertical slice is present in `web/index.html` and served at `/app`; Supabase Auth/RLS integration is present.
 - Production WRITE remains disabled.
@@ -40,8 +40,8 @@ MARSEL ROAPP unified control plane with production-safety hardening, canonical G
 
 ## LATEST VERIFIED CI
 - Repository control records the latest verified Unified Control Plane and Execution Worker runs on application/code checkpoint `3eae5f89317e0cc4e928f7c7331958baaa789bf8`.
-- Current `main` advanced afterward through the Railway PORT fix and control/documentation updates to `4285253e204fd19269d5fda1782373705f500ef9`.
-- Repository control records Railway deployment `9ac3c585-acb5-42ce-ae69-2b65c6cf9338` as successful for current `main`, with `/health` HTTP 200 and Railway port handling verified.
+- Current `main` advanced afterward through the Railway PORT fix and control/documentation updates to `b29c80a9ec337111459ac22535ba67a529f251bb`, followed by the current control-checkpoint refresh commit `77e96c1dec0590ac2b2f14502da5f570a8f70419`.
+- Railway production deployment `c96d55ad-5966-48a4-9506-90ba20cd793c` is successful for current `main` commit `b29c80a9ec337111459ac22535ba67a529f251bb`.
 - Owner UI `/app` end-to-end browser verification remains NOT VERIFIED.
 - A successful historical CI run does not prove current live RO App API access, OAuth, MCP authorization, or production readiness.
 
@@ -71,7 +71,7 @@ MARSEL ROAPP unified control plane with production-safety hardening, canonical G
 - Apple Core AI Torch integration is configured and merged, but hardware/runtime verification remains outstanding.
 
 🔴 **BLOCKED / NOT VERIFIED**
-- Complete READ-ONLY backup/export evidence is now VERIFIED on current `main` checkpoint `2e00d5132278cfb7d37566dfca7ba07c99203fab` via Backup Evidence Producer run `35469023100`.
+- Complete READ-ONLY backup/export evidence is VERIFIED on prior current-main checkpoint `2e00d5132278cfb7d37566dfca7ba07c99203fab` via Backup Evidence Producer run `35469023100`.
 - Independently tested isolated restore/integrity is now VERIFIED via Restore Verification run `35469309884`: `RESTORE_EVIDENCE=PASS`, `RESTORED_RECORDS=10410`, `PRODUCTION_WRITE_ATTEMPTED=False`, `RO_APP_DATA_MUTATED=False`.
 - Fresh current-main unified evidence bundle is not established as production-gate evidence.
 - Gmail OAuth user-authorized verification is not complete.
