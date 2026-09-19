@@ -7,7 +7,7 @@
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`.
 - Technical canonical branch: `main`.
 - GitHub repository default branch: `main`.
-- `main` current commit: `c1ba02a950e7b210e7b07619edd2215541895e10`.
+- `main` current commit: `fe403449b68a8da20e5ee8a892fd19ac2427dec4`.
 - The compatibility branches `Main`, `main-MARSEL-ROAPP`, and `main-MARSEL-ROAPP-PROTECTION` were synchronized to the current `main` commit during this verification.
 - The active ruleset ID `21230907` is enforced, but its ref condition currently targets `refs/heads/main-MARSEL-ROAPP`, not `refs/heads/main`. This is a governance mismatch that remains to be corrected through GitHub administration.
 - Recent Actions triggered by the current `main` commit include successful `MARSEL Secret Guard` run `35471940141` and successful `Codex Plugin Validation` run `35471940062`.
