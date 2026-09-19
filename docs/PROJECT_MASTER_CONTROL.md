@@ -8,26 +8,33 @@
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`
 - Technical canonical branch: `main`
 - Repository default branch: `main`.
-- Current application/code checkpoint: **`3eae5f89317e0cc4e928f7c7331958baaa789bf8`**.
+- Current application/code checkpoint: **`8ffe4ec4a1ea2637ca80204c64d1b13be6ca494f`**.
 - Canonical control plane: `.github/workflows/marsel-unified-control-plane.yml`
 - Canonical control contract: `01_MASTER/MARSEL_ROAPP_CONTROL_PLANE_V2.md`
 - ChatGPT operating protocol: `docs/MARSEL_CHATGPT_OPERATING_PROTOCOL.md`
 - Repository validator: `scripts/marsel_control_plane_validate.py`
 - Current integration mode: READ-ONLY.
-- Owner MVP vertical slice is present in `web/index.html`, served at `/app`, with Supabase Auth/RLS integration; deployment evidence is still pending.
+- Owner MVP vertical slice is present in `web/index.html`, served at `/app`, with Supabase Auth/RLS integration.
 - Production WRITE: DISABLED.
 
-## Latest verified execution
-- GitHub Actions run **35394220647**, workflow **MARSEL Unified Control Plane**, executed on current application/code checkpoint `3eae5f89317e0cc4e928f7c7331958baaa789bf8` and completed **success** on 2026-09-18.
-- Its audit job completed successfully, including canonical structure/control-plane verification, RO App secret verification, READ-ONLY API inventory, data-quality, entity, product-collision and warehouse-contract audits, unified safety/quality evaluation, evidence creation/upload, immutable run marker, and quality-gate enforcement.
-- GitHub Actions run **35395707026**, workflow **MARSEL Execution Worker**, on the same checkpoint completed **success**; its READ-ONLY worker, RO App probe, auxiliary health probe, evidence upload and production-safety assertion all succeeded.
+## Latest repository changes
+Since the previously recorded application checkpoint `3eae5f89317e0cc4e928f7c7331958baaa789bf8`, `main` is **3 commits ahead** and contains:
+- deployment fix: listen on Railway `PORT` for healthcheck;
+- control fix: align restore evidence gate with producer schema;
+- control-state documentation refresh.
+
+The current `main` checkpoint is therefore `8ffe4ec4a1ea2637ca80204c64d1b13be6ca494f`.
+
+## Latest verified CI evidence
+- GitHub Actions run **35394220647**, workflow **MARSEL Unified Control Plane**, executed successfully on application/code checkpoint `3eae5f89317e0cc4e928f7c7331958baaa789bf8` on 2026-09-18.
+- GitHub Actions run **35395707026**, workflow **MARSEL Execution Worker**, executed successfully on the same checkpoint; its READ-ONLY worker, RO App probe, auxiliary health probe, evidence upload and production-safety assertion succeeded.
 - GitHub Actions run **35390149457**, MARSEL Production Gate, completed **skipped**. This is not production-readiness evidence.
+- No workflow run is currently directly evidenced here for the new `8ffe4ec4a1ea2637ca80204c64d1b13be6ca494f` checkpoint; deployment/healthcheck success after the PORT fix is therefore **NOT VERIFIED**.
 - No production WRITE was executed.
 
 ## Branch state
 - `main` is the only technical canonical branch.
 - `main-MARSEL-ROAPP`, `Main` and `main-MARSEL-ROAPP-PROTECTION` are non-canonical compatibility/snapshot branches and are currently aligned to the same commit as `main`.
-- Branch alignment was directly verified after synchronization.
 - Compatibility branches must not become independent development lines.
 
 ## Mandatory execution sequence
@@ -56,7 +63,7 @@
 - Production WRITE remains disabled and fail-closed.
 - Existing backup/export and isolated restore/integrity evidence is not to be repeated without a reason.
 - Observability/correlation is already recorded as verified under Issue #134.
-- Current unified-control-plane CI evidence is verified on the current application/code checkpoint.
+- Unified-control-plane CI evidence is verified on the previous application/code checkpoint, not yet on the latest deployment-fix checkpoint.
 
 ## Hard blockers for production readiness
 1. Fresh authorized RO App GET evidence for complete applicable API/entity coverage.
@@ -65,7 +72,7 @@
 4. Credential-exposure remediation under Issue #23.
 5. Official RO App MCP authorization.
 6. Gmail OAuth user authorization if the integration remains in scope.
-7. Verified production deployment target if required.
+7. Verified production deployment target and direct health/end-to-end evidence.
 8. Current Wix ↔ RO App reconciliation, mutation dry-run, idempotency and rollback evidence.
 9. GitHub account-level security/branch administration under Issue #91.
 10. Production WRITE remains disabled until every applicable safety gate passes and explicit authorization exists.
