@@ -8,7 +8,7 @@
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`
 - Technical canonical branch: `main`
 - Repository default branch: `main`.
-- Current application/code checkpoint: **`b29c80a9ec337111459ac22535ba67a529f251bb`**.
+- Current application/code checkpoint: **`2282ef546f755573fbbee8ea4c32e9ccf8ccacea`**.
 - Canonical control plane: `.github/workflows/marsel-unified-control-plane.yml`
 - Canonical control contract: `01_MASTER/MARSEL_ROAPP_CONTROL_PLANE_V2.md`
 - ChatGPT operating protocol: `docs/MARSEL_CHATGPT_OPERATING_PROTOCOL.md`
@@ -18,13 +18,13 @@
 - Production WRITE: DISABLED.
 
 ## Latest repository changes
-Since the previously recorded application checkpoint `4285253e204fd19269d5fda1782373705f500ef9`, `main` advanced through four control/documentation commits. The current `main` checkpoint is `b29c80a9ec337111459ac22535ba67a529f251bb`.
+Since the previously recorded application checkpoint `b29c80a9ec337111459ac22535ba67a529f251bb`, `main` advanced through four commits including the Gate A deployment verification workflow and Owner MVP contract tests. The current `main` checkpoint is `2282ef546f755573fbbee8ea4c32e9ccf8ccacea`.
 
 ## Latest verified CI evidence
 - GitHub Actions run **35394220647**, workflow **MARSEL Unified Control Plane**, executed successfully on application/code checkpoint `3eae5f89317e0cc4e928f7c7331958baaa789bf8` on 2026-09-18.
 - GitHub Actions run **35395707026**, workflow **MARSEL Execution Worker**, executed successfully on the same checkpoint; its READ-ONLY worker, RO App probe, auxiliary health probe, evidence upload and production-safety assertion succeeded.
 - GitHub Actions run **35390149457**, MARSEL Production Gate, completed **skipped**. This is not production-readiness evidence.
-- Railway production deployment for current `main` checkpoint `b29c80a9ec337111459ac22535ba67a529f251bb` is **VERIFIED**: deployment `c96d55ad-5966-48a4-9506-90ba20cd793c` completed `SUCCESS` on Railway production.
+- Railway production deployment for the previous `main` checkpoint `b29c80a9ec337111459ac22535ba67a529f251bb` is **VERIFIED**: deployment `c96d55ad-5966-48a4-9506-90ba20cd793c` completed `SUCCESS` on Railway production. The post-deployment Gate A smoke workflow has been merged but has not yet been run against the current deployment, so current `/health`, `/ready`, `/app` and `/app/config` end-to-end verification remains **NOT VERIFIED**.
 - Owner UI `/app` end-to-end browser verification is still **NOT VERIFIED**.
 - No production WRITE was executed.
 
