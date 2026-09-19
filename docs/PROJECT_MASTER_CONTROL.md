@@ -8,7 +8,7 @@
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`
 - Technical canonical branch: `main`
 - Repository default branch: `main`.
-- Current application/code checkpoint: **`8ffe4ec4a1ea2637ca80204c64d1b13be6ca494f`**.
+- Current application/code checkpoint: **`4285253e204fd19269d5fda1782373705f500ef9`**.
 - Canonical control plane: `.github/workflows/marsel-unified-control-plane.yml`
 - Canonical control contract: `01_MASTER/MARSEL_ROAPP_CONTROL_PLANE_V2.md`
 - ChatGPT operating protocol: `docs/MARSEL_CHATGPT_OPERATING_PROTOCOL.md`
@@ -18,18 +18,14 @@
 - Production WRITE: DISABLED.
 
 ## Latest repository changes
-Since the previously recorded application checkpoint `3eae5f89317e0cc4e928f7c7331958baaa789bf8`, `main` is **3 commits ahead** and contains:
-- deployment fix: listen on Railway `PORT` for healthcheck;
-- control fix: align restore evidence gate with producer schema;
-- control-state documentation refresh.
-
-The current `main` checkpoint is therefore `8ffe4ec4a1ea2637ca80204c64d1b13be6ca494f`.
+Since the previously recorded application checkpoint `3eae5f89317e0cc4e928f7c7331958baaa789bf8`, `main` advanced through the Railway PORT fix and the subsequent control/documentation commits. The current `main` checkpoint is `4285253e204fd19269d5fda1782373705f500ef9`.
 
 ## Latest verified CI evidence
 - GitHub Actions run **35394220647**, workflow **MARSEL Unified Control Plane**, executed successfully on application/code checkpoint `3eae5f89317e0cc4e928f7c7331958baaa789bf8` on 2026-09-18.
 - GitHub Actions run **35395707026**, workflow **MARSEL Execution Worker**, executed successfully on the same checkpoint; its READ-ONLY worker, RO App probe, auxiliary health probe, evidence upload and production-safety assertion succeeded.
 - GitHub Actions run **35390149457**, MARSEL Production Gate, completed **skipped**. This is not production-readiness evidence.
-- No workflow run is currently directly evidenced here for the new `8ffe4ec4a1ea2637ca80204c64d1b13be6ca494f` checkpoint; deployment/healthcheck success after the PORT fix is therefore **NOT VERIFIED**.
+- Railway production deployment for current `main` checkpoint `4285253e204fd19269d5fda1782373705f500ef9` is **VERIFIED**: deployment `9ac3c585-acb5-42ce-ae69-2b65c6cf9338` completed `SUCCESS`; `/health` returned HTTP 200 and the runtime listened on Railway-assigned port `8080`.
+- Owner UI `/app` end-to-end browser verification is still **NOT VERIFIED**.
 - No production WRITE was executed.
 
 ## Branch state
@@ -63,7 +59,7 @@ The current `main` checkpoint is therefore `8ffe4ec4a1ea2637ca80204c64d1b13be6ca
 - Production WRITE remains disabled and fail-closed.
 - Existing backup/export and isolated restore/integrity evidence is not to be repeated without a reason.
 - Observability/correlation is already recorded as verified under Issue #134.
-- Unified-control-plane CI evidence is verified on the previous application/code checkpoint, not yet on the latest deployment-fix checkpoint.
+- Unified-control-plane CI evidence is verified on an earlier application/code checkpoint; current Railway deployment/health is separately verified on `4285253e204fd19269d5fda1782373705f500ef9`.
 
 ## Hard blockers for production readiness
 1. Fresh authorized RO App GET evidence for complete applicable API/entity coverage.
