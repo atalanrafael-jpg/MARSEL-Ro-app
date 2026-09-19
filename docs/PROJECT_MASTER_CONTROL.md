@@ -8,7 +8,7 @@
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`
 - Technical canonical branch: `main`
 - Repository default branch: `main`.
-- Current application/code checkpoint: **`2282ef546f755573fbbee8ea4c32e9ccf8ccacea`**.
+- Current repository `main` checkpoint: **`75e4648e898cbc12e5bb517e5256685c2ca1385b`**.
 - Canonical control plane: `.github/workflows/marsel-unified-control-plane.yml`
 - Canonical control contract: `01_MASTER/MARSEL_ROAPP_CONTROL_PLANE_V2.md`
 - ChatGPT operating protocol: `docs/MARSEL_CHATGPT_OPERATING_PROTOCOL.md`
@@ -17,15 +17,16 @@
 - Owner MVP vertical slice is present in `web/index.html`, served at `/app`, with Supabase Auth/RLS integration.
 - Production WRITE: DISABLED.
 
-## Latest repository changes
-Since the previously recorded application checkpoint `b29c80a9ec337111459ac22535ba67a529f251bb`, `main` advanced through four commits including the Gate A deployment verification workflow and Owner MVP contract tests. The current `main` checkpoint is `2282ef546f755573fbbee8ea4c32e9ccf8ccacea`.
+## Latest repository state
+- The current `main` head is `75e4648e898cbc12e5bb517e5256685c2ca1385b`.
+- The head commit message is `docs(control): avoid stale hardcoded main SHA in current state`.
+- The previous recorded application checkpoint `2282ef546f755573fbbee8ea4c32e9ccf8ccacea` is historical and must not be treated as the current `main` head.
+- This file was reconciled against the live `main` branch on 2026-09-20.
 
-## Latest verified CI evidence
-- GitHub Actions run **35394220647**, workflow **MARSEL Unified Control Plane**, executed successfully on application/code checkpoint `3eae5f89317e0cc4e928f7c7331958baaa789bf8` on 2026-09-18.
-- GitHub Actions run **35395707026**, workflow **MARSEL Execution Worker**, executed successfully on the same checkpoint; its READ-ONLY worker, RO App probe, auxiliary health probe, evidence upload and production-safety assertion succeeded.
-- GitHub Actions run **35390149457**, MARSEL Production Gate, completed **skipped**. This is not production-readiness evidence.
-- Railway production deployment for the previous `main` checkpoint `b29c80a9ec337111459ac22535ba67a529f251bb` is **VERIFIED**: deployment `c96d55ad-5966-48a4-9506-90ba20cd793c` completed `SUCCESS` on Railway production. The post-deployment Gate A smoke workflow has been merged but has not yet been run against the current deployment, so current `/health`, `/ready`, `/app` and `/app/config` end-to-end verification remains **NOT VERIFIED**.
-- Owner UI `/app` end-to-end browser verification is still **NOT VERIFIED**.
+## Latest directly observed CI evidence
+- GitHub Actions run **35472191752**, workflow **MARSEL Production Gate**, is tied to current `main` head `75e4648e898cbc12e5bb517e5256685c2ca1385b` and completed **skipped**. This is **not** production-readiness evidence.
+- Earlier successful CI evidence remains historical unless tied to the current `main` checkpoint.
+- Current production deployment/end-to-end verification must not be inferred from repository state alone.
 - No production WRITE was executed.
 
 ## Branch state
@@ -60,7 +61,7 @@ Since the previously recorded application checkpoint `b29c80a9ec337111459ac22535
 - Production WRITE remains disabled and fail-closed.
 - Existing backup/export and isolated restore/integrity evidence is not to be repeated without a reason.
 - Observability/correlation is already recorded as verified under Issue #134.
-- Unified-control-plane CI evidence is verified on an earlier application/code checkpoint; current Railway deployment is separately verified on `b29c80a9ec337111459ac22535ba67a529f251bb`.
+- Current `main` repository state is verified at `75e4648e898cbc12e5bb517e5256685c2ca1385b`; successful CI from older checkpoints remains historical.
 
 ## Hard blockers for production readiness
 1. Fresh authorized RO App GET evidence for complete applicable API/entity coverage.
