@@ -30,8 +30,9 @@ Since the previously recorded application checkpoint `3eae5f89317e0cc4e928f7c733
 
 ## Branch state
 - `main` is the only technical canonical branch.
-- `main-MARSEL-ROAPP`, `Main` and `main-MARSEL-ROAPP-PROTECTION` are non-canonical compatibility/snapshot branches and are currently aligned to the same commit as `main`.
-- Compatibility branches must not become independent development lines.
+- `Main` and `main-MARSEL-ROAPP` are non-canonical stale branches, each 2 commits behind current `main` and 0 commits ahead.
+- `main-MARSEL-ROAPP-PROTECTION` is a non-canonical stale branch, 4 commits behind current `main` and 0 commits ahead.
+- Compatibility/snapshot branches must not become independent development lines. Deletion/retirement is a separate destructive safety-gated action and was NOT performed.
 
 ## Mandatory execution sequence
 1. READ current `main` and live project state.
@@ -55,7 +56,7 @@ Since the previously recorded application checkpoint `3eae5f89317e0cc4e928f7c733
 ## Current verified repository state
 - `main` is the technical canonical branch.
 - GitHub default branch is `main`.
-- Compatibility branches listed above are aligned to `main`.
+- Compatibility branches listed above are stale relative to current `main`; no branch content was modified or deleted in this audit.
 - Production WRITE remains disabled and fail-closed.
 - Existing backup/export and isolated restore/integrity evidence is not to be repeated without a reason.
 - Observability/correlation is already recorded as verified under Issue #134.
