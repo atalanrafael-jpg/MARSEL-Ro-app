@@ -31,6 +31,7 @@ MARSEL ROAPP unified control plane with production-safety hardening, canonical G
 - Chrome 153 also begins the two-week Stable release cadence; future browser compatibility checks should follow Beta-to-Stable cadence rather than waiting for four-week milestones.
 
 ## LATEST VERIFIED CHANGES
+- Backup/restore safety gate advanced to VERIFIED on current `main`: Backup Evidence Producer run `35469023100` succeeded and Restore Verification run `35469309884` succeeded against the generated artifact; restore was isolated and produced 10,410 restored records with zero production writes/mutations.
 - `8dacd5a9dbc779041899a4215ef48b565a0f2645` hardened `scripts/marsel_production_gate_v1.py` secret scanning with value-based patterns for credential-shaped API keys, client/private secrets, GitHub tokens, and private-key headers while avoiding harmless configuration-presence flags.
 - `c84825442857bb9cc51585093bac68d338fac7d1` added regression tests covering allowed configuration-presence flags and rejection of credential-shaped material without storing a real credential.
 - Earlier PR #130 was merged on 2026-09-07 and fixed current-main test collection by registering the dynamically loaded control-agent module in `sys.modules` before `exec_module()`.
@@ -70,8 +71,8 @@ MARSEL ROAPP unified control plane with production-safety hardening, canonical G
 - Apple Core AI Torch integration is configured and merged, but hardware/runtime verification remains outstanding.
 
 🔴 **BLOCKED / NOT VERIFIED**
-- Complete production backup is not proven.
-- Independently tested restore/integrity is not proven.
+- Complete READ-ONLY backup/export evidence is now VERIFIED on current `main` checkpoint `2e00d5132278cfb7d37566dfca7ba07c99203fab` via Backup Evidence Producer run `35469023100`.
+- Independently tested isolated restore/integrity is now VERIFIED via Restore Verification run `35469309884`: `RESTORE_EVIDENCE=PASS`, `RESTORED_RECORDS=10410`, `PRODUCTION_WRITE_ATTEMPTED=False`, `RO_APP_DATA_MUTATED=False`.
 - Fresh current-main unified evidence bundle is not established as production-gate evidence.
 - Gmail OAuth user-authorized verification is not complete.
 - Official RO App MCP authorization is not complete.
