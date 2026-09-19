@@ -1,0 +1,51 @@
+name: MARSEL Owner MVP Gate A
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_url:
+        description: "Deployed Owner MVP base URL"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify deployment endpoints
+        env:
+          DEPLOY_URL: ${{ inputs.deploy_url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="${DEPLOY_URL%/}"
+
+          health="$(curl -fsSL --retry 3 --max-time 20 "$base/health")"
+          ready="$(curl -fsSL --retry 3 --max-time 20 "$base/ready")"
+          app="$(curl -fsSL --retry 3 --max-time 20 "$base/app")"
+          config="$(curl -fsSL --retry 3 --max-time 20 "$base/app/config")"
+
+          echo "health=$health"
+          echo "ready=$ready"
+          echo "config=$config"
+
+          python - <<'PY' "$health" "$ready" "$app" "$config"
+          import json, sys
+
+          health = json.loads(sys.argv[1])
+          ready = json.loads(sys.argv[2])
+          app = sys.argv[3]
+          config = json.loads(sys.argv[4])
+
+          assert health.get("status") == "ok", health
+          assert ready.get("service") == "marsel-roapp-connector", ready
+          assert "MARSEL ROAPP" in app, "Owner UI marker missing"
+          assert "supabase_url" in config, config
+          assert "supabase_publishable_key" in config, config
+          forbidden = ("ROAPP_API_KEY", "roapp_api_key", "marsel_internal_api_key")
+          assert not any(k in config for k in forbidden), config
+          print("Gate A deployment smoke: PASS")
+          PY
