@@ -3,7 +3,7 @@
 **Role:** single living project checkpoint. Update after every material verified change.
 
 ## DATE
-2026-09-11
+2026-09-19
 
 ## CURRENT VERSION
 MARSEL ROAPP unified control plane with production-safety hardening, canonical GitHub governance, automated evidence orchestration, deterministic control-agent state transitions, fail-closed production gating, dependency/lock alignment, security hardening, Chrome 153 compatibility hardening, and isolated optional Apple Core AI conversion path.
@@ -11,11 +11,13 @@ MARSEL ROAPP unified control plane with production-safety hardening, canonical G
 ## CONTROL CHECKPOINT
 - Canonical repository: `atalanrafael-jpg/MARSEL-Ro-app`.
 - Canonical branch: `main`.
-- Current repository `main` HEAD before this compatibility change: `519113faf1f7e3fa1d3fc137a944248826a2aaae`.
-- Latest verified application/code HEAD before this compatibility change: `c84825442857bb9cc51585093bac68d338fac7d1`.
-- Chrome 153 compatibility work is isolated on branch `fix/chrome-153-compatibility` pending CI verification and PR review; `main` is not modified by this change.
+- Current application/code checkpoint: `4285253e204fd19269d5fda1782373705f500ef9`.
+- Repository default branch: `main`.
+- Owner MVP vertical slice is present in `web/index.html` and served at `/app`; Supabase Auth/RLS integration is present.
 - Production WRITE remains disabled.
-- Live repository metadata previously reported `main` as unprotected and required status checks not configured at branch level; this remains an account/repository administration gate until freshly verified as changed.
+- Current integration mode: READ-ONLY.
+- Compatibility branches are not independent development lines.
+- The authoritative current control checkpoint is `docs/PROJECT_MASTER_CONTROL.md`; this file is the living project-state mirror and must not retain older checkpoints after a material main update.
 
 ## CHROME 153 COMPATIBILITY
 - Official Chrome 153 Stable release date: 2026-09-08.
@@ -36,11 +38,11 @@ MARSEL ROAPP unified control plane with production-safety hardening, canonical G
 - No production WRITE was introduced by these changes.
 
 ## LATEST VERIFIED CI
-- Test workflow run `34129874333` completed successfully on verified application/code HEAD `c84825442857bb9cc51585093bac68d338fac7d1`.
-- Scheduled `AI: generate drafts` run `34134525448` also completed successfully on the same verified application/code HEAD.
-- No CI result is currently verified for documentation commit `519113faf...`; its combined-status endpoint is empty.
-- Chrome 153 compatibility CI is pending on branch `fix/chrome-153-compatibility`.
-- CI success proves only the tested repository/workflow paths. It does not prove current live RO App API access, backup/restore, OAuth, MCP authorization, or production readiness.
+- Repository control records the latest verified Unified Control Plane and Execution Worker runs on application/code checkpoint `3eae5f89317e0cc4e928f7c7331958baaa789bf8`.
+- Current `main` advanced afterward through the Railway PORT fix and control/documentation updates to `4285253e204fd19269d5fda1782373705f500ef9`.
+- Repository control records Railway deployment `9ac3c585-acb5-42ce-ae69-2b65c6cf9338` as successful for current `main`, with `/health` HTTP 200 and Railway port handling verified.
+- Owner UI `/app` end-to-end browser verification remains NOT VERIFIED.
+- A successful historical CI run does not prove current live RO App API access, OAuth, MCP authorization, or production readiness.
 
 ## LATEST LIVE GATE FINDING
 - The production control plane remains fail-closed and READ_ONLY.
@@ -79,19 +81,16 @@ MARSEL ROAPP unified control plane with production-safety hardening, canonical G
 - Production WRITE is not authorized.
 
 ## CURRENT EXECUTION QUEUE
-1. Merge the Chrome 153 compatibility guard only after its CI run passes and the PR is reviewed.
-2. Ensure `ROAPP_API_KEY` is present only in approved GitHub Actions/environment secret storage, then run fresh live warehouse evidence verification.
-3. Verify the fresh READ-ONLY warehouse result and evidence artifact on current `main`.
-4. Prove complete backup/export and independently tested restore/integrity.
-5. Complete current API/entity verification from authoritative contracts and verified identifiers.
-6. Complete Gmail OAuth read-only user authorization test.
-7. Complete official RO App MCP authorization verification.
-8. Complete credential-exposure remediation evidence for Issue #23, including rotation/revocation evidence where required.
-9. Enable and verify GitHub `main` protection, secret scanning/push protection, production environment controls, and required status checks through account/repository administration.
-10. Reconcile stale/open remediation issues and PRs against current `main`; do not merge stale branches without revalidation.
-11. Review the 12 Supabase unused-index INFO findings using actual query workload before any index removal.
-12. On a physical Apple Silicon host, run the documented Core AI conversion/runtime verification and attach fresh evidence; do not claim hardware verification from CI alone.
-13. Only after all applicable evidence gates pass, evaluate production safety gate. Production WRITE remains disabled until explicit authorization.
+1. Directly verify the deployed Owner UI `/app` end-to-end.
+2. Obtain fresh authorized RO App GET evidence for applicable API/entity coverage.
+3. Obtain fresh authoritative warehouse/stock contract evidence.
+4. Complete current duplicate/reference reconciliation.
+5. Complete credential-exposure remediation evidence for Issue #23.
+6. Complete official RO App MCP authorization verification.
+7. Complete Gmail OAuth read-only authorization if integration remains in scope.
+8. Complete current Wix ↔ RO App reconciliation, mutation dry-run, idempotency and rollback evidence.
+9. Verify GitHub account-level security/branch administration under Issue #91.
+10. Keep production WRITE disabled until every applicable safety gate passes and explicit authorization exists.
 
 ## SAFETY
 - `MARSEL_WRITE_APPROVED=false` remains mandatory.
