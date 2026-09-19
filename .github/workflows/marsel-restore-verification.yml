@@ -51,7 +51,8 @@ jobs:
           import json
           d=json.load(open('restore_evidence.json', encoding='utf-8'))
           assert d['status']=='PASS'
-          assert d['mode']=='ISOLATED_LOCAL_STAGING_RESTORE'
+          assert d['operation']=='restore/verification'
+          assert d['target_environment']=='isolated-local-staging'
           assert d['production_write_attempted'] is False
           assert d['ro_app_data_mutated'] is False
           assert d['restored_records'] >= 0
