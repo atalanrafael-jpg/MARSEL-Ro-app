@@ -39,11 +39,12 @@ MARSEL ROAPP unified control plane with production-safety hardening, canonical G
 - No production WRITE was introduced by these changes.
 
 ## LATEST VERIFIED CI
-- Repository control records the latest verified Unified Control Plane and Execution Worker runs on application/code checkpoint `3eae5f89317e0cc4e928f7c7331958baaa789bf8`.
-- Current `main` advanced afterward through the Railway PORT fix and control/documentation updates to `b29c80a9ec337111459ac22535ba67a529f251bb`, followed by the current control-checkpoint refresh commit `77e96c1dec0590ac2b2f14502da5f570a8f70419`.
-- Railway production deployment `c96d55ad-5966-48a4-9506-90ba20cd793c` is successful for current `main` commit `b29c80a9ec337111459ac22535ba67a529f251bb`.
+- Current `main` HEAD verified on 2026-09-21: `40c2e5def74712b5af68fe1bd1f7419622ee4d54`.
+- MARSEL Execution Worker run `35564633047` completed successfully on current `main`.
+- MARSEL Live Integration Probes run `35564226245` completed successfully on current `main`.
+- Main branch protection is present, but required status-check enforcement is currently not verified as enabled.
 - Owner UI `/app` end-to-end browser verification remains NOT VERIFIED.
-- A successful historical CI run does not prove current live RO App API access, OAuth, MCP authorization, or production readiness.
+- These CI results do not prove current external RO App API authorization, Wix reconciliation, staging mutation/rollback evidence, MCP/OAuth authorization, or production readiness.
 
 ## LATEST LIVE GATE FINDING
 - The production control plane remains fail-closed and READ_ONLY.
