@@ -3,7 +3,7 @@
 **Role:** single living project checkpoint. Update after every material verified change.
 
 ## DATE
-2026-09-20
+2026-09-22
 
 ## CURRENT VERSION
 MARSEL ROAPP unified control plane with production-safety hardening, canonical GitHub governance, automated evidence orchestration, deterministic control-agent state transitions, fail-closed production gating, dependency/lock alignment, security hardening, Chrome 153 compatibility hardening, and isolated optional Apple Core AI conversion path.
@@ -11,7 +11,7 @@ MARSEL ROAPP unified control plane with production-safety hardening, canonical G
 ## CONTROL CHECKPOINT
 - Canonical repository: `atalanrafael-jpg/MARSEL-Ro-app`.
 - Canonical branch: `main`.
-- Current application/code checkpoint: `b29c80a9ec337111459ac22535ba67a529f251bb`.
+- Current application/code checkpoint: `a0017dca61c1648ac71c4d354b65fb6a43ecdea2` (verified current `main` HEAD on 2026-09-22).
 - Repository default branch: `main`.
 - Owner MVP vertical slice is present in `web/index.html` and served at `/app`; Supabase Auth/RLS integration is present.
 - Production WRITE remains disabled.
@@ -39,10 +39,13 @@ MARSEL ROAPP unified control plane with production-safety hardening, canonical G
 - No production WRITE was introduced by these changes.
 
 ## LATEST VERIFIED CI
-- Current `main` HEAD verified on 2026-09-21: `40c2e5def74712b5af68fe1bd1f7419622ee4d54`.
-- MARSEL Execution Worker run `35564633047` completed successfully on current `main`.
-- MARSEL Live Integration Probes run `35564226245` completed successfully on current `main`.
-- Main branch protection is present, but required status-check enforcement is currently not verified as enabled.
+- Current `main` HEAD verified on 2026-09-22: `a0017dca61c1648ac71c4d354b65fb6a43ecdea2` (`docs: refresh MARSEL current-state checkpoint`).
+- MARSEL Execution Worker run `35604945102` completed successfully on current `main`.
+- MARSEL Live Integration Probes run `35604294826` completed successfully on current `main`.
+- MARSEL Unified Control Plane run `35602475529` completed successfully; its READ-ONLY inventory, data-quality, entity, product-collision, and warehouse-contract audit steps all completed successfully.
+- MARSEL Backup Evidence Producer run `35603172867` failed at `Run full READ-ONLY export`; evidence build/upload and restore-verification jobs were skipped. Therefore the older backup/restore evidence remains historical and must not be promoted to current-main evidence.
+- MARSEL Production Gate run `35603572666` was skipped after the prerequisite evidence path failed.
+- Main branch protection endpoint is not accessible through the current GitHub connector (HTTP 403). A repository ruleset named `main` is active but contains no rules; the separate ruleset `main MARSEL ROAPP PROTECTION` is active only for legacy `main-MARSEL-ROAPP`, not canonical `main`.
 - Owner UI `/app` end-to-end browser verification remains NOT VERIFIED.
 - These CI results do not prove current external RO App API authorization, Wix reconciliation, staging mutation/rollback evidence, MCP/OAuth authorization, or production readiness.
 
@@ -72,13 +75,13 @@ MARSEL ROAPP unified control plane with production-safety hardening, canonical G
 - Apple Core AI Torch integration is configured and merged, but hardware/runtime verification remains outstanding.
 
 🔴 **BLOCKED / NOT VERIFIED**
-- Complete READ-ONLY backup/export evidence is VERIFIED on prior current-main checkpoint `2e00d5132278cfb7d37566dfca7ba07c99203fab` via Backup Evidence Producer run `35469023100`.
-- Independently tested isolated restore/integrity is now VERIFIED via Restore Verification run `35469309884`: `RESTORE_EVIDENCE=PASS`, `RESTORED_RECORDS=10410`, `PRODUCTION_WRITE_ATTEMPTED=False`, `RO_APP_DATA_MUTATED=False`.
+- Backup/export and restore evidence from runs `35469023100` / `35469309884` remains VERIFIED as historical evidence, but the fresh current-main backup attempt `35603172867` failed before evidence generation. It is therefore not current production-gate evidence.
+- Current unified READ-ONLY control-plane run `35602475529` succeeded, but this does not establish the missing external pre-write evidence set.
 - Fresh current-main unified evidence bundle is not established as production-gate evidence.
 - Gmail OAuth user-authorized verification is not complete.
 - Official RO App MCP authorization is not complete.
 - Credential-exposure remediation tracked by Issue #23 is not closed by direct evidence.
-- GitHub `main` branch protection and required status checks are not verified as enabled.
+- Canonical `main` required status-check enforcement is not verified as enabled; the active ruleset with explicit required checks targets legacy `main-MARSEL-ROAPP`, while the active `main` ruleset currently has no rules.
 - Account-level secret-scanning/push-protection, production environment controls, and Copilot controls are not independently verified through the available connector surface.
 - Production WRITE is not authorized.
 
