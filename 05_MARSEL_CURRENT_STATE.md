@@ -11,7 +11,7 @@ MARSEL ROAPP unified control plane with production-safety hardening, canonical G
 ## CONTROL CHECKPOINT
 - Canonical repository: `atalanrafael-jpg/MARSEL-Ro-app`.
 - Canonical branch: `main`.
-- Current application/code checkpoint: `a0017dca61c1648ac71c4d354b65fb6a43ecdea2` (verified current `main` HEAD on 2026-09-22).
+- Current application/code checkpoint: `3a3a364fb31240cd7a86b9767f7f004d236a98c5` (latest verified code HEAD before this documentation update).
 - Repository default branch: `main`.
 - Owner MVP vertical slice is present in `web/index.html` and served at `/app`; Supabase Auth/RLS integration is present.
 - Production WRITE remains disabled.
@@ -39,11 +39,11 @@ MARSEL ROAPP unified control plane with production-safety hardening, canonical G
 - No production WRITE was introduced by these changes.
 
 ## LATEST VERIFIED CI
-- Current `main` HEAD verified on 2026-09-22: `a0017dca61c1648ac71c4d354b65fb6a43ecdea2` (`docs: refresh MARSEL current-state checkpoint`).
+- Latest verified code HEAD before this documentation update: `3a3a364fb31240cd7a86b9767f7f004d236a98c5` (`fix(backup): stop pagination on non-paginated GET responses`).
 - MARSEL Execution Worker run `35604945102` completed successfully on current `main`.
 - MARSEL Live Integration Probes run `35604294826` completed successfully on current `main`.
 - MARSEL Unified Control Plane run `35602475529` completed successfully; its READ-ONLY inventory, data-quality, entity, product-collision, and warehouse-contract audit steps all completed successfully.
-- MARSEL Backup Evidence Producer run `35603172867` failed at `Run full READ-ONLY export`; evidence build/upload and restore-verification jobs were skipped. Therefore the older backup/restore evidence remains historical and must not be promoted to current-main evidence.
+- MARSEL Backup Evidence Producer run `35603172867` failed at `Run full READ-ONLY export` on the pre-fix code path; evidence build/upload and restore-verification jobs were skipped. The subsequent code fix `3a3a364fb31240cd7a86b9767f7f004d236a98c5` changes pagination handling, but a fresh post-fix workflow run is still required before current-main backup evidence can be promoted.
 - MARSEL Production Gate run `35603572666` was skipped after the prerequisite evidence path failed.
 - Main branch protection endpoint is not accessible through the current GitHub connector (HTTP 403). A repository ruleset named `main` is active but contains no rules; the separate ruleset `main MARSEL ROAPP PROTECTION` is active only for legacy `main-MARSEL-ROAPP`, not canonical `main`.
 - Owner UI `/app` end-to-end browser verification remains NOT VERIFIED.
@@ -52,6 +52,7 @@ MARSEL ROAPP unified control plane with production-safety hardening, canonical G
 ## LATEST LIVE GATE FINDING
 - The production control plane remains fail-closed and READ_ONLY.
 - The latest documented warehouse evidence gate remains dependent on a repository/environment `ROAPP_API_KEY` being available to the workflow and on fresh live verification.
+- Backup pagination handling was corrected on `3a3a364fb31240cd7a86b9767f7f004d236a98c5`; post-fix execution is pending.
 - Historical warehouse-list evidence is not promoted to current live evidence.
 - No fallback, synthetic key, bypass, or production WRITE was introduced.
 
