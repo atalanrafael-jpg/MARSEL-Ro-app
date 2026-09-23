@@ -1,18 +1,26 @@
 # MARSEL ROAPP — MASTER PROJECT CONTROL
 
 ## Purpose
-Единая контрольная точка проекта: техническое состояние RO App integration, качество данных, безопасность, бизнес-автоматизация и коммерческий контур MARSEL.
+Единая контрольная точка проекта: техническое состояние RO App integration, качество данных, безопасность, бизнес-автоматизация, deployment и коммерческий контур MARSEL.
 
 ## Canonical state — 2026-09-09
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`
 - Branch: `main`
 - Current repository `main` HEAD: `238d1c7121d902ae3bdacf59b33525b585c79090`.
 - Latest commit: `security: harden MARSEL ROAPP connector boundary`.
+## Canonical state — 2026-09-20
+- System: **MARSEL ROAPP** — единая каноническая система.
+- Repository: `atalanrafael-jpg/MARSEL-Ro-app`
+- Technical canonical branch: `main`
+- Repository default branch: `main`.
+- Current repository `main` checkpoint: **`75e4648e898cbc12e5bb517e5256685c2ca1385b`**.
+- Canonical control plane: `.github/workflows/marsel-unified-control-plane.yml`
+- Canonical control contract: `01_MASTER/MARSEL_ROAPP_CONTROL_PLANE_V2.md`
+- ChatGPT operating protocol: `docs/MARSEL_CHATGPT_OPERATING_PROTOCOL.md`
+- Repository validator: `scripts/marsel_control_plane_validate.py`
 - Current integration mode: READ-ONLY.
+- Owner MVP vertical slice is present in `web/index.html`, served at `/app`, with Supabase Auth/RLS integration.
 - Production WRITE: DISABLED.
-- Canonical live audit workflow: `.github/workflows/marsel-unified-control-plane.yml`.
-- Canonical warehouse implementation: `scripts/marsel_warehouse_contract_v20_48.py`.
-- Historical implementations and snapshots do not override current evidence.
 
 ## Latest verified CI
 - Earlier verified application/code checkpoint `c84825442857bb9cc51585093bac68d338fac7d1` had successful test/control-plane runs.
@@ -112,4 +120,4 @@ A gate is `PASS` only when current direct evidence exists. `PLANNED`, `CODED`, `
 Never claim backup, restore, reconciliation, security rotation, OAuth, MCP authorization or WRITE readiness without direct evidence. Never guess an API endpoint or identifier. Never execute a production mutation merely to make a test green. Never expose or commit `ROAPP_API_KEY`.
 
 ## Continuation rule
-Every execution starts from this file and the current `main` checkpoint, verifies current CI/live evidence, fixes the next highest-priority safe defect, records the result, and repeats until all required gates are PASS or an external blocker is documented.
+Every execution starts from this file and the latest verified `main` checkpoint. Verify current evidence, fix the highest-priority safe defect, verify the result, update this checkpoint when repository state changes, and continue. If an external authorization or secret is required and unavailable to connected tools, mark the gate BLOCKED/NOT VERIFIED rather than simulating completion.

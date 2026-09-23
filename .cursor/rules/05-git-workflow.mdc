@@ -1,0 +1,14 @@
+---
+alwaysApply: true
+---
+
+# Git Workflow
+
+Never modify main directly.
+
+Use:
+branch → focused change → verification → pull request → review → merge
+
+Do not close Issues automatically unless the implemented change and verification evidence are linked to the issue.
+
+Keep commits focused and avoid unrelated refactors.

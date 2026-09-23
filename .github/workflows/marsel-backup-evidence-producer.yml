@@ -99,12 +99,73 @@ jobs:
           PY
 
       - name: Upload backup evidence
-        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: marsel-backup-evidence
           path: |
             backup_evidence.json
             marsel-full-readonly-backup-v1.json
+          if-no-files-found: error
+          retention-days: 90
+
+  restore-verification:
+    needs: backup-evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Download backup evidence
+        uses: actions/download-artifact@v8
+        with:
+          name: marsel-backup-evidence
+          path: backup
+
+      - name: Verify local backup inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f backup/marsel-full-readonly-backup-v1.json
+          test -f backup/backup_evidence.json
+
+      - name: Restore into isolated staging database
+        env:
+          MARSEL_FULL_BACKUP_INPUT: backup/marsel-full-readonly-backup-v1.json
+          MARSEL_BACKUP_EVIDENCE_INPUT: backup/backup_evidence.json
+          MARSEL_RESTORE_DB: marsel-restore-staging.sqlite
+          MARSEL_RESTORE_EVIDENCE_OUTPUT: restore_evidence.json
+        run: python scripts/marsel_restore_verify_v1.py
+
+      - name: Verify restore evidence
+        run: |
+          python - <<'PY'
+          import json
+          d=json.load(open('restore_evidence.json', encoding='utf-8'))
+          assert d['status']=='PASS'
+          assert d['readonly'] is True
+          assert d['write_requests_made']==0
+          assert d['ro_app_data_mutated'] is False
+          assert d['target_environment']=='isolated-local-staging'
+          assert d['restore_result']=='PASS'
+          assert d['verification_result']=='PASS'
+          assert d['production_write_attempted'] is False
+          assert d['restored_records'] >= 0
+          assert d['backup_sha256']
+          assert d['sha256']
+          print('RESTORE_VERIFICATION=PASS')
+          print('TARGET_ENVIRONMENT=isolated-local-staging')
+          print('PRODUCTION_WRITE_ATTEMPTED=False')
+          print('RO_APP_DATA_MUTATED=False')
+          print(f"RESTORED_RECORDS={d['restored_records']}")
+          PY
+
+      - name: Upload restore evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: marsel-restore-evidence
+          path: |
+            restore_evidence.json
+            marsel-restore-staging.sqlite
           if-no-files-found: error
           retention-days: 90

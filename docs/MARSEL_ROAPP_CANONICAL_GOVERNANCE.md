@@ -1,6 +1,6 @@
 # MARSEL ROAPP — Canonical Governance
 
-Date: 2026-09-09
+Date: 2026-09-13
 
 ## 1. Single system
 
@@ -10,13 +10,14 @@ MARSEL ROAPP is one system:
 - Technology contour: **ROAPP**
 - Canonical repository: `atalanrafael-jpg/MARSEL-Ro-app`
 - Canonical branch: `main`
+- `main` is the technical canonical branch and current execution source.
 - Canonical live audit control plane: `.github/workflows/marsel-unified-control-plane.yml`
 
 No other repository, branch, workflow, application, integration, deployment, test suite, or document may silently become a competing MARSEL ROAPP source of truth.
 
 ## 2. Branch policy
 
-`main` is the only canonical integration branch.
+`main` is the current canonical integration branch.
 
 All other branches are temporary working branches and must have a documented MARSEL ROAPP purpose. They are not independent project sources.
 
@@ -24,9 +25,8 @@ Branch classes:
 
 - `chore/*`, `fix/*`, `feat/*`, `feature/*`, `docs/*`, `ci/*`, `automation/*`, `audit/*`, `codex/*`, `cloudflare/*`, `erp-*`, `act/*`, `agent/*`, `ai/*`, and security branches: temporary project work only.
 - `backup/*`: historical recovery points only; never a source of truth.
-- `старые данные/*` is repository historical material, not a live source of truth.
 
-A temporary branch must not be treated as production state until its changes are reviewed and integrated into `main`.
+A temporary branch must not be treated as production state until its changes are reviewed and integrated into the canonical branch.
 
 ## 3. Workflow policy
 
@@ -62,7 +62,7 @@ Required evidence before controlled production WRITE remains:
 
 ## 7. Consolidation rule
 
-Do not delete or merge branches solely because their names overlap. First inspect their commits, PRs, workflow impact, unique fixes, evidence, and whether their changes are already present in `main`.
+Do not delete or merge branches solely because their names overlap. First inspect their commits, PRs, workflow impact, unique fixes, evidence, and whether their changes are already present in the canonical branch.
 
 The consolidation target is:
 
@@ -85,5 +85,3 @@ Every project artifact must be traceable to:
 `MARSEL ROAPP → repository → branch/commit → task/PR → test/evidence → verification → result`
 
 Anything that cannot be traced through this chain is not an authoritative MARSEL ROAPP result.
-
-main is the only canonical integration branch.

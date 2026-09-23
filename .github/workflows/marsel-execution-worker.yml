@@ -2,6 +2,13 @@ name: MARSEL Execution Worker
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/marsel-execution-worker.yml'
+      - 'config/marsel-execution-manifest.yml'
+      - 'scripts/**'
   schedule:
     - cron: '43 */6 * * *'
   pull_request:
@@ -41,7 +48,40 @@ jobs:
         shell: bash
         run: python scripts/marsel_canonical_self_check.py
 
-      - name: Run deterministic health/audit probe with retry
+      - name: Run RO App read-only API probe
+        if: github.event_name != 'pull_request'
+        shell: bash
+        env:
+          ROAPP_API_KEY: ${{ secrets.ROAPP_API_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$ROAPP_API_KEY" || { echo 'ROAPP_API_KEY secret is not configured'; exit 1; }
+          python - <<'PY'
+          import json, os, ssl
+          from urllib.request import Request, urlopen
+          url = 'https://api.roapp.io/v2/orders?page=1'
+          req = Request(url, method='GET', headers={
+              'Authorization': f'Bearer {os.environ["ROAPP_API_KEY"]}',
+              'Accept': 'application/json',
+              'User-Agent': 'MARSEL-ROAPP-Execution-Worker/1.0',
+          })
+          with urlopen(req, timeout=20, context=ssl.create_default_context()) as r:
+              status = r.status
+              content_type = r.headers.get('Content-Type', '')
+              payload = json.loads(r.read().decode('utf-8'))
+          if not (200 <= status < 300):
+              raise SystemExit(f'ROAPP_API_HTTP_STATUS={status}')
+          if not isinstance(payload, dict):
+              raise SystemExit('ROAPP_API_RESPONSE_SHAPE=INVALID')
+          print('ROAPP_API_READONLY=PASS')
+          print(f'ROAPP_API_HTTP_STATUS={status}')
+          print(f'ROAPP_API_CONTENT_TYPE={content_type}')
+          print('ROAPP_API_RESPONSE_SHAPE=dict')
+          print('ROAPP_WRITE_REQUESTS_MADE=0')
+          print('ROAPP_DATA_MUTATED=false')
+          PY
+
+      - name: Run deterministic auxiliary health probe with retry
         shell: bash
         env:
           ROAPP_HEALTH_URL: ${{ vars.ROAPP_HEALTH_URL }}
@@ -78,7 +118,7 @@ jobs:
           from pathlib import Path
           src = Path('artifacts/marsel-live-probes.json')
           out = {
-              'schema': 'marsel-execution-worker/v1',
+              'schema': 'marsel-execution-worker/v1.1',
               'project': 'MARSEL ROAPP',
               'generated_at': datetime.now(timezone.utc).isoformat(),
               'readonly': True,

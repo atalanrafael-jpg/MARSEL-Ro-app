@@ -40,6 +40,8 @@ class Settings(BaseSettings):
     mcp_auth_issuer: str = ""
     mcp_auth_jwks_url: str = ""
     mcp_required_scopes: list[str] = Field(default_factory=list)
+    supabase_url: str = "https://wdbytmvzuensuuoquvav.supabase.co"
+    supabase_publishable_key: str = ""
 
     model_config = SettingsConfigDict(
         env_file=".env",

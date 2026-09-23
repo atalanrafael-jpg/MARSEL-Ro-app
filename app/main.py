@@ -4,12 +4,15 @@ import secrets
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
+import httpx
 from fastapi import Depends, FastAPI, Header, HTTPException, Query
+from fastapi.responses import HTMLResponse, JSONResponse
 
 from .audit import audit_order_pages
 from .config import settings
 from .mcp_auth import JWTTokenVerifier
 from .mcp_server import create_mcp_server
+from .observability import observability_middleware
 from .roapp_client import RoAppClient
 
 
@@ -50,10 +53,11 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(
-    title="MARSEL RO App Connector",
-    version="0.4.1",
+    title="MARSEL ROAPP Connector",
+    version="0.5.0",
     lifespan=lifespan,
 )
+app.middleware("http")(observability_middleware)
 
 if mcp_http is not None:
     app.mount("/mcp", mcp_http.streamable_http_app())
@@ -66,6 +70,40 @@ def require_internal_auth(x_marsel_api_key: str | None = Header(default=None)) -
         raise HTTPException(status_code=503, detail="MARSEL connector authentication is not configured")
     if not x_marsel_api_key or not secrets.compare_digest(x_marsel_api_key, configured):
         raise HTTPException(status_code=401, detail="Unauthorized")
+
+
+async def require_supabase_user(authorization: str | None = Header(default=None)) -> dict:
+    """Verify the caller's Supabase Auth access token against the Auth service."""
+    if not authorization or not authorization.lower().startswith("bearer "):
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    token = authorization[7:].strip()
+    if not token:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    if not settings.supabase_url or not settings.supabase_publishable_key:
+        raise HTTPException(status_code=503, detail="Supabase authentication is not configured")
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(
+                f"{settings.supabase_url.rstrip('/')}/auth/v1/user",
+                headers={
+                    "apikey": settings.supabase_publishable_key,
+                    "Authorization": f"Bearer {token}",
+                },
+            )
+    except httpx.HTTPError as exc:
+        raise HTTPException(status_code=503, detail="Authentication service unavailable") from exc
+
+    if response.status_code != 200:
+        raise HTTPException(status_code=401, detail="Invalid or expired authentication")
+
+    data = response.json()
+    if not data.get("id"):
+        raise HTTPException(status_code=401, detail="Invalid authentication")
+
+    return data
 
 
 @app.get("/health")
@@ -81,6 +119,29 @@ def ready():
         "service": "marsel-roapp-connector",
         "version": app.version,
         "mcp_http_enabled": settings.mcp_http_enabled,
+    }
+
+
+@app.get("/app", response_class=HTMLResponse)
+def owner_app():
+    from pathlib import Path
+    path = Path(__file__).resolve().parent.parent / "web" / "index.html"
+    return HTMLResponse(path.read_text(encoding="utf-8"))
+
+
+@app.get("/app/config", response_class=JSONResponse)
+def owner_app_config():
+    return {"supabase_url": settings.supabase_url, "supabase_publishable_key": settings.supabase_publishable_key}
+
+
+@app.get("/app/session", response_class=JSONResponse)
+async def owner_app_session(user: dict = Depends(require_supabase_user)):
+    return {
+        "authenticated": True,
+        "user": {
+            "id": user.get("id"),
+            "email": user.get("email"),
+        },
     }
 
 

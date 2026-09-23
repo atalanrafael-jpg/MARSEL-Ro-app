@@ -1,3 +1,11 @@
+# Archived legacy root document
+
+Original path: `04_MARSEL_LEGAL_FINANCE_MASTER.md`
+Archived from: `main-MARSEL-ROAPP`
+Reason: superseded by `01_MASTER/*` + `02_MARSEL/*` canonical control plane.
+
+---
+
 # 04_MARSEL_LEGAL_FINANCE_MASTER
 
 **Purpose:** legal/tax and financial control layer. This is a verification register and research base, not a registration, filing, disclosure, or authorization mechanism.

@@ -18,7 +18,7 @@ This registry is a **control plane**, not a claim that every integration is conn
 
 | Domain | System | Role | Status | Evidence / owner action |
 |---|---|---|---|---|
-| Source | GitHub | Canonical source repository | VERIFIED | `atalanrafael-jpg/MARSEL-Ro-app`, `main` |
+| Source | GitHub | Canonical source repository | VERIFIED | `atalanrafael-jpg/MARSEL-Ro-app`, `main`; current verified HEAD is maintained by the canonical branch |
 | ERP | RO App | Operational system/API | PARTIAL | API read-only evidence exists; completeness/warehouse/restore gates remain open |
 | AI | ChatGPT | AI control/analysis surface | PARTIAL | App/MCP capabilities exist, but RO App MCP authorization is not independently verified |
 | AI/Dev | Codex | Development/automation surface | NOT_VERIFIED | Account/session capability must be verified separately |
@@ -70,6 +70,14 @@ Fresh direct evidence from the current system takes precedence over historical d
 8. Verify Vercel/Cloudflare/Supabase or other runtime services only if they are actually used by the current application.
 9. Reconcile all verified integrations into this registry and the project master control.
 
+## Current canonical checkpoint
+
+- Repository: `atalanrafael-jpg/MARSEL-Ro-app`
+- Canonical branch: `main`
+- Latest observed HEAD: `3397baf1d3282c8a7f11f97c3a63bef29d8c4adb`
+- Latest observed change: backup evidence producer aligned to the canonical branch.
+- The scheduled `MARSEL Execution Worker` for this HEAD completed successfully and produced `marsel-executor-evidence`; this does **not** constitute backup/restore PASS or production GO.
+
 ## Source of truth
 
-The canonical technical source remains `main` in `atalanrafael-jpg/MARSEL-Ro-app`. This registry does not override `docs/PROJECT_MASTER_CONTROL.md` or current live evidence.
+The canonical technical source is `main` in `atalanrafael-jpg/MARSEL-Ro-app`. This registry does not override `docs/PROJECT_MASTER_CONTROL.md` or current live evidence.

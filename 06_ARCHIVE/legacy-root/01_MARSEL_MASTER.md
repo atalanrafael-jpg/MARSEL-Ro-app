@@ -1,3 +1,11 @@
+# Archived legacy root document
+
+Original path: `01_MARSEL_MASTER.md`
+Archived from: `main-MARSEL-ROAPP`
+Reason: superseded by `01_MASTER/*` canonical control plane.
+
+---
+
 # 01_MARSEL_MASTER
 
 **Purpose:** canonical business/process layer for MARSEL + ROAPP.
