@@ -13,7 +13,7 @@
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`
 - Technical canonical branch: `main`
 - Repository default branch: `main`.
-- Current repository `main` checkpoint: **`75e4648e898cbc12e5bb517e5256685c2ca1385b`**.
+- Current repository `main` checkpoint recorded by this control document: **historical** `75e4648e898cbc12e5bb517e5256685c2ca1385b`.
 - Canonical control plane: `.github/workflows/marsel-unified-control-plane.yml`
 - Canonical control contract: `01_MASTER/MARSEL_ROAPP_CONTROL_PLANE_V2.md`
 - ChatGPT operating protocol: `docs/MARSEL_CHATGPT_OPERATING_PROTOCOL.md`
@@ -27,6 +27,14 @@
 - Current `main` has since advanced to `238d1c7121d902ae3bdacf59b33525b585c79090`, including connector-boundary security hardening and security regression tests.
 - A successful CI result on an earlier checkpoint does not prove the current HEAD is production-ready.
 - Current HEAD requires fresh CI verification before being treated as a fully verified application checkpoint.
+
+## Canonical state — 2026-09-24
+- Repository: `atalanrafael-jpg/MARSEL-Ro-app`
+- Branch: `main`
+- Verified current repository HEAD via GitHub commit search: `c76957d86da6866357182aa67c4c4589a282829d`.
+- HEAD commit: merge of PR #156, `docs: reconcile MARSEL ROAPP master control with current main`.
+- Current commit status is `pending` with zero reported statuses; this does not establish CI success.
+- Production WRITE remains disabled.
 
 ## Evidence precedence
 1. Current `main` repository state.
