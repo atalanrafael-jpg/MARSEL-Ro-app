@@ -3,7 +3,7 @@
 **Role:** single living project checkpoint. Update after every material verified change.
 
 ## DATE
-2026-09-22
+2026-09-24
 
 ## CURRENT VERSION
 MARSEL ROAPP unified control plane with production-safety hardening, canonical GitHub governance, automated evidence orchestration, deterministic control-agent state transitions, fail-closed production gating, dependency/lock alignment, security hardening, Chrome 153 compatibility hardening, and isolated optional Apple Core AI conversion path.
@@ -11,7 +11,8 @@ MARSEL ROAPP unified control plane with production-safety hardening, canonical G
 ## CONTROL CHECKPOINT
 - Canonical repository: `atalanrafael-jpg/MARSEL-Ro-app`.
 - Canonical branch: `main`.
-- Current application/code checkpoint: `3a3a364fb31240cd7a86b9767f7f004d236a98c5` (latest verified code HEAD before this documentation update).
+- Current repository control checkpoint: `bad1cb5bc064504c6fcde7f2025151d3651a188e` (`docs(control): refresh canonical main checkpoint 2026-09-24`).
+- Latest verified code checkpoint referenced by this control remains historical; current HEAD CI is not verified.
 - Repository default branch: `main`.
 - Owner MVP vertical slice is present in `web/index.html` and served at `/app`; Supabase Auth/RLS integration is present.
 - Production WRITE remains disabled.
@@ -31,6 +32,7 @@ MARSEL ROAPP unified control plane with production-safety hardening, canonical G
 - Chrome 153 also begins the two-week Stable release cadence; future browser compatibility checks should follow Beta-to-Stable cadence rather than waiting for four-week milestones.
 
 ## LATEST VERIFIED CHANGES
+- 2026-09-24 control: Supabase remote migration history remains at 6 versions while canonical `main` contains 2 migration files; branch `main` remains `MIGRATIONS_FAILED`. Logs continue to report `Remote migration versions not found in local migrations directory.` No repair, push, reset, or production WRITE was performed. Issue #187 tracks the drift.
 - Backup/restore safety gate advanced to VERIFIED on current `main`: Backup Evidence Producer run `35469023100` succeeded and Restore Verification run `35469309884` succeeded against the generated artifact; restore was isolated and produced 10,410 restored records with zero production writes/mutations.
 - `8dacd5a9dbc779041899a4215ef48b565a0f2645` hardened `scripts/marsel_production_gate_v1.py` secret scanning with value-based patterns for credential-shaped API keys, client/private secrets, GitHub tokens, and private-key headers while avoiding harmless configuration-presence flags.
 - `c84825442857bb9cc51585093bac68d338fac7d1` added regression tests covering allowed configuration-presence flags and rejection of credential-shaped material without storing a real credential.
