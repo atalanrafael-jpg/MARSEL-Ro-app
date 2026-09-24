@@ -3,6 +3,11 @@
 ## Purpose
 Единая контрольная точка проекта: техническое состояние RO App integration, качество данных, безопасность, бизнес-автоматизация, deployment и коммерческий контур MARSEL.
 
+## Canonical state — 2026-09-09
+- Repository: `atalanrafael-jpg/MARSEL-Ro-app`
+- Branch: `main`
+- Current repository `main` HEAD: `238d1c7121d902ae3bdacf59b33525b585c79090`.
+- Latest commit: `security: harden MARSEL ROAPP connector boundary`.
 ## Canonical state — 2026-09-20
 - System: **MARSEL ROAPP** — единая каноническая система.
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`
@@ -17,66 +22,102 @@
 - Owner MVP vertical slice is present in `web/index.html`, served at `/app`, with Supabase Auth/RLS integration.
 - Production WRITE: DISABLED.
 
-## Latest repository state
-- The current `main` head is `75e4648e898cbc12e5bb517e5256685c2ca1385b`.
-- The head commit message is `docs(control): avoid stale hardcoded main SHA in current state`.
-- The previous recorded application checkpoint `2282ef546f755573fbbee8ea4c32e9ccf8ccacea` is historical and must not be treated as the current `main` head.
-- This file was reconciled against the live `main` branch on 2026-09-20.
+## Latest verified CI
+- Earlier verified application/code checkpoint `c84825442857bb9cc51585093bac68d338fac7d1` had successful test/control-plane runs.
+- Current `main` has since advanced to `238d1c7121d902ae3bdacf59b33525b585c79090`, including connector-boundary security hardening and security regression tests.
+- A successful CI result on an earlier checkpoint does not prove the current HEAD is production-ready.
+- Current HEAD requires fresh CI verification before being treated as a fully verified application checkpoint.
 
-## Latest directly observed CI evidence
-- GitHub Actions run **35472191752**, workflow **MARSEL Production Gate**, is tied to current `main` head `75e4648e898cbc12e5bb517e5256685c2ca1385b` and completed **skipped**. This is **not** production-readiness evidence.
-- Earlier successful CI evidence remains historical unless tied to the current `main` checkpoint.
-- Current production deployment/end-to-end verification must not be inferred from repository state alone.
-- No production WRITE was executed.
+## Evidence precedence
+1. Current `main` repository state.
+2. Current GitHub workflow/run evidence tied to current `main`.
+3. Direct live API evidence with timestamps/artifacts.
+4. Current official RO App documentation.
+5. Older project documents are historical only.
 
-## Branch state
-- `main` is the only technical canonical branch.
-- `Main` and `main-MARSEL-ROAPP` are non-canonical stale branches, each 2 commits behind current `main` and 0 commits ahead.
-- `main-MARSEL-ROAPP-PROTECTION` is a non-canonical stale branch, 4 commits behind current `main` and 0 commits ahead.
-- Compatibility/snapshot branches must not become independent development lines. Deletion/retirement is a separate destructive safety-gated action and was NOT performed.
+## Completion gates
 
-## Mandatory execution sequence
-1. READ current `main` and live project state.
-2. Verify the latest checkpoint and do not restart from historical branches or closed stages.
-3. ANALYZE only newly changed or currently unverified items.
-4. Execute the highest-priority safe READ-ONLY correction available.
-5. VERIFY with direct read-back/evidence.
-6. QA: BEFORE → ACTION → AFTER → DIFF → INTEGRITY → EVIDENCE.
-7. Record repository-state changes here.
-8. Continue automatically to the next safe task.
-9. Stop only at a safety gate requiring external authorization, secret access, irreversible WRITE, or unavailable account-level control; mark it BLOCKED/NOT VERIFIED.
+### Engineering
+- [ ] Unit tests GREEN on current HEAD
+- [ ] Required production/quality workflows GREEN on current HEAD
+- [ ] No known import/runtime failures
+- [ ] Canonical structure check PASS
+- [ ] Dependency/security review PASS
 
-## Status rules
-- VERIFIED = current direct evidence.
-- PARTIAL = some evidence exists but the gate is incomplete.
-- BLOCKED = required external authorization/control is unavailable.
-- NOT VERIFIED = no current direct evidence.
-- PROPOSED = planned only.
-- Historical, synthetic, repository-only or assumed evidence never becomes VERIFIED.
+### RO App API
+- [ ] Official API registry complete for required MARSEL entities
+- [ ] Every method/path has official evidence
+- [x] No guessed endpoints
+- [ ] Safe current live GET verification complete
+- [ ] Parameterized identifiers never guessed
+- [ ] Warehouse/stock contract closed with direct authoritative evidence
 
-## Current verified repository state
-- `main` is the technical canonical branch.
-- GitHub default branch is `main`.
-- Compatibility branches listed above are stale relative to current `main`; no branch content was modified or deleted in this audit.
-- Production WRITE remains disabled and fail-closed.
-- Existing backup/export and isolated restore/integrity evidence is not to be repeated without a reason.
-- Observability/correlation is already recorded as verified under Issue #134.
-- Current `main` repository state is verified at `75e4648e898cbc12e5bb517e5256685c2ca1385b`; successful CI from older checkpoints remains historical.
+### Data
+- [ ] Current orders inventory complete
+- [ ] Current clients inventory complete
+- [ ] Current products inventory complete
+- [ ] Current services inventory complete
+- [ ] Current warehouses/directories inventory complete
+- [ ] Duplicate/anomaly/reference review complete
+- [ ] Reconciliation complete
 
-## Hard blockers for production readiness
-1. Fresh authorized RO App GET evidence for complete applicable API/entity coverage.
-2. Fresh authoritative warehouse/stock contract evidence.
-3. Current duplicate/reference reconciliation.
-4. Credential-exposure remediation under Issue #23.
-5. Official RO App MCP authorization.
-6. Gmail OAuth user authorization if the integration remains in scope.
-7. Verified production deployment target and direct health/end-to-end evidence.
-8. Current Wix ↔ RO App reconciliation, mutation dry-run, idempotency and rollback evidence.
-9. GitHub account-level security/branch administration under Issue #91.
-10. Production WRITE remains disabled until every applicable safety gate passes and explicit authorization exists.
+### Recovery
+- [ ] Full permitted backup/export created
+- [ ] Backup manifest/checksums verified
+- [ ] Restore tested safely
+- [x] Recovery procedure documented
 
-## Safety
-Never claim backup, restore, reconciliation, security rotation, OAuth, MCP authorization, deployment, synchronization or WRITE readiness without direct evidence. Never guess an API endpoint or identifier. Never execute a production mutation merely to make a test green. Never expose or commit `ROAPP_API_KEY`.
+### Writes
+- [ ] Write contracts officially verified
+- [ ] Validation complete
+- [ ] Dry-run complete
+- [ ] Idempotency/duplicate protection complete
+- [ ] Rollback procedure tested
+- [ ] Post-write verification tested
+- [ ] Production writes explicitly enabled only after all gates pass
+
+### MARSEL operations
+- [ ] Customer lifecycle defined
+- [ ] Repair-to-repeat-sales flow defined
+- [ ] Custom manufacturing sales flow defined
+- [ ] Daily action queue defined
+- [ ] KPI model connected to factual business data
+- [ ] Lead attribution and conversion tracking prepared
+
+## Current blockers
+1. Backup/export and independent restore/integrity evidence are not proven.
+2. Complete current API/entity verification is not proven.
+3. Warehouse live contract requires fresh authoritative GET evidence; historical/undocumented compatibility behavior is not promoted to PASS.
+4. Duplicate/reference reconciliation requires controlled current evidence; no automatic deletion.
+5. Gmail OAuth requires actual user-authorized live verification.
+6. Official RO App MCP authorization requires separate live verification.
+7. Credential-exposure remediation tracked by Issue #23 requires direct rotation/exposure evidence.
+8. GitHub branch protection/ruleset status is not sufficient for production approval: current branch metadata reports `protected=true` but protection enforcement/status checks are `enabled=false` / `off`; account-level security controls remain an open blocker.
+9. ReadMe ↔ GitHub bi-directional sync requires external ReadMe configuration in a dedicated docs repository.
+10. Current HEAD needs fresh CI verification after the 2026-09-09 security hardening commit.
+11. Production WRITE remains disabled until every applicable safety gate passes and explicit authorization exists.
+
+## Issue consolidation — 2026-09-09
+Open control issues currently include #19, #23, #27, #30, #77, #83, #85, #91 and #106, plus the newer integration/observability/master-data issues #133, #134 and #135. No issue is marked completed merely because code or documentation exists.
+
+- #19: production gate — BLOCKED / NOT READY.
+- #23: credential exposure — SECURITY REMEDIATION REQUIRED.
+- #27: Gmail OAuth — IMPLEMENTATION / USER AUTHORIZATION REQUIRED.
+- #30: API/entity coverage — REVIEW_REQUIRED.
+- #77: published RO App example token — security review/rotation responsibility remains external to this repository.
+- #83: evidence discovery — REVIEW_REQUIRED.
+- #85: security bridge — BLOCKED until required gates are directly evidenced.
+- #91: GitHub account-level controls — MANUAL/EXTERNAL.
+- #106: ReadMe GitHub sync — EXTERNAL CONFIGURATION REQUIRED.
+- #133: canonical Master Data / Integration Contract — P1, not yet closed.
+- #134: observability and correlation contract — P1, not yet closed.
+- #135: external integration adapters — P2, READ_ONLY discovery/sandbox verification required before writes.
+
+## Status rule
+A gate is `PASS` only when current direct evidence exists. `PLANNED`, `CODED`, `NOT_TESTED`, `ASSUMED`, `OLD_PASS`, or `UNVERIFIED` are not PASS.
+
+## Safety rule
+Never claim backup, restore, reconciliation, security rotation, OAuth, MCP authorization or WRITE readiness without direct evidence. Never guess an API endpoint or identifier. Never execute a production mutation merely to make a test green. Never expose or commit `ROAPP_API_KEY`.
 
 ## Continuation rule
 Every execution starts from this file and the latest verified `main` checkpoint. Verify current evidence, fix the highest-priority safe defect, verify the result, update this checkpoint when repository state changes, and continue. If an external authorization or secret is required and unavailable to connected tools, mark the gate BLOCKED/NOT VERIFIED rather than simulating completion.
