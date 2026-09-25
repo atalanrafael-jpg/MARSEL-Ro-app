@@ -37,7 +37,7 @@ PLACEHOLDER_RE = re.compile(r"\{[^}]+\}|:[A-Za-z_][A-Za-z0-9_]*|<[^>]+>")
 
 class _DocTextExtractor(HTMLParser):
     def __init__(self) -> None:
-        super().__init__(convert_charrefs=False)
+        super().__init__(convert_charrefs=True)
         self._skip_depth = 0
         self._chunks: list[str] = []
 
