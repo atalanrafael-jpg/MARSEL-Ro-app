@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MARSEL ROAPP — Owner</title>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#171717;background:#f5f5f3}
+*{box-sizing:border-box}body{margin:0}.wrap{max-width:1180px;margin:auto;padding:24px}
+header{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:20px}
+h1{font-size:24px;margin:0}.muted{color:#666;font-size:13px}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.card{background:#fff;border:1px solid #ddd;border-radius:14px;padding:16px;box-shadow:0 1px 2px #0000000a}.metric{font-size:28px;font-weight:700;margin-top:6px}
+.panel{margin-top:14px}.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+input,select,textarea,button{font:inherit}input,select,textarea{width:100%;padding:10px;border:1px solid #ccc;border-radius:9px;background:#fff;margin:6px 0 10px}
+button{border:0;border-radius:9px;padding:10px 14px;cursor:pointer;background:#171717;color:#fff}.secondary{background:#eee;color:#171717}
+.row{display:flex;gap:8px;align-items:center}.row>*{flex:1}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:9px;border-bottom:1px solid #eee;font-size:13px}.pill{display:inline-block;padding:3px 8px;border-radius:99px;background:#eee;font-size:12px}
+#app{display:none}.notice{padding:10px;border-radius:9px;background:#fff3cd;margin-bottom:12px}.error{color:#a40000}.ok{color:#126b2d}
+@media(max-width:800px){.grid,.two{grid-template-columns:1fr 1fr}}@media(max-width:560px){.grid,.two{grid-template-columns:1fr}.wrap{padding:14px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><div><h1>MARSEL ROAPP</h1><div class="muted">Owner MVP · Ювелирная студия MARSEL</div></div><button id="signout" class="secondary" style="display:none">Выйти</button></header>
+<div id="notice" class="notice">Загрузка конфигурации…</div>
+<section id="auth" class="card">
+<h2>Вход владельца</h2>
+<label>Email<input id="email" type="email" autocomplete="email"></label>
+<label>Пароль<input id="password" type="password" autocomplete="current-password"></label>
+<div class="row"><button id="login">Войти</button><button id="signup" class="secondary">Создать аккаунт</button></div>
+<p class="muted">Доступ контролируется Supabase Auth + RLS. Не вводите сюда серверный API-ключ.</p>
+</section>
+<main id="app">
+<div class="grid">
+<div class="card">Клиенты<div class="metric" id="mClients">0</div></div>
+<div class="card">Ремонты<div class="metric" id="mRepairs">0</div></div>
+<div class="card">Просрочено<div class="metric" id="mOverdue">0</div></div>
+<div class="card">До срока ≤ 3 дн.<div class="metric" id="mDueSoon">0</div></div>
+</div>
+<div class="two panel">
+<section class="card"><h2>Клиент</h2>
+<input id="clientSearch" placeholder="Поиск по имени / телефону / email">
+<div id="clients"></div>
+<hr>
+<input id="clientName" placeholder="ФИО">
+<input id="clientPhone" placeholder="Телефон">
+<input id="clientEmail" placeholder="Email">
+<textarea id="clientNotes" placeholder="Примечание"></textarea>
+<button id="createClient">Создать клиента</button>
+</section>
+<section class="card"><h2>Новый ремонт</h2>
+<select id="repairClient"></select>
+<select id="itemType"><option value="jewelry">Украшение</option><option value="watch">Часы</option><option value="glasses">Очки</option><option value="other">Другое</option></select>
+<input id="itemDescription" placeholder="Описание изделия">
+<input id="metal" placeholder="Металл">
+<input id="stones" placeholder="Камни">
+<input id="serial" placeholder="Серийный номер">
+<textarea id="condition" placeholder="Состояние при приёмке"></textarea>
+<input id="dueAt" type="datetime-local">
+<textarea id="repairNotes" placeholder="Заметки по ремонту"></textarea>
+<button id="createRepair">Создать ремонт</button>
+</section>
+</div>
+<section class="card panel"><div class="row"><h2 style="margin-right:auto">Ремонты</h2><button id="refresh" class="secondary">Обновить</button></div>
+<table><thead><tr><th>Клиент</th><th>Изделие</th><th>Статус</th><th>Срок</th><th>Действие</th></tr></thead><tbody id="repairs"></tbody></table>
+</section>
+<section class="card panel"><h2>Безопасная ссылка вложения</h2>
+<p class="muted">На MVP сохраняется только ссылка на объект Storage; сам файл не загружается через эту форму.</p>
+<select id="attachmentRepair"></select><input id="storagePath" placeholder="storage path"><input id="fileName" placeholder="Имя файла"><input id="mimeType" placeholder="MIME type">
+<button id="addAttachment">Сохранить ссылку</button>
+</section>
+</main>
+</div>
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+let sb, user, clients=[], repairs=[];
+const $=id=>document.getElementById(id);
+function msg(t,kind=""){ $("notice").textContent=t; $("notice").className="notice "+kind; }
+async function init(){
+  const c=await fetch("/app/config").then(r=>r.json());
+  if(!c.supabase_url||!c.supabase_publishable_key){msg("MVP не настроен: задайте SUPABASE_PUBLISHABLE_KEY в runtime.","error");return}
+  sb=createClient(c.supabase_url,c.supabase_publishable_key);
+  const {data}=await sb.auth.getSession(); if(data.session) showApp(data.session.user);
+  sb.auth.onAuthStateChange((_e,s)=>s?showApp(s.user):showAuth());
+  $("login").onclick=()=>auth(false); $("signup").onclick=()=>auth(true); $("signout").onclick=()=>sb.auth.signOut();
+  $("createClient").onclick=createClientRow; $("createRepair").onclick=createRepairRow; $("refresh").onclick=loadAll;
+  $("clientSearch").oninput=()=>renderClients(); $("addAttachment").onclick=addAttachment;
+}
+function showAuth(){$("auth").style.display="block";$("app").style.display="none";$("signout").style.display="none"}
+async function auth(signup){const email=$("email").value.trim(),password=$("password").value;if(!email||password.length<8)return msg("Email и пароль ≥ 8 символов обязательны.","error");const r=signup?await sb.auth.signUp({email,password}):await sb.auth.signInWithPassword({email,password});if(r.error)return msg(r.error.message,"error");msg(signup?"Аккаунт создан. Если требуется подтверждение email, подтвердите его.":"Вход выполнен.","ok")}
+async function showApp(u){user=u;$("auth").style.display="none";$("app").style.display="block";$("signout").style.display="block";msg("Авторизовано: "+u.email,"ok");await loadAll()}
+async function loadAll(){if(!sb)return;const [c,r]=await Promise.all([sb.from("clients").select("*").order("created_at",{ascending:false}),sb.from("repairs").select("*,clients(full_name),repair_items(*)").order("created_at",{ascending:false})]);if(c.error||r.error)return msg((c.error||r.error).message,"error");clients=c.data||[];repairs=r.data||[];renderClients();renderClientsSelect();renderRepairs();$("mClients").textContent=clients.length;$("mRepairs").textContent=repairs.length;const now=Date.now(),three=now+3*86400000;$("mOverdue").textContent=repairs.filter(x=>x.due_at&&new Date(x.due_at).getTime()<now&&!["issued","cancelled"].includes(x.status)).length;$("mDueSoon").textContent=repairs.filter(x=>x.due_at&&new Date(x.due_at).getTime()>=now&&new Date(x.due_at).getTime()<=three&&!["issued","cancelled"].includes(x.status)).length}
+function renderClients(){const q=$("clientSearch").value.toLowerCase();$("clients").innerHTML=clients.filter(x=>[x.full_name,x.phone,x.email].join(" ").toLowerCase().includes(q)).slice(0,12).map(x=>"<div class='card' style='padding:9px;margin:6px 0'><b>"+esc(x.full_name)+"</b><br><span class='muted'>"+esc(x.phone||"")+" "+esc(x.email||"")+"</span></div>").join("")||"<span class='muted'>Нет клиентов</span>"}
+function renderClientsSelect(){const o="<option value=''>Выберите клиента</option>"+clients.map(x=>"<option value='"+x.id+"'>"+esc(x.full_name)+"</option>").join("");$("repairClient").innerHTML=o;$("attachmentRepair").innerHTML="<option value=''>Выберите ремонт</option>"+repairs.map(x=>"<option value='"+x.id+"'>"+esc(x.clients?.full_name||"—")+" · "+esc((x.repair_items||[])[0]?.description||"—")+"</option>").join("")}
+function renderRepairs(){const status=["accepted","diagnostics","approval","in_progress","quality_control","ready","issued","cancelled"];$("repairs").innerHTML=repairs.map(r=>{const item=(r.repair_items||[])[0];return "<tr><td>"+esc(r.clients?.full_name||"—")+"</td><td>"+esc(item?.description||"—")+" · "+esc(item?.item_type||"")+"</td><td><select data-id='"+r.id+"' class='status'>"+status.map(s=>"<option "+(s===r.status?"selected":"")+" value='"+s+"'>"+s+"</option>").join("")+"</select></td><td>"+(r.due_at?new Date(r.due_at).toLocaleString("ru-RU"):"—")+"</td><td><button data-id='"+r.id+"' class='auditBtn'>Аудит</button></td></tr>"}).join("");document.querySelectorAll(".status").forEach(x=>x.onchange=()=>changeStatus(x.dataset.id,x.value));document.querySelectorAll(".auditBtn").forEach(x=>x.onclick=()=>writeAudit(x.dataset.id))}
+async function createClientRow(){const full_name=$("clientName").value.trim();if(!full_name)return msg("ФИО обязательно.","error");const r=await sb.from("clients").insert({full_name,phone:$("clientPhone").value.trim()||null,email:$("clientEmail").value.trim()||null,notes:$("clientNotes").value.trim()||null}).select().single();if(r.error)return msg(r.error.message,"error");await writeAudit(r.data.id,"client","create",null,r.data);["clientName","clientPhone","clientEmail","clientNotes"].forEach(id=>$(id).value="");await loadAll()}
+async function createRepairRow(){const client_id=$("repairClient").value;if(!client_id)return msg("Выберите клиента.","error");const repair={client_id,status:"accepted",due_at:$("dueAt").value?new Date($("dueAt").value).toISOString():null,notes:$("repairNotes").value.trim()||null,created_by:user.id};const rr=await sb.from("repairs").insert(repair).select().single();if(rr.error)return msg(rr.error.message,"error");const item={repair_id:rr.data.id,item_type:$("itemType").value,description:$("itemDescription").value.trim(),metal:$("metal").value.trim()||null,stone_details:$("stones").value.trim()||null,serial_number:$("serial").value.trim()||null,condition_notes:$("condition").value.trim()||null};const ir=await sb.from("repair_items").insert(item).select().single();if(ir.error){await sb.from("repairs").delete().eq("id",rr.data.id);return msg(ir.error.message,"error")}await sb.from("repair_status_history").insert({repair_id:rr.data.id,to_status:"accepted",changed_by:user.id,comment:"Создано через Owner MVP"});await writeAudit(rr.data.id,"repair","create",null,{...rr.data,item:ir.data});msg("Ремонт создан.","ok");await loadAll()}
+async function changeStatus(id,status){const old=repairs.find(x=>x.id===id);const r=await sb.from("repairs").update({status,updated_at:new Date().toISOString(),completed_at:["issued","cancelled"].includes(status)?new Date().toISOString():null}).eq("id",id);if(r.error)return msg(r.error.message,"error");await sb.from("repair_status_history").insert({repair_id:id,from_status:old?.status||null,to_status:status,changed_by:user.id});await writeAudit(id,"repair","status_change",{status:old?.status}, {status});await loadAll()}
+async function writeAudit(entity_id,entity_type="repair",action="view",before_data=null,after_data=null){await sb.from("audit_log").insert({actor_id:user.id,action,entity_type,entity_id,before_data,after_data})}
+async function addAttachment(){const repair_id=$("attachmentRepair").value,storage_path=$("storagePath").value.trim();if(!repair_id||!storage_path)return msg("Ремонт и storage path обязательны.","error");const r=await sb.from("attachments").insert({entity_type:"repair",entity_id:repair_id,storage_path,file_name:$("fileName").value.trim()||null,mime_type:$("mimeType").value.trim()||null,created_by:user.id});if(r.error)return msg(r.error.message,"error");await writeAudit(repair_id,"attachment","reference_create",null,{storage_path});msg("Ссылка вложения сохранена.","ok")}
+function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+init();
+</script>
+</body>
+</html>

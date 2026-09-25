@@ -1,3 +1,11 @@
+# Archived legacy root document
+
+Original path: `MARSEL_ROAPP_MASTER_CORE.md`
+Archived from: `main-MARSEL-ROAPP`
+Reason: superseded by `01_MASTER/*` canonical control plane; preserved as historical project-side operating rules.
+
+---
+
 # MARSEL ROAPP MASTER CORE
 
 **Status:** CANONICAL PROJECT CORE

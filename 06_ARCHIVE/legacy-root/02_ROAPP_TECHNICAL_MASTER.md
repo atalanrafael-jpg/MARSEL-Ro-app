@@ -1,3 +1,11 @@
+# Archived legacy root document
+
+Original path: `02_ROAPP_TECHNICAL_MASTER.md`
+Archived from: `main-MARSEL-ROAPP`
+Reason: superseded by `01_MASTER/*` + `03_ROAPP/*` canonical control plane.
+
+---
+
 # 02_ROAPP_TECHNICAL_MASTER
 
 **Purpose:** canonical technical layer: API, data contract, integrations, development, security and production gates.

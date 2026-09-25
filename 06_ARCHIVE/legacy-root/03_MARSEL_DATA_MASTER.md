@@ -1,3 +1,11 @@
+# Archived legacy root document
+
+Original path: `03_MARSEL_DATA_MASTER.md`
+Archived from: `main-MARSEL-ROAPP`
+Reason: superseded by `01_MASTER/*` + `03_ROAPP/*` canonical control plane.
+
+---
+
 # 03_MARSEL_DATA_MASTER
 
 **Purpose:** canonical data layer: registry, dictionary, quality, warehouse and cost accounting.

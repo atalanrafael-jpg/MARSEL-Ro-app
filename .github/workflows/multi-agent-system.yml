@@ -1,0 +1,26 @@
+name: MARSEL Multi-Agent System
+
+on:
+  pull_request:
+    paths:
+      - "agent_runtime/**"
+      - "tests/test_multi_agent_system.py"
+      - "docs/agents/MULTI_AGENT_SYSTEM_V1.md"
+      - ".github/workflows/multi-agent-system.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install test dependency
+        run: python -m pip install --disable-pip-version-check pytest
+      - name: Run multi-agent regression tests
+        run: python -m pytest -q tests/test_multi_agent_system.py

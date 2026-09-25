@@ -1,0 +1,50 @@
+---
+description: Canonical operating rules for MARSEL ROAPP in Cursor
+alwaysApply: true
+---
+
+# MARSEL ROAPP — Cursor Canonical Rules
+
+## Canonical source
+- Canonical repository: atalanrafael-jpg/MARSEL-Ro-app
+- Canonical branch: main
+- Do not create or treat a parallel repository as authoritative.
+- Branches named Main, Secret, agent/*, ai/*, chore/*, feat/*, audit/*, backup/* and similar are temporary, historical, or task branches unless explicitly merged into main.
+
+## Safety
+- Default live RO App mode is READ-ONLY.
+- Never perform or suggest production WRITE operations unless the repository production gate explicitly authorizes them with current evidence.
+- Never invent identifiers, credentials, endpoints, inventory records, or API capabilities.
+- Never place secrets, API keys, tokens, or credentials in source files, commits, logs, prompts, artifacts, or documentation.
+- Use environment variables or Cursor Secrets for credentials.
+- Treat documentation and registry declarations as configuration, not proof of live connectivity.
+
+## Execution
+- Before changing code, inspect the current main state and relevant files.
+- Prefer small, reviewable changes.
+- Run the narrowest relevant tests/checks after changes.
+- Do not bypass failing safety or quality gates merely to make CI green.
+- For live RO App checks, use the existing repository read-only scripts and current credentials supplied through the runtime environment.
+- Do not mutate RO App production data from an agent.
+
+## Git workflow
+- Work on a temporary branch created from current main.
+- Produce a focused diff and pull request targeting main.
+- Do not force-push or rewrite main history.
+- Do not merge a PR merely because tests pass; preserve the repository's explicit production and evidence gates.
+
+## Evidence
+Use this precedence:
+1. Current main repository state.
+2. Current CI tied to the relevant commit.
+3. Fresh direct live evidence with timestamps/artifacts.
+4. Current official vendor documentation.
+5. Older project documents only as historical context.
+
+Use explicit statuses such as DONE, VERIFIED, PREPARED, NEEDS_USER_ACTION, BLOCKED, REVIEW_REQUIRED, or UNVERIFIED. Never convert an unverified declaration into VERIFIED.
+
+## MARSEL ROAPP identity
+The product is the single unified system "MARSEL ROAPP":
+- MARSEL = business contour
+- ROAPP = technical contour
+Business display name: "Ювелирная студия MARSEL".

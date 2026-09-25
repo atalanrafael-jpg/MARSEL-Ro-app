@@ -1,3 +1,10 @@
+# Archived historical MARSEL Unified System
+
+Original path: `старые данные/MARSEL-UNIFIED-SYSTEM.md`
+Status: historical; superseded by `01_MASTER/MARSEL_ROAPP_CANONICAL.md` and current control-plane documents.
+
+---
+
 # MARSEL Unified System
 
 ## Purpose

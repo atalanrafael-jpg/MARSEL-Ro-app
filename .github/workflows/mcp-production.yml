@@ -1,4 +1,4 @@
-name: MCP production readiness
+name: MARSEL ROAPP MCP production readiness
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: mcp-production-${{ github.workflow }}-${{ github.ref }}
+  group: marsel-roapp-mcp-production-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -32,7 +32,7 @@ jobs:
         run: python -m compileall -q app mcp_server.py tests
       - name: Run tests
         run: python -m pytest -vv --tb=long --maxfail=1
-      - name: MCP import smoke test
-        run: python -c "from app.main import app; from app.mcp_server import create_local_mcp_server; s=create_local_mcp_server(); print(app.title, s.name)"
+      - name: MCP identity and import smoke test
+        run: python -c "from app.main import app; from app.mcp_server import create_local_mcp_server; s=create_local_mcp_server(); assert s.name == 'MARSEL ROAPP', s.name; print(app.title, s.name)"
       - name: Dependency vulnerability audit
         run: python -m pip install --disable-pip-version-check --no-input pip-audit && pip-audit -r requirements.txt

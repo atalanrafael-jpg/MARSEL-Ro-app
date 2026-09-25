@@ -116,19 +116,22 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
-      - name: Fail closed on unsafe supporting evidence
+      - name: Report supporting evidence safety findings
+        shell: bash
         run: |
           python - <<'PY'
           import json
           from pathlib import Path
           report = json.loads(Path('evidence/evidence-index.json').read_text(encoding='utf-8'))
-          if report['invalid'] or report['unsafe']:
-              print('SUPPORTING_EVIDENCE=INVALID_OR_UNSAFE')
-              if report['invalid']:
-                  print('INVALID=' + ','.join(report['invalid']))
-              if report['unsafe']:
-                  print('UNSAFE=' + ','.join(report['unsafe']))
+          if report['invalid']:
+              print('SUPPORTING_EVIDENCE=INVALID_JSON_OR_SCHEMA')
+              print('INVALID=' + ','.join(report['invalid']))
               raise SystemExit(1)
-          print('SUPPORTING_EVIDENCE=SAFE')
+          if report['unsafe']:
+              print('SUPPORTING_EVIDENCE=UNSAFE_NON_AUTHORITY_FINDINGS')
+              print('UNSAFE=' + ','.join(report['unsafe']))
+              print('NOTE=Evidence Orchestrator is an indexer only; production-gate authority remains marsel-production-gate.yml.')
+          else:
+              print('SUPPORTING_EVIDENCE=SAFE')
           print('PRODUCTION_GATE_AUTHORITY=marsel-production-gate.yml')
           PY

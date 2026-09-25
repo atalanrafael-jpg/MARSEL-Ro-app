@@ -1,0 +1,73 @@
+name: MARSEL Restore Verification
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["MARSEL Backup Evidence Producer"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  restore:
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Download backup artifact from upstream run
+        if: ${{ github.event_name == 'workflow_run' }}
+        uses: actions/download-artifact@v8
+        with:
+          run-id: ${{ github.event.workflow_run.id }}
+          name: marsel-backup-evidence
+          path: backup
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify local backup inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f backup/marsel-full-readonly-backup-v1.json
+          test -f backup/backup_evidence.json
+
+      - name: Restore into isolated staging database
+        env:
+          MARSEL_FULL_BACKUP_INPUT: backup/marsel-full-readonly-backup-v1.json
+          MARSEL_BACKUP_EVIDENCE_INPUT: backup/backup_evidence.json
+          MARSEL_RESTORE_DB: marsel-restore-staging.sqlite
+          MARSEL_RESTORE_EVIDENCE_OUTPUT: restore_evidence.json
+        run: python scripts/marsel_restore_verify_v1.py
+
+      - name: Verify restore evidence
+        run: |
+          python - <<'PY'
+          import json
+          d=json.load(open('restore_evidence.json', encoding='utf-8'))
+          assert d['status']=='PASS'
+          assert d['operation']=='restore/verification'
+          assert d['target_environment']=='isolated-local-staging'
+          assert d['production_write_attempted'] is False
+          assert d['ro_app_data_mutated'] is False
+          assert d['restored_records'] >= 0
+          print('RESTORE_VERIFICATION=PASS')
+          print('PRODUCTION_WRITE_ATTEMPTED=False')
+          print('RO_APP_DATA_MUTATED=False')
+          PY
+
+      - name: Upload restore evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: marsel-restore-evidence
+          path: |
+            restore_evidence.json
+            marsel-restore-staging.sqlite
+          if-no-files-found: error
+          retention-days: 90

@@ -1,102 +1,81 @@
 # MARSEL ROAPP — MASTER PROJECT CONTROL
 
 ## Purpose
-Единая контрольная точка проекта: техническое состояние RO App integration, качество данных, безопасность, бизнес-автоматизация и коммерческий контур MARSEL.
+Единая контрольная точка проекта: техническое состояние RO App integration, качество данных, безопасность, бизнес-автоматизация, deployment и коммерческий контур MARSEL.
 
-## Canonical state — 2026-09-04
+## Canonical state — 2026-09-20
+- System: **MARSEL ROAPP** — единая каноническая система.
 - Repository: `atalanrafael-jpg/MARSEL-Ro-app`
-- Branch: `main`
-- Current observed `main` HEAD: `745a522c3b95fe14216963d126d66080df07c816` (`docs: refresh canonical MARSEL current state checkpoint`).
+- Technical canonical branch: `main`
+- Repository default branch: `main`.
+- Current application/code checkpoint: **`2282ef546f755573fbbee8ea4c32e9ccf8ccacea`**.
+- Canonical control plane: `.github/workflows/marsel-unified-control-plane.yml`
+- Canonical control contract: `01_MASTER/MARSEL_ROAPP_CONTROL_PLANE_V2.md`
+- ChatGPT operating protocol: `docs/MARSEL_CHATGPT_OPERATING_PROTOCOL.md`
+- Repository validator: `scripts/marsel_control_plane_validate.py`
 - Current integration mode: READ-ONLY.
+- Owner MVP vertical slice is present in `web/index.html`, served at `/app`, with Supabase Auth/RLS integration.
 - Production WRITE: DISABLED.
-- Canonical live audit workflow: `.github/workflows/marsel-unified-control-plane.yml`.
-- Canonical warehouse implementation: `scripts/marsel_warehouse_contract_v20_48.py`.
-- Historical implementations and snapshots belong in `старые данные/` and do not override current evidence.
 
-## Fresh runtime evidence
-- Run `33868944393` for `MARSEL Live Integration Probes` on current `main` HEAD `745a522c...` completed `success` on 2026-09-04.
-- Artifact `marsel-live-probes` was produced from that run. Its report is `REVIEW_REQUIRED` because auxiliary health URLs are not configured for ROAPP API, Supabase, Vercel, OpenAI Platform and Wix; this is not evidence that those underlying integrations are unavailable.
-- The same fresh report explicitly records `production_write=false` and `credentials_exposed=false`.
-- The fresh live-probe workflow does not by itself prove backup/restore, full entity completeness, OAuth, MCP authorization, or production readiness.
-- PR #113 remains open; its current head has previously verified green PR-triggered CI, but merge is not automatic and live OpenAI authorization is not claimed without direct evidence.
+## Latest repository changes
+Since the previously recorded application checkpoint `b29c80a9ec337111459ac22535ba67a529f251bb`, `main` advanced through four commits including the Gate A deployment verification workflow and Owner MVP contract tests. The current `main` checkpoint is `2282ef546f755573fbbee8ea4c32e9ccf8ccacea`.
 
-## Evidence precedence
-1. Current `main` repository state.
-2. Current GitHub workflow/run evidence tied to current `main`.
-3. Direct live API evidence with timestamps/artifacts.
-4. Current official RO App documentation.
-5. Older project documents are historical only.
+## Latest verified CI evidence
+- GitHub Actions run **35394220647**, workflow **MARSEL Unified Control Plane**, executed successfully on application/code checkpoint `3eae5f89317e0cc4e928f7c7331958baaa789bf8` on 2026-09-18.
+- GitHub Actions run **35395707026**, workflow **MARSEL Execution Worker**, executed successfully on the same checkpoint; its READ-ONLY worker, RO App probe, auxiliary health probe, evidence upload and production-safety assertion succeeded.
+- GitHub Actions run **35390149457**, MARSEL Production Gate, completed **skipped**. This is not production-readiness evidence.
+- Railway production deployment for the previous `main` checkpoint `b29c80a9ec337111459ac22535ba67a529f251bb` is **VERIFIED**: deployment `c96d55ad-5966-48a4-9506-90ba20cd793c` completed `SUCCESS` on Railway production. The post-deployment Gate A smoke workflow has been merged but has not yet been run against the current deployment, so current `/health`, `/ready`, `/app` and `/app/config` end-to-end verification remains **NOT VERIFIED**.
+- Owner UI `/app` end-to-end browser verification is still **NOT VERIFIED**.
+- No production WRITE was executed.
 
-## 100% completion gates
+## Branch state
+- `main` is the only technical canonical branch.
+- `Main` and `main-MARSEL-ROAPP` are non-canonical stale branches, each 2 commits behind current `main` and 0 commits ahead.
+- `main-MARSEL-ROAPP-PROTECTION` is a non-canonical stale branch, 4 commits behind current `main` and 0 commits ahead.
+- Compatibility/snapshot branches must not become independent development lines. Deletion/retirement is a separate destructive safety-gated action and was NOT performed.
 
-### Engineering
-- [ ] Unit tests GREEN on current `main` HEAD
-- [ ] Required CI workflows GREEN on current `main` HEAD
-- [ ] No known import/runtime failures
-- [ ] Canonical structure check PASS
-- [ ] Dependency/security review PASS
+## Mandatory execution sequence
+1. READ current `main` and live project state.
+2. Verify the latest checkpoint and do not restart from historical branches or closed stages.
+3. ANALYZE only newly changed or currently unverified items.
+4. Execute the highest-priority safe READ-ONLY correction available.
+5. VERIFY with direct read-back/evidence.
+6. QA: BEFORE → ACTION → AFTER → DIFF → INTEGRITY → EVIDENCE.
+7. Record repository-state changes here.
+8. Continue automatically to the next safe task.
+9. Stop only at a safety gate requiring external authorization, secret access, irreversible WRITE, or unavailable account-level control; mark it BLOCKED/NOT VERIFIED.
 
-### RO App API
-- [ ] Official API registry complete for required MARSEL entities
-- [ ] Every method/path has official evidence
-- [ ] No guessed endpoints
-- [ ] Safe live GET verification complete
-- [ ] Parameterized identifiers never guessed
-- [ ] Warehouse/stock contract closed with direct authoritative evidence
+## Status rules
+- VERIFIED = current direct evidence.
+- PARTIAL = some evidence exists but the gate is incomplete.
+- BLOCKED = required external authorization/control is unavailable.
+- NOT VERIFIED = no current direct evidence.
+- PROPOSED = planned only.
+- Historical, synthetic, repository-only or assumed evidence never becomes VERIFIED.
 
-### Data
-- [ ] Current orders inventory complete
-- [ ] Current clients inventory complete
-- [ ] Current products inventory complete
-- [ ] Current services inventory complete
-- [ ] Current warehouses/directories inventory complete
-- [ ] Duplicate/anomaly/reference review complete
-- [ ] Reconciliation complete
+## Current verified repository state
+- `main` is the technical canonical branch.
+- GitHub default branch is `main`.
+- Compatibility branches listed above are stale relative to current `main`; no branch content was modified or deleted in this audit.
+- Production WRITE remains disabled and fail-closed.
+- Existing backup/export and isolated restore/integrity evidence is not to be repeated without a reason.
+- Observability/correlation is already recorded as verified under Issue #134.
+- Unified-control-plane CI evidence is verified on an earlier application/code checkpoint; current Railway deployment is separately verified on `b29c80a9ec337111459ac22535ba67a529f251bb`.
 
-### Recovery
-- [ ] Full permitted backup/export created
-- [ ] Backup manifest/checksums verified
-- [ ] Restore tested safely
-- [ ] Recovery procedure documented
+## Hard blockers for production readiness
+1. Fresh authorized RO App GET evidence for complete applicable API/entity coverage.
+2. Fresh authoritative warehouse/stock contract evidence.
+3. Current duplicate/reference reconciliation.
+4. Credential-exposure remediation under Issue #23.
+5. Official RO App MCP authorization.
+6. Gmail OAuth user authorization if the integration remains in scope.
+7. Verified production deployment target and direct health/end-to-end evidence.
+8. Current Wix ↔ RO App reconciliation, mutation dry-run, idempotency and rollback evidence.
+9. GitHub account-level security/branch administration under Issue #91.
+10. Production WRITE remains disabled until every applicable safety gate passes and explicit authorization exists.
 
-### Writes
-- [ ] Write contracts officially verified
-- [ ] Validation complete
-- [ ] Dry-run complete
-- [ ] Idempotency/duplicate protection complete
-- [ ] Rollback procedure tested
-- [ ] Post-write verification tested
-- [ ] Production writes explicitly enabled only after all gates pass
-
-### MARSEL operations
-- [ ] Customer lifecycle defined
-- [ ] Repair-to-repeat-sales flow defined
-- [ ] Custom manufacturing sales flow defined
-- [ ] Daily action queue defined
-- [ ] KPI model connected to factual business data
-- [ ] Lead attribution and conversion tracking prepared
-
-## Current blockers
-1. Backup/export and independent restore/integrity evidence remain unproven.
-2. Complete current API/entity verification remains open.
-3. Warehouse-list contract discrepancy remains unresolved: documented `/v2/warehouse/` forms previously returned HTTP 404; undocumented compatibility behavior is not accepted as official PASS.
-4. Collision/reference findings require controlled reconciliation; no automatic deletion.
-5. Gmail OAuth requires actual user-authorized live verification.
-6. Official RO App MCP authorization requires separate live verification.
-7. Historical credential-exposure remediation requires direct evidence (Issue #23).
-8. GitHub account/ruleset/security settings require account-level action where connector access is read-only. Direct ruleset inspection shows active ruleset `21230907` currently targets malformed pattern `refs/heads/Include by pattern main` rather than `refs/heads/main`.
-9. ReadMe ↔ GitHub bi-directional sync (Issue #106) requires external ReadMe setup in a dedicated empty docs repository; production application repository must not be connected directly without explicit approval.
-10. Auxiliary live-probe health URLs are not configured; the probe intentionally remains `REVIEW_REQUIRED` rather than falsely reporting integration health.
-
-## Open issue consolidation
-- Issue #42 was closed as a duplicate of the broader current warehouse blocker tracked by Issue #87. No technical evidence was discarded.
-- Remaining open work is tracked by the current GitHub issue set, with #19, #23, #25, #27, #30, #66, #77, #83, #85, #87, #88, #91, #92, #94 and #106 requiring review/verification as applicable.
-
-## Status rule
-A gate is `PASS` only when current direct evidence exists. `PLANNED`, `CODED`, `NOT_TESTED`, `ASSUMED`, `OLD_PASS`, or `UNVERIFIED` are not PASS.
-
-## Safety rule
-Never claim backup, restore, reconciliation, security rotation, OAuth, MCP authorization or WRITE readiness without direct evidence. Never guess an API endpoint or identifier. Never execute a production mutation merely to make a test green.
+## Safety
+Never claim backup, restore, reconciliation, security rotation, OAuth, MCP authorization, deployment, synchronization or WRITE readiness without direct evidence. Never guess an API endpoint or identifier. Never execute a production mutation merely to make a test green. Never expose or commit `ROAPP_API_KEY`.
 
 ## Continuation rule
-Every execution starts from this file and the current `main` HEAD, verifies current CI/live evidence, closes the next highest-priority open gate, records the result, and repeats until all required gates are PASS or an external blocker is documented.
+Every execution starts from this file and the latest verified `main` checkpoint. Verify current evidence, fix the highest-priority safe defect, verify the result, update this checkpoint when repository state changes, and continue. If an external authorization or secret is required and unavailable to connected tools, mark the gate BLOCKED/NOT VERIFIED rather than simulating completion.

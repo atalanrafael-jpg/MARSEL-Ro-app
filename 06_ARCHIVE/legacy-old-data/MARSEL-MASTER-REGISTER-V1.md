@@ -1,3 +1,11 @@
+# Archived historical MARSEL MASTER REGISTER V1
+
+Original path: `старые данные/MARSEL-MASTER-REGISTER-V1.md`
+Original checkpoint: 2026-08-12
+Status: historical evidence only; superseded by `01_MASTER/MARSEL_ROAPP_MASTER_REGISTRY.md`.
+
+---
+
 # MARSEL MASTER REGISTER V1
 
 Дата контрольной точки: 2026-08-12
