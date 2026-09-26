@@ -95,9 +95,11 @@ async function showApp(u){
     const r=await fetch("/app/session",{headers:{Authorization:"Bearer "+token}});
     if(!r.ok) throw new Error("Сервер не подтвердил авторизацию.");
     const verified=await r.json();
+    const role=verified.user?.role;
+    if(!["owner","admin","employee"].includes(role)) throw new Error("Недостаточно прав для Owner MVP.");
     user=u;
     $("auth").style.display="none";$("app").style.display="block";$("signout").style.display="block";
-    msg("Авторизовано: "+(verified.user?.email||u.email),"ok");
+    msg("Авторизовано: "+(verified.user?.email||u.email)+" · роль: "+role,"ok");
     await loadAll();
   }catch(e){
     await sb.auth.signOut();

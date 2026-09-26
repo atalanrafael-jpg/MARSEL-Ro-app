@@ -100,9 +100,38 @@ async def require_supabase_user(authorization: str | None = Header(default=None)
         raise HTTPException(status_code=401, detail="Invalid or expired authentication")
 
     data = response.json()
-    if not data.get("id"):
+    user_id = data.get("id")
+    if not user_id:
         raise HTTPException(status_code=401, detail="Invalid authentication")
 
+    # AuthN is not enough for the Owner MVP: require an active application role.
+    # The role lives in public.profiles and is protected by RLS.
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            profile_response = await client.get(
+                f"{settings.supabase_url.rstrip('/')}/rest/v1/profiles",
+                params={"id": f"eq.{user_id}", "select": "role,active"},
+                headers={
+                    "apikey": settings.supabase_publishable_key,
+                    "Authorization": f"Bearer {token}",
+                },
+            )
+    except httpx.HTTPError as exc:
+        raise HTTPException(status_code=503, detail="Authorization service unavailable") from exc
+
+    if profile_response.status_code != 200:
+        raise HTTPException(status_code=403, detail="Application access is not available")
+
+    profiles = profile_response.json()
+    profile = profiles[0] if profiles else None
+    if not profile or profile.get("active") is not True:
+        raise HTTPException(status_code=403, detail="Application access is not available")
+
+    role = profile.get("role")
+    if role not in {"owner", "admin", "employee"}:
+        raise HTTPException(status_code=403, detail="Insufficient application role")
+
+    data["app_role"] = role
     return data
 
 
@@ -141,6 +170,7 @@ async def owner_app_session(user: dict = Depends(require_supabase_user)):
         "user": {
             "id": user.get("id"),
             "email": user.get("email"),
+            "role": user.get("app_role"),
         },
     }
 
