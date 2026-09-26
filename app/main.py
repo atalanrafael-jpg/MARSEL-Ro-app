@@ -4,6 +4,7 @@ import secrets
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
+import httpx
 from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.responses import HTMLResponse, JSONResponse
 
@@ -71,6 +72,40 @@ def require_internal_auth(x_marsel_api_key: str | None = Header(default=None)) -
         raise HTTPException(status_code=401, detail="Unauthorized")
 
 
+async def require_supabase_user(authorization: str | None = Header(default=None)) -> dict:
+    """Verify the caller's Supabase Auth access token against the Auth service."""
+    if not authorization or not authorization.lower().startswith("bearer "):
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    token = authorization[7:].strip()
+    if not token:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    if not settings.supabase_url or not settings.supabase_publishable_key:
+        raise HTTPException(status_code=503, detail="Supabase authentication is not configured")
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(
+                f"{settings.supabase_url.rstrip('/')}/auth/v1/user",
+                headers={
+                    "apikey": settings.supabase_publishable_key,
+                    "Authorization": f"Bearer {token}",
+                },
+            )
+    except httpx.HTTPError as exc:
+        raise HTTPException(status_code=503, detail="Authentication service unavailable") from exc
+
+    if response.status_code != 200:
+        raise HTTPException(status_code=401, detail="Invalid or expired authentication")
+
+    data = response.json()
+    if not data.get("id"):
+        raise HTTPException(status_code=401, detail="Invalid authentication")
+
+    return data
+
+
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "marsel-roapp-connector", "version": app.version}
@@ -97,6 +132,17 @@ def owner_app():
 @app.get("/app/config", response_class=JSONResponse)
 def owner_app_config():
     return {"supabase_url": settings.supabase_url, "supabase_publishable_key": settings.supabase_publishable_key}
+
+
+@app.get("/app/session", response_class=JSONResponse)
+async def owner_app_session(user: dict = Depends(require_supabase_user)):
+    return {
+        "authenticated": True,
+        "user": {
+            "id": user.get("id"),
+            "email": user.get("email"),
+        },
+    }
 
 
 @app.get("/roapp/orders", dependencies=[Depends(require_internal_auth)])

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """MARSEL full read-only backup controller.
 
-Consumes canonical V20.31 inventory and reads only explicitly documented GET
+Consumes canonical API inventory and reads only explicitly documented GET
 endpoints. Collection responses are paginated to the first short page; valid
 singleton/object responses are captured as one record. Any HTTP/schema/
 pagination failure makes the backup incomplete. No write request is possible
@@ -81,10 +81,16 @@ with httpx.Client(timeout=20) as c:
                     endpoint_error = f"HTTP {r.status_code}: {r.text[:500]}"
                     break
                 payload = r.json()
+                has_paging = False
+                total_pages = None
                 if isinstance(payload, dict):
                     data = payload.get("data")
                     if not isinstance(data, list):
                         data = payload.get("items")
+                    paging = payload.get("paging")
+                    has_paging = isinstance(paging, dict)
+                    if has_paging:
+                        total_pages = paging.get("total_pages") or paging.get("totalPages")
                     if isinstance(data, list):
                         response_kind = "collection"
                     else:
@@ -100,7 +106,16 @@ with httpx.Client(timeout=20) as c:
 
                 rows.extend(x for x in data if isinstance(x, dict))
                 pages_read += 1
-                if response_kind == "singleton" or len(data) < PAGE_SIZE:
+
+                # Only paginate when the live response explicitly exposes
+                # pagination metadata. A bare JSON list/dict collection is a
+                # complete singleton response; blindly adding page/limit to
+                # such endpoints can repeat the same 50 records indefinitely.
+                if response_kind == "singleton" or not has_paging:
+                    break
+                if isinstance(total_pages, int) and page >= total_pages:
+                    break
+                if len(data) < PAGE_SIZE:
                     break
                 page += 1
                 time.sleep(INTERVAL)

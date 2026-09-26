@@ -71,13 +71,12 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$HEAD_SHA"
-          RUN_ID="$(gh run list \
-            --repo "$GITHUB_REPOSITORY" \
-            --workflow "MARSEL Unified Control Plane" \
-            --branch main \
-            --limit 50 \
-            --json databaseId,headSha,conclusion \
-            --jq '.[] | select(.headSha == env.HEAD_SHA and .conclusion == "success") | .databaseId' \
+          RUN_ID="$(curl --fail --silent --show-error \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$HEAD_SHA&branch=main&per_page=100" \
+            | jq -r '.workflow_runs[] | select(.name == "MARSEL Unified Control Plane" and .head_sha == env.HEAD_SHA and .head_branch == "main" and .conclusion == "success") | .id' \
             | head -n 1)"
           test -n "$RUN_ID"
           echo "UNIFIED_CONTROL_PLANE_RUN_ID=$RUN_ID" >> "$GITHUB_ENV"
