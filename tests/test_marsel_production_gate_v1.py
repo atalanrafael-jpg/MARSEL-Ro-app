@@ -16,13 +16,13 @@ def test_secret_scan_allows_configuration_presence_flag(tmp_path: Path):
     [
         '{"api_key": "A" * 24}',
         '{"client_secret": "A" * 24}',
-        'Bearer ' + "A" * 24,
-        'ghp_' + "A" * 24,
-        '-----BEGIN PRIVATE KEY-----',
+        "Be" + "arer " + "A" * 24,
+        "gh" + "p" + "_" + "A" * 24,
+        "-" * 5 + "BEGIN PRIVATE KEY" + "-" * 5,
     ],
 )
 def test_secret_scan_rejects_credential_shaped_material(tmp_path: Path, payload: str):
-    # Expand the compact test fixtures without ever storing a real credential.
+    # Expand compact fixtures without storing a real credential or literal scanner token.
     payload = payload.replace('"A" * 24', '"' + 'A' * 24 + '"')
     evidence = tmp_path / "evidence.json"
     evidence.write_text(payload, encoding="utf-8")

@@ -1,15 +1,17 @@
 # MARSEL ROAPP — ЕДИНАЯ СИСТЕМА
 
-Дата контрольной ревизии: 2026-09-02
+Дата контрольной ревизии: 2026-09-18
 
 MARSEL и ROAPP — единая система Ювелирной студии MARSEL, а не независимые проекты.
 
 - MARSEL — бизнес-контур: клиенты, заказы, изделия, ремонт, производство, склад, материалы, финансы, продажи и маркетинг.
 - ROAPP — технологический контур той же системы: API, данные, интеграции, автоматизация, MCP и CI/CD.
+- Каноническая система: **MARSEL ROAPP**.
 - Канонический GitHub repository: `atalanrafael-jpg/MARSEL-Ro-app`.
-- Каноническая ветка: `main`.
+- Техническая каноническая ветка: `main`.
+- Ветка `main` является техническим источником истины для системы MARSEL ROAPP. `main-MARSEL-ROAPP` — историческая/legacy-ветка и не является канонической.
 - Канонический live audit control plane: `.github/workflows/marsel-unified-control-plane.yml`.
-- Исторические реализации находятся в `старые данные/` и не являются текущим источником истины.
+- Исторические реализации находятся в архивном/историческом контуре и не являются текущим источником истины.
 
 ## Canonical control plane
 
@@ -20,6 +22,27 @@ MARSEL и ROAPP — единая система Ювелирной студии 
 `API inventory → data quality → entity audit → product-code review → warehouse contract → safety gate → evidence`
 
 Все live-аудиты RO App выполняются READ-ONLY. Идентификаторы не угадываются. Недостаточные или конфликтующие доказательства дают `REVIEW_REQUIRED`, а не `PASS`.
+
+## Governed AI control plane
+
+AI является надстройкой над доказательствами, а не источником истины.
+
+`OBSERVE → VALIDATE → CLASSIFY → ASSESS_IMPACT → ASSESS_RISK → RECOMMEND → APPROVAL_GATE → ACTION → VERIFY → DOCUMENT`
+
+Автоматизация:
+
+`TRIGGER → VALIDATE → ACTION → LOG → VERIFY → ALERT`
+
+Нормализованный exception engine использует контролируемые категории: `FACTUAL`, `DUPLICATE`, `MISSING_DATA`, `INVALID_RELATION`, `CLASSIFICATION`, `CONFIGURATION`, `API`, `SECURITY`, `INTEGRATION`, `PERFORMANCE`, `LEGAL_TAX`, `UNVERIFIED`.
+
+Текущая AI/control-policy реализация находится в:
+
+- `config/marsel_ai_control_policy.json`
+- `scripts/marsel_exception_engine.py`
+- `tests/test_exception_engine.py`
+- `docs/MARSEL_AI_CONTROL_PLANE.md`
+
+Текущий exception engine не вызывает внешние сервисы и не выполняет production WRITE.
 
 ## Canonical implementations
 
@@ -44,9 +67,8 @@ MARSEL и ROAPP — единая система Ювелирной студии 
 
 ## Current external gates
 
-По последнему проверенному состоянию остаются открытыми:
+По текущему проверенному состоянию остаются открытыми:
 
-- backup/export и независимый restore/integrity test;
 - полнота текущего API/entity coverage;
 - официальный live warehouse-list contract;
 - классификация/актуальная reconciliation collision findings;
@@ -55,8 +77,14 @@ MARSEL и ROAPP — единая система Ювелирной студии 
 - credential-exposure remediation evidence;
 - GitHub account/ruleset/security controls, которые требуют account-level проверки.
 
+Уже имеющиеся backup/export и независимый restore/integrity evidence не повторяются без причины.
+
 ## Control rule
 
 Каждая существенная задача проходит `OBSERVE → MEASURE → FIND → FIX → TEST → VERIFY → DOCUMENT → MONITOR`.
 
-Старые успешные запуски не заменяют свежую проверку текущего `main`. `DONE` допускается только при наличии прямого evidence.
+Старые успешные запуски не заменяют свежую проверку текущей технической канонической ветки `main` системы MARSEL ROAPP. `DONE` допускается только при наличии прямого evidence.
+
+## Branch rule
+
+`main` — единственная техническая каноническая интеграционная ветка систем MARSEL ROAPP. `main-MARSEL-ROAPP`, `Main` и `main-MARSEL-ROAPP-PROTECTION` — неканонические compatibility/snapshot branches, синхронизированные с текущим `main`; они не являются отдельными системами.

@@ -1,6 +1,6 @@
-# MARSEL — MASTER Operating System V1
+# MARSEL ROAPP — MASTER Operating System V1
 
-Status: DESIGN / NOT LIVE IN RO APP
+Status: DESIGN / NOT LIVE IN MARSEL ROAPP
 
 ## 1. Business core
 MARSEL is organized into four operating contours:
@@ -141,4 +141,4 @@ Dashboard, automated reports, Exception Center, KPI and notifications.
 MARSEL canonical phone category is `mobile` / `Мобильный` only. Multiple numbers are allowed where needed, but all use the same category. Duplicate detection uses normalized numbers.
 
 ## 17. Safety / implementation boundary
-This document is the master design specification. It does not assert that every field, status or API operation exists in Ro App. Live schema, endpoint support, authentication, backup/restore and field mapping must be verified before production implementation.
+This document is the master design specification for MARSEL ROAPP. It does not assert that every field, status or API operation exists in the live ROAPP service. Live schema, endpoint support, authentication, backup/restore and field mapping must be verified before production implementation.

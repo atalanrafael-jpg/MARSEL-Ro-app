@@ -17,4 +17,19 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
       - name: Check Russian spelling and basic punctuation
-        run: python scripts/marsel_language_quality_check.py
+        id: quality-check
+        shell: bash
+        run: |
+          set +e
+          python scripts/marsel_language_quality_check.py | tee marsel-language-quality.txt
+          status=${PIPESTATUS[0]}
+          echo "quality_exit_code=$status" >> marsel-language-quality.txt
+          exit "$status"
+      - name: Upload language quality report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: marsel-language-quality-report
+          path: marsel-language-quality.txt
+          if-no-files-found: error
+          retention-days: 14

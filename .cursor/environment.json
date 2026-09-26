@@ -1,0 +1,10 @@
+{
+  "install": "python -m pip install --disable-pip-version-check --no-input -r requirements.lock",
+  "start": "python -m app.main",
+  "terminals": [
+    {
+      "name": "tests",
+      "command": "python -m pytest -q"
+    }
+  ]
+}

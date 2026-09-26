@@ -6,67 +6,16 @@ from collections import Counter
 from typing import Any
 
 import httpx
-from mcp.server.mcpserver import MCPServer
+from mcp.server import MCPServer
 
 BASE_URL = os.getenv("ROAPP_BASE_URL", "https://api.roapp.io/v2").rstrip("/")
 MAX_RETRIES = 3
 RETRYABLE = {408, 425, 429, 500, 502, 503, 504}
 
-GET_ORDERS_OUTPUT_SCHEMA = {
-    "type": "object",
-    "additionalProperties": True,
-}
-
-AUDIT_OUTPUT_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "pages_scanned": {"type": "integer", "minimum": 0},
-        "orders_scanned": {"type": "integer", "minimum": 0},
-        "identifiers_found": {"type": "integer", "minimum": 0},
-        "duplicate_identifiers": {"type": "array", "items": {"type": "string"}},
-        "missing_common_fields": {
-            "type": "object",
-            "properties": {
-                "id": {"type": "integer", "minimum": 0},
-                "status": {"type": "integer", "minimum": 0},
-            },
-            "required": ["id", "status"],
-            "additionalProperties": False,
-        },
-        "read_only": {"type": "boolean", "const": True},
-    },
-    "required": [
-        "pages_scanned",
-        "orders_scanned",
-        "identifiers_found",
-        "duplicate_identifiers",
-        "missing_common_fields",
-        "read_only",
-    ],
-    "additionalProperties": False,
-}
-
-CONNECTOR_OUTPUT_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "status": {"type": "string", "enum": ["ready", "not_configured"]},
-        "roapp_api_base_configured": {"type": "boolean"},
-        "roapp_api_key_configured": {"type": "boolean"},
-        "read_only": {"type": "boolean", "const": True},
-    },
-    "required": [
-        "status",
-        "roapp_api_base_configured",
-        "roapp_api_key_configured",
-        "read_only",
-    ],
-    "additionalProperties": False,
-}
-
 mcp = MCPServer(
-    "MARSEL RO App",
+    "MARSEL ROAPP",
     instructions=(
-        "Read-only MARSEL RO App inspection. Fetch orders, run bounded data-quality audits, "
+        "Read-only MARSEL ROAPP inspection. Fetch orders, run bounded data-quality audits, "
         "and report connector readiness. Never mutate upstream data."
     ),
 )
@@ -79,7 +28,7 @@ def _headers() -> dict[str, str]:
     return {
         "Authorization": f"Bearer {token}",
         "Accept": "application/json",
-        "User-Agent": "MARSEL-RoApp-Plugin/1.2",
+        "User-Agent": "MARSEL-ROAPP-Plugin/1.2",
     }
 
 
@@ -98,9 +47,9 @@ async def _get(path: str, params: dict[str, Any] | None = None) -> Any:
                     response.raise_for_status()
             except (httpx.TimeoutException, httpx.NetworkError) as exc:
                 if attempt >= MAX_RETRIES:
-                    raise RuntimeError(f"RO App API network error: {exc}") from exc
+                    raise RuntimeError(f"ROAPP API network error: {exc}") from exc
             await asyncio.sleep(min(0.75 * (2**attempt), 8))
-    raise RuntimeError("RO App API request failed")
+    raise RuntimeError("ROAPP API request failed")
 
 
 def _records(payload: Any) -> list[dict[str, Any]]:
@@ -139,23 +88,17 @@ def _audit(pages: list[Any]) -> dict[str, Any]:
     }
 
 
-@mcp.tool(
-    annotations={"title": "Get RO App orders", "readOnlyHint": True},
-    output_schema=GET_ORDERS_OUTPUT_SCHEMA,
-)
+@mcp.tool(annotations={"title": "Get MARSEL ROAPP orders", "readOnlyHint": True})
 async def get_orders(page: int = 1) -> dict[str, Any]:
-    """Fetch one RO App orders page without modifying data."""
+    """Fetch one MARSEL ROAPP orders page without modifying data."""
     if page < 1:
         raise ValueError("page must be >= 1")
     return await _get("orders", {"page": page})
 
 
-@mcp.tool(
-    annotations={"title": "Audit RO App orders", "readOnlyHint": True},
-    output_schema=AUDIT_OUTPUT_SCHEMA,
-)
+@mcp.tool(annotations={"title": "Audit MARSEL ROAPP orders", "readOnlyHint": True})
 async def audit_orders(max_pages: int = 10) -> dict[str, Any]:
-    """Run a bounded read-only order audit across 1-100 pages."""
+    """Run a bounded read-only MARSEL ROAPP order audit across 1-100 pages."""
     if not 1 <= max_pages <= 100:
         raise ValueError("max_pages must be between 1 and 100")
     pages: list[Any] = []
@@ -172,11 +115,10 @@ async def audit_orders(max_pages: int = 10) -> dict[str, Any]:
 
 
 @mcp.tool(
-    annotations={"title": "Check connector readiness", "readOnlyHint": True},
-    output_schema=CONNECTOR_OUTPUT_SCHEMA,
+    annotations={"title": "Check MARSEL ROAPP connector readiness", "readOnlyHint": True}
 )
 def connector_readiness() -> dict[str, Any]:
-    """Report non-secret configuration state without contacting RO App."""
+    """Report non-secret MARSEL ROAPP configuration state without contacting upstream."""
     key = bool(os.getenv("ROAPP_API_KEY"))
     return {
         "status": "ready" if key else "not_configured",
@@ -187,4 +129,7 @@ def connector_readiness() -> dict[str, Any]:
 
 
 if __name__ == "__main__":
-    mcp.run(transport="streamable-http", stateless_http=True, json_response=True)
+    # Local Codex/plugin hosts launch MCP servers as subprocesses over stdio.
+    # Streamable HTTP remains available when the host explicitly selects it,
+    # e.g. `uv run mcp run server.py --transport streamable-http`.
+    mcp.run()
